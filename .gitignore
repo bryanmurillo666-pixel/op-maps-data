@@ -1,0 +1,16 @@
+# Material de origen: guías, exports y recopilaciones. No hace falta para
+# que el sitio funcione (los datos ya están en assets/js) y son 5,7 MB que
+# quedarían descargables por cualquiera. Si los quieres versionar, borra
+# estas dos líneas.
+CONTEXTO/
+Personajes/
+
+# Prototipos y pruebas
+_*.html
+assets/js/_*.js
+
+# Cosas del editor y del sistema
+.claude/
+.vscode/
+Thumbs.db
+desktop.ini

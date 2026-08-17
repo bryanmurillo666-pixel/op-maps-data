@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi tripulación — OP-MAPS DATA</title>
+<meta name="description" content="Monta tu tripulación de OP-MAPS y consulta su poder, velocidad, bonus de rol y tiempos de conquista.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body data-page="crew" data-title-key="title.crew">
+
+<div id="site-header"></div>
+
+<main>
+  <div class="wrap">
+
+    <header class="page-head">
+      <h1 data-i18n="nav.crew">Mi tripulación</h1>
+      <p data-i18n="crew.lead">Monta tu tripulación y mira al momento lo que da de sí: poder, velocidad, qué bonus de rol tienes activos y cuánto tardarías en conquistar una isla. Se guarda en este navegador, solo para ti.</p>
+    </header>
+
+    <!-- arriba del todo, lo que da la tripulación entera -->
+    <div id="resumen"></div>
+
+    <!-- y debajo, dos columnas: la tripulación y lo que aporta cada rol -->
+    <div class="crew-cols">
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2 data-i18n="crew.members">Tripulantes</h2>
+          <span class="panel-count" id="count"></span>
+        </div>
+
+        <div class="add-row">
+          <input type="text" id="add" list="db" autocomplete="off"
+                 data-i18n-attr="placeholder:crew.add; aria-label:crew.add">
+          <button class="btn-add" id="addBtn" data-i18n="crew.addBtn">Añadir</button>
+        </div>
+        <p class="hint" id="hint"></p>
+
+        <div id="miembros"></div>
+      </section>
+
+      <div id="roles"></div>
+
+    </div>
+
+  </div>
+</main>
+
+<div id="site-footer"></div>
+
+<!-- lista de nombres para el autocompletado, la rellena crew.js -->
+<datalist id="db"></datalist>
+
+<script src="assets/js/i18n.js"></script>
+<script src="assets/js/site.js"></script>
+<script src="assets/js/characters.js"></script>
+<script src="assets/js/rules.js"></script>
+<script src="assets/js/crew-store.js"></script>
+<script src="assets/js/crew.js"></script>
+</body>
+</html>

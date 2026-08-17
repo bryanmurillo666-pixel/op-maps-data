@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data — OP-MAPS DATA</title>
+<meta name="description" content="Los 226 personajes de OP-MAPS: rol, lectores de poneglifos, FUE/NAV/INT, poder, vida, precio y score por táctica.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body data-page="data" data-title-key="title.data">
+
+<div id="site-header"></div>
+
+<main>
+  <div class="wrap">
+
+    <header class="page-head">
+      <h1 data-i18n="nav.data">Data</h1>
+      <p data-i18n="data.lead">Los 226 personajes del juego con todo lo que sale de sus stats: poder, vida, precio y lo que puntúan en cada táctica. Toca uno para abrir su ficha.</p>
+    </header>
+
+    <div class="data-col">
+
+      <!-- buscador, filtros y orden -->
+      <div class="toolbar">
+        <!-- lista o álbum: las dos formas de ver los mismos personajes -->
+        <div class="seg-ctrl" role="group" data-i18n-attr="aria-label:data.viewAria">
+          <button type="button" id="vList"  class="on" data-i18n="data.view.list">Lista</button>
+          <button type="button" id="vAlbum" data-i18n="data.view.album">Álbum</button>
+        </div>
+        <div class="grow">
+          <input type="search" id="search" autocomplete="off"
+                 data-i18n-attr="placeholder:data.search; aria-label:data.search">
+        </div>
+        <div class="grow">
+          <!-- las opciones las rellena data.js con el recuento de cada rol -->
+          <select id="roleFilter" data-i18n-attr="aria-label:data.roleAll"></select>
+        </div>
+        <div class="grow" id="sortWrap">
+          <select id="sortBy" data-i18n-attr="aria-label:data.sortBy"></select>
+        </div>
+        <button class="chip-btn" id="fReaders" type="button" aria-pressed="false" data-i18n="data.readers">Solo lectores</button>
+      </div>
+
+      <p class="count-line" id="count"></p>
+      <div class="list" id="list"></div>
+
+    </div>
+  </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="assets/js/i18n.js"></script>
+<script src="assets/js/site.js"></script>
+<script src="assets/js/characters.js"></script>
+<script src="assets/js/rules.js"></script>
+<script src="assets/js/data.js"></script>
+</body>
+</html>
