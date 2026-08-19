@@ -1,7 +1,7 @@
 /* ============================================================
    OP-MAPS DATA — página PvE
    ------------------------------------------------------------
-   Los números fijos salen de la guía v4.0; los de "tu situación"
+   Los números fijos salen de la guía v5.0; los de "tu situación"
    se calculan con lo que escribas y con tu tripulación guardada.
    ============================================================ */
 (function () {
@@ -9,14 +9,18 @@
   const R = window.RULES;
   const C = window.CREW;
 
-  /* Las constantes del PvE. Están aquí y no en rules.js porque solo las
-     usa esta página; si algún día las necesita otra, se mudan. */
+  /* Las constantes del PvE, de la guía v5.0. Están aquí y no en rules.js
+     porque solo las usa esta página; si algún día las necesita otra, se
+     mudan. */
   const PVE = {
     ORO_GANAR:  5000,
     ORO_PERDER: 500,
     OFERTA:     0.8,     // solo se tira si has ganado
-    CASCO:      525,     // daño al casco por derrota
-    VIDA:       0.34,    // lo que pierde cada uno de los tres
+    CASCO:      525,     // daño al casco por derrota, sea 2-1 o 3-0
+    VIDA:       0.34,    // vida que pierde quien PIERDE su duelo
+    VIDA_GANAR: 0.08,    // y la que pierde quien lo GANA: ganar también duele
+    CONTRA:     0.6,     // ×0.6 al daño recibido si contrarrestaste su táctica
+    MUSICO:     0.5,     // un Músico en pie parte el aturdimiento por la mitad
     ATURDE:     90       // minutos
   };
 
@@ -82,6 +86,28 @@
       if (R.duelWin(miPunto, miTac, suyas[suTac], suTac)) n++;
     }
     return n;
+  }
+
+  /* Lo que le cuesta el duelo a este personaje, en puntos de vida.
+     Ganar el duelo también duele (8 %), perderlo cuesta el 34 %, y haber
+     contrarrestado la táctica rival rebaja al 60 % lo que toque: el
+     contador te protege incluso cuando pierdes. */
+  function dano(c, miTac, suTac, gano){
+    const base = gano ? PVE.VIDA_GANAR : PVE.VIDA;
+    const mult = R.beats(miTac, suTac) ? PVE.CONTRA : 1;
+    return R.health(c) * base * mult;
+  }
+
+  /* Daño medio de ese puesto: la táctica del enemigo es un sorteo limpio
+     entre sus tres, así que se promedian los tres desenlaces posibles. */
+  function danoMedio(c, miTac, enemigo){
+    const suyas = R.scores(enemigo);
+    let suma = 0;
+    for (const suTac of R.TACTICS) {
+      const gano = R.duelWin(R.score(c, miTac), miTac, suyas[suTac], suTac);
+      suma += dano(c, miTac, suTac, gano);
+    }
+    return suma / R.TACTICS.length;
   }
 
   /* Probabilidad de ganar el combate a partir de las tres probabilidades
@@ -156,7 +182,7 @@
 
     const filas = ali.idx.map((k, i) => {
       const c = crew[k], puesto = ali.puestos[i];
-      const daño = R.health(c) * PVE.VIDA;
+      const daño = danoMedio(c, puesto.tac, enemigos[i]);
       return `<div class="linea">
         <span class="pos">${i + 1}</span>
         <span class="quien">
@@ -206,7 +232,10 @@
       const gano = R.duelWin(R.score(mio, miTac), miTac,
                              R.score(enemigos[i], suTac), suTac);
       if (gano) ganados++;
-      return { mio: mio, miTac: miTac, suyo: enemigos[i], suTac: suTac, gano: gano };
+      return { mio: mio, miTac: miTac, suyo: enemigos[i], suTac: suTac,
+               gano: gano,
+               dmg: dano(mio, miTac, suTac, gano),
+               contra: R.beats(miTac, suTac) };
     });
 
     const gana = ganados >= 2;
@@ -231,13 +260,22 @@
     const filas = duelos.map((d, i) => `<div class="duelo ${d.gano ? 'gano' : 'perdio'}">
       <span class="pos">${i + 1}</span>
       <span class="lado">
-        <b>${esc(nameOf(d.mio))}</b><i>${esc(t('tac.' + d.miTac))}</i>
+        <b>${esc(nameOf(d.mio))}</b>
+        <i>${esc(t('tac.' + d.miTac))} · −${num(d.dmg, 1)}${d.contra ? ' ×' + num(PVE.CONTRA, 1) : ''}</i>
       </span>
       <span class="marca">${d.gano ? '▸' : '◂'}</span>
       <span class="lado der">
         <b>${esc(nameOf(d.suyo))}</b><i>${esc(t('tac.' + d.suTac))}</i>
       </span>
     </div>`).join('');
+
+    /* Ganar también cuesta vida desde la v5.0, así que el desgaste se
+       enseña ganes o pierdas. El Músico solo recorta el aturdimiento si
+       sigue en pie al acabar; aquí no se lleva la vida real de nadie, así
+       que se da por hecho que lo está. */
+    const vidaTot = duelos.reduce((s, d) => s + d.dmg, 0);
+    const musico  = crew.some(c => c.r === 'Musician');
+    const aturde  = musico ? Math.floor(PVE.ATURDE * PVE.MUSICO) : PVE.ATURDE;
 
     const premio = gana
       ? `<p class="botin gana">+${num(PVE.ORO_GANAR)} ${esc(t('u.gold'))} · +1 ${esc(t('pve.k.victory')).toLowerCase()}</p>
@@ -246,7 +284,7 @@
               ? `${esc(t('pve.sim.offer'))}: <b>${esc(nameOf(oferta))}</b> · ${esc(t('rn.' + oferta.r))} · ${num(R.price(oferta))} ${esc(t('u.gold'))}`
               : esc(t('pve.sim.noOffer'))
           }</p>`
-      : `<p class="botin pierde">−${num(PVE.ORO_PERDER)} ${esc(t('u.gold'))} · −${num(PVE.CASCO)} ${esc(t('pve.k.hull')).toLowerCase()} · ${PVE.ATURDE} ${esc(t('u.min'))}</p>`;
+      : `<p class="botin pierde">−${num(PVE.ORO_PERDER)} ${esc(t('u.gold'))} · −${num(PVE.CASCO)} ${esc(t('pve.k.hull')).toLowerCase()} · ${aturde} ${esc(t('u.min'))}${musico ? ' · ' + esc(t('pve.sim.musician')) : ''}</p>`;
 
     return `<div class="sim-caja">
       <p class="sim-res ${gana ? 'win-hi' : 'win-lo'}">
@@ -254,6 +292,7 @@
       </p>
       <div class="duelos">${filas}</div>
       ${premio}
+      <p class="botin neutro">−${num(vidaTot, 1)} ${esc(t('pve.sim.health'))}</p>
       <p class="note">${esc(t('pve.sim.offerNote'))}</p>
     </div>`;
   }
@@ -302,18 +341,22 @@
     const caja = (valor, etiqueta, clase) =>
       `<div class="kpi-box ${clase}"><b>${valor}</b><span>${esc(etiqueta)}</span></div>`;
 
+    const pct = x => '−' + num(x * 100) + ' %';
+
     return `<div class="fila-fija">
       <h4 class="gana"   style="grid-column:span 2">${esc(t('pve.col.win'))}</h4>
-      <h4 class="neutro" style="grid-column:span 1">${esc(t('pve.col.mid'))}</h4>
+      <h4 class="neutro" style="grid-column:span 3">${esc(t('pve.col.mid'))}</h4>
       <h4 class="pierde" style="grid-column:span 4">${esc(t('pve.col.lose'))}</h4>
 
       ${caja('+' + num(PVE.ORO_GANAR), t('pve.k.gold') + ' · ' + t('u.gold'), 'gana')}
       ${caja('+1', t('pve.k.victory'), 'gana')}
       ${caja('80 %', t('pve.k.offer'), 'neutro')}
+      ${caja(pct(PVE.VIDA_GANAR), t('pve.k.charWin'), 'neutro')}
+      ${caja('×' + num(PVE.CONTRA, 1), t('pve.k.counter'), 'neutro')}
       ${caja('−' + num(PVE.ORO_PERDER), t('pve.k.goldLoss') + ' · ' + t('u.gold'), 'pierde')}
       ${caja(num(PVE.CASCO), t('pve.k.hull'), 'pierde')}
-      ${caja('34 %', t('pve.k.char'), 'pierde')}
-      ${caja('90 ' + t('u.min'), t('pve.k.stun'), 'pierde')}
+      ${caja(pct(PVE.VIDA), t('pve.k.char'), 'pierde')}
+      ${caja(PVE.ATURDE + ' ' + t('u.min'), t('pve.k.stun'), 'pierde')}
     </div>`;
   }
 

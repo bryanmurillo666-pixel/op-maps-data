@@ -1,5 +1,5 @@
 /* ============================================================
-   OP-MAPS DATA - las 155 islas del mapa y sus enemigos
+   OP-MAPS DATA - las 156 islas del mapa y sus enemigos
    ------------------------------------------------------------
    Sacado de CONTEXTO/Island.html.
 
@@ -156,6 +156,7 @@ window.ISLANDS = [
   {m:4, n:"Amazon lily", e:["Trafalgar Law", "Dellinger", "Pedro"]},
   {m:4, n:"G-2", e:["Belo Betty", "Daz Bonez", "Enel"]},
   {m:4, n:"Reverse mountain", e:["Lindbergh", "Tom", "Hibari"]},
+  {m:4, n:"Scrap island", e:["Momonosuke", "Jesus Burgess", "Pekoms"]},
   {m:5, n:"Island of rare animals", e:["Streusen", "Jack", "Monkey D. Dragon"]},
   {m:5, n:"Organ island", e:["X Drake", "Charlotte Smoothie", "Kuro"]},
   {m:5, n:"Conomi island", e:["Arlong", "Kuzan", "Lao G"]},

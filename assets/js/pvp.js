@@ -1,37 +1,52 @@
 /* ============================================================
-   OP-MAPS DATA — simulador PvP 3 vs 3
+   OP-MAPS DATA — PvP: rivales y plan de ataque
    ------------------------------------------------------------
-   Tu tripulación sale de crew-store.js; los rivales se escriben aquí.
-   Toda la puntuación y los duelos salen de rules.js.
+   Tu tripulación sale de crew-store.js y los rivales de
+   rivals-store.js. Toda la puntuación y los duelos, de rules.js.
 
-   La idea: conoces a los tres rivales, pero no en qué orden salen ni
-   qué táctica juega cada uno. Así que se prueban TODOS sus escenarios
-   (6 órdenes × 27 repartos de táctica = 162) contra todas tus
-   alineaciones posibles, y gana la que más veces se lleva 2 de 3.
+   La idea, ya con la guía v5.0 en la mano: las guardias de un rival
+   se pueden averiguar (los informes de combate se comparten y eso es
+   scouting legítimo), pero NO cuál de ellas te va a salir — el
+   servidor elige una al azar, uniforme, entre las que tenga, y no
+   excluye la que acaba de salir.
+
+   Así que aquí apuntas las guardias que le has visto y se prueba cada
+   plan de ataque posible contra todas ellas. La tasa de éxito es
+   exacta: guardias que le ganarías entre guardias que tiene.
    ============================================================ */
 (function () {
 
   const R  = window.RULES;
   const DB = window.CHARACTERS;
   const C  = window.CREW;
+  const RV = window.RIVALES;
 
-  /* Los 6 órdenes en que el rival puede colocar a sus tres. */
-  const ORDENES = [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
+  /* Lo que cuesta un combate, de la guía v5.0. El casco depende del
+     marcador; un 2-1 es "amplio" si el ganador suma al menos 1,25 veces
+     los puntos del perdedor. */
+  const PVP = {
+    VIDA:       0.34,   // el que pierde su duelo
+    VIDA_GANAR: 0.08,   // el que lo gana
+    CONTRA:     0.6,    // ×0,6 si contrarrestaste su táctica
+    AMPLIO:     1.25,
+    CASCO: {
+      tres:   { pierde: 0.35, gana: 0.05 },
+      amplio: { pierde: 0.25, gana: 0.10 },
+      ajust:  { pierde: 0.18, gana: 0.12 }
+    }
+  };
 
-  /* Los 27 repartos de táctica de tres luchadores. */
-  const REPARTOS = [];
-  for (const a of R.TACTICS) for (const b of R.TACTICS) for (const c of R.TACTICS) REPARTOS.push([a, b, c]);
-
-  let rivales = [];   // nombres en inglés
+  /* Los dos estados de un puesto rival que no es un luchador normal. */
+  const SIN = 'sin', CONCEDE = 'concede';
 
   const els = {
-    input:  document.getElementById('rivalAdd'),
-    addBtn: document.getElementById('rivalBtn'),
-    lista:  document.getElementById('rivalList'),
-    hint:   document.getElementById('rivalHint'),
-    calc:   document.getElementById('calcBtn'),
-    crew:   document.getElementById('miCrew'),
-    out:    document.getElementById('resultado'),
+    input:    document.getElementById('rivalAdd'),
+    addBtn:   document.getElementById('rivalBtn'),
+    lista:    document.getElementById('rivalList'),
+    hint:     document.getElementById('rivalHint'),
+    crew:     document.getElementById('miCrew'),
+    sel:      document.getElementById('planRival'),
+    out:      document.getElementById('resultado'),
     datalist: document.getElementById('db')
   };
 
@@ -42,7 +57,7 @@
   const nameOf = c => (isES() && c.es) ? c.es : c.n;
 
   function fold(s){
-    return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
   function esc(s){
     return String(s).replace(/[&<>"']/g, m => (
@@ -54,240 +69,379 @@
       minimumFractionDigits: dec || 0, maximumFractionDigits: dec || 0
     });
   }
-  const pct = p => Math.round(p * 100) + ' %';
+  const claseProb = p => p >= 0.6 ? 'win-hi' : (p >= 0.34 ? 'win-mid' : 'win-lo');
 
-  /* ---------- el combate ---------- */
+  /* Del texto escrito al nombre en inglés, que es el que se guarda.
+     Busca en los dos idiomas y sin acentos. */
+  function aClave(texto){
+    const q = fold(texto);
+    if (!q) return '';
+    if (q === RV.VACIO) return RV.VACIO;
+    const c = DB.find(x => fold(x.n) === q || (x.es && fold(x.es) === q));
+    return c ? c.n : '';
+  }
+  const porNombre = n => DB.find(x => x.n === n);
 
-  /* Probabilidad de ganar el combate con una alineación fija (tres
-     puntuaciones ya calculadas y sus tres tácticas) contra los tres
-     rivales, promediando sus 162 escenarios. Se gana con 2 de 3. */
-  function probabilidad(misPuntos, misTacticas, puntosRival){
-    let ganados = 0;
-    for (const orden of ORDENES) {
-      for (const suReparto of REPARTOS) {
-        let duelos = 0;
-        for (let p = 0; p < 3; p++) {
-          const suyo = orden[p];
-          if (R.duelWin(misPuntos[p], misTacticas[p],
-                        puntosRival[suyo][suReparto[p]], suReparto[p])) duelos++;
-        }
-        if (duelos >= 2) ganados++;
-      }
-    }
-    return ganados / (ORDENES.length * REPARTOS.length);
+  /* ---------- el cálculo ---------- */
+
+  /* Cómo defiende ese puesto: sin apuntar, concedido, o su puntuación
+     ya calculada. */
+  function defensor(p){
+    if (!p) return SIN;
+    if (p.n === RV.VACIO) return CONCEDE;
+    const c = porNombre(p.n);
+    if (!c) return SIN;
+    return { punto: R.score(c, p.t), tac: p.t, c: c };
   }
 
-  /* Todas las combinaciones de 3 entre n. */
-  function trios(n){
-    const out = [];
+  /* ¿Me llevo el puesto? Un puesto que no has apuntado cuenta como
+     PERDIDO a propósito: así la tasa que se enseña nunca peca de
+     optimista por lo que todavía no sabes. */
+  function ganoPuesto(miPunto, miTac, def){
+    if (def === SIN)     return false;
+    if (def === CONCEDE) return true;
+    return R.duelWin(miPunto, miTac, def.punto, def.tac);
+  }
+
+  /* El mejor plan: tres de los tuyos, en orden, cada uno con su táctica.
+     Se prueban todas las combinaciones contra todas las guardias y gana
+     la que más guardias se lleva. A igualdad, la que gana más duelos
+     sueltos, porque cada duelo perdido cuesta el 34 % de la vida. */
+  function mejorPlan(crew, guardias){
+    const T = R.TACTICS;
+    /* Precalculado: el bucle es grande y si no, R.score() se llamaría
+       cientos de miles de veces. */
+    const misPuntos = crew.map(c => T.map(tac => R.score(c, tac)));
+    const defs = guardias.map(g => g.map(defensor));
+    const n = crew.length;
+
+    let mejor = null;
     for (let a = 0; a < n; a++)
-      for (let b = a + 1; b < n; b++)
-        for (let c = b + 1; c < n; c++) out.push([a, b, c]);
-    return out;
-  }
-
-  /* Prueba cada trío tuyo con cada reparto de tácticas y se queda con
-     la mejor. Devuelve también la probabilidad máxima. */
-  function mejorAlineacion(mios, rivalesChars){
-    const misPuntuaciones = mios.map(R.scores);
-    const puntosRival = rivalesChars.map(R.scores);
-
-    let maxima = -1, mejor = null;
-
-    for (const [a, b, c] of trios(mios.length)) {
-      const tres = [misPuntuaciones[a], misPuntuaciones[b], misPuntuaciones[c]];
-      for (const reparto of REPARTOS) {
-        const puntos = [tres[0][reparto[0]], tres[1][reparto[1]], tres[2][reparto[2]]];
-        const p = probabilidad(puntos, reparto, puntosRival);
-        // Comparación con tolerancia: dos valores que "deberían" ser
-        // iguales no se separan por ruido de coma flotante.
-        if (p > maxima + 1e-9) {
-          maxima = p;
-          mejor = { idx: [a, b, c], tacticas: reparto.slice(), puntos: puntos };
+    for (let b = 0; b < n; b++){ if (b === a) continue;
+    for (let c = 0; c < n; c++){ if (c === a || c === b) continue;
+      for (let x = 0; x < 3; x++)
+      for (let y = 0; y < 3; y++)
+      for (let z = 0; z < 3; z++){
+        let ganadas = 0, duelos = 0;
+        for (let g = 0; g < defs.length; g++){
+          const d = defs[g];
+          let k = 0;
+          if (ganoPuesto(misPuntos[a][x], T[x], d[0])) k++;
+          if (ganoPuesto(misPuntos[b][y], T[y], d[1])) k++;
+          if (ganoPuesto(misPuntos[c][z], T[z], d[2])) k++;
+          duelos += k;
+          if (k >= 2) ganadas++;
+        }
+        if (!mejor || ganadas > mejor.ganadas ||
+            (ganadas === mejor.ganadas && duelos > mejor.duelos)){
+          mejor = { ganadas: ganadas, duelos: duelos,
+                    idx: [a, b, c], tac: [T[x], T[y], T[z]] };
         }
       }
-    }
-    return { prob: maxima, alineacion: mejor, puntosRival: puntosRival };
+    }}
+    return mejor;
   }
 
-  /* La puntuación más baja que puede tener quien ocupe una posición sin
-     que baje la probabilidad, dejando las otras dos fijas. Búsqueda
-     binaria: si con 'medio' la probabilidad no cambia, se puede bajar más. */
-  function umbral(puntos, tacticas, puntosRival, pos, base){
-    let bajo = 0, alto = puntos[pos];
-    for (let paso = 0; paso < 40; paso++) {
-      const medio = (bajo + alto) / 2;
-      const prueba = puntos.slice();
-      prueba[pos] = medio;
-      if (Math.abs(probabilidad(prueba, tacticas, puntosRival) - base) < 1e-9) alto = medio;
-      else bajo = medio;
-    }
-    return alto;
+  /* ---------- pintado: los rivales ---------- */
+
+  function opcionesTactica(sel){
+    return R.TACTICS.map(tac =>
+      '<option value="' + tac + '"' + (tac === sel ? ' selected' : '') + '>' +
+      esc(t('tac.' + tac)) + '</option>'
+    ).join('');
   }
 
-  /* Fuerza individual: uno de los tuyos contra cada rival y cada táctica
-     rival. Nueve escenarios por táctica tuya. */
-  function individual(mio, rivalesChars){
-    const mias = R.scores(mio);
-    const suyas = rivalesChars.map(R.scores);
-    const total = rivalesChars.length * R.TACTICS.length;
-
-    const porTactica = {};
-    for (const miTac of R.TACTICS) {
-      let ganados = 0;
-      for (let r = 0; r < rivalesChars.length; r++)
-        for (const suTac of R.TACTICS)
-          if (R.duelWin(mias[miTac], miTac, suyas[r][suTac], suTac)) ganados++;
-      porTactica[miTac] = ganados / total;
-    }
-    let mejor = R.TACTICS[0];
-    for (const tac of R.TACTICS) if (porTactica[tac] > porTactica[mejor]) mejor = tac;
-    return { personaje: mio, mejor: mejor, prob: porTactica[mejor], porTactica: porTactica };
+  function puestoHTML(p, i){
+    const c = (p && p.n !== RV.VACIO) ? porNombre(p.n) : null;
+    const valor = p ? (p.n === RV.VACIO ? RV.VACIO : (c ? nameOf(c) : '')) : '';
+    return `<div class="puesto" data-p="${i}">
+      <span class="pos">${i + 1}</span>
+      <input class="p-n" list="db" autocomplete="off" value="${esc(valor)}"
+             placeholder="${esc(t('pvp.riv.slot'))}"
+             aria-label="${esc(t('pvp.riv.slot'))} ${i + 1}">
+      <select class="p-t" aria-label="${esc(t('pvp.riv.tac'))}">${opcionesTactica(p ? p.t : R.TACTICS[0])}</select>
+    </div>`;
   }
 
-  /* ---------- pintado ---------- */
+  function rivalHTML(r){
+    const guardias = r.g.map((g, gi) => `<div class="guardia" data-g="${gi}">
+      <div class="guardia-cab">
+        <h5>${esc(t('pvp.riv.guard'))} ${gi + 1}</h5>
+        ${r.g.length > 1 ? `<button type="button" class="btn-x g-del">${esc(t('pvp.riv.gDel'))}</button>` : ''}
+      </div>
+      <div class="puestos">${g.map(puestoHTML).join('')}</div>
+    </div>`).join('');
 
-  function claseProb(p){ return p >= 0.6 ? 'win-hi' : (p >= 0.34 ? 'win-mid' : 'win-lo'); }
+    return `<div class="rival-card" data-id="${esc(r.id)}">
+      <div class="rival-top">
+        <input class="rival-nom" value="${esc(r.n)}" maxlength="40"
+               aria-label="${esc(t('pvp.riv.name'))}">
+        <button type="button" class="btn-x rival-del">${esc(t('pvp.riv.del'))}</button>
+      </div>
+      ${guardias}
+      ${r.g.length < RV.GUARDIAS
+        ? `<button type="button" class="btn-mini g-add">+ ${esc(t('pvp.riv.guard'))}</button>`
+        : `<p class="hint">${esc(t('pvp.riv.full'))}</p>`}
+    </div>`;
+  }
+
+  function listaHTML(){
+    const rs = RV.lista();
+    if (!rs.length) return `<p class="hint">${esc(t('pvp.riv.none'))}</p>`;
+    return `<div class="rivales">${rs.map(rivalHTML).join('')}</div>`;
+  }
+
+  /* ---------- pintado: tu tripulación ---------- */
 
   function crewHTML(){
     const crew = C.personajes();
-    if (!crew.length) return `<p class="empty">${esc(t('pvp.sim.empty'))}</p>`;
-    return `<div class="mini-crew">${crew.map(c =>
-      `<span class="mini-chip">${esc(nameOf(c))}</span>`).join('')}</div>
-      ${crew.length < 3 ? `<p class="hint err">${esc(t('pvp.sim.few'))}</p>` : ''}`;
-  }
-
-  function rivalesHTML(){
-    if (!rivales.length) return '';
-    return `<div class="mini-crew">${rivales.map(n => {
-      const c = DB.find(x => x.n === n);
-      return `<span class="mini-chip rival">${esc(nameOf(c))}
-        <button class="mini-rm" type="button" data-name="${esc(n)}" aria-label="×">×</button></span>`;
+    if (!crew.length) return `<p class="hint">${esc(t('pvp.sim.empty'))}</p>`;
+    return `<div class="mini-crew">${crew.map(c => {
+      const tac = R.bestTactic(c);
+      return `<span class="mini-chip"><b>${esc(nameOf(c))}</b><i>${esc(t('tac.' + tac))} ${num(R.score(c, tac))}</i></span>`;
     }).join('')}</div>`;
   }
 
-  function resultadoHTML(){
-    const mios = C.personajes();
-    const suyos = rivales.map(n => DB.find(x => x.n === n));
+  /* ---------- pintado: el plan ---------- */
 
-    const res = mejorAlineacion(mios, suyos);
-    const ali = res.alineacion;
+  let ultimoPlan = null;
 
-    const filas = ali.idx.map((k, i) => {
-      const c = mios[k];
-      const min = umbral(ali.puntos, ali.tacticas, res.puntosRival, i, res.prob);
+  function planHTML(){
+    ultimoPlan = null;
+    const r = RV.porId(els.sel.value);
+    if (!r) return `<p class="hint">${esc(t('pvp.plan.pick2'))}</p>`;
+
+    const crew = C.personajes();
+    if (crew.length < 3) {
+      return `<p class="hint">${esc(t(crew.length ? 'pvp.sim.few' : 'pvp.sim.empty'))}</p>`;
+    }
+
+    const plan = mejorPlan(crew, r.g);
+    const prob = plan.ganadas / r.g.length;
+    ultimoPlan = { r: r, crew: crew, plan: plan };
+
+    // Puestos sin apuntar: dicen lo fiable que es el número de arriba.
+    let sinApuntar = 0;
+    r.g.forEach(g => g.forEach(p => { if (!p) sinApuntar++; }));
+
+    const filas = plan.idx.map((k, i) => {
+      const c = crew[k], tac = plan.tac[i];
+      const miPunto = R.score(c, tac);
+      const detalle = r.g.map((g, gi) => {
+        const def = defensor(g[i]);
+        const gano = ganoPuesto(miPunto, tac, def);
+        const quien = def === SIN ? '?' : (def === CONCEDE ? '—' : nameOf(def.c));
+        const clase = def === SIN ? 'vs-sin' : (gano ? 'vs-gano' : 'vs-perdio');
+        return `<span class="vs ${clase}" title="${esc(t('pvp.riv.guard'))} ${gi + 1}">${esc(quien)}</span>`;
+      }).join('');
+      const seg = tac === 'Assault' ? 'f' : (tac === 'Manoeuvre' ? 'v' : 'i');
       return `<div class="linea">
         <span class="pos">${i + 1}</span>
         <span class="quien">
           <b>${esc(nameOf(c))}</b>
-          <i>${esc(t('tac.' + ali.tacticas[i]))} · ${esc(t('rn.' + c.r))}</i>
+          <i>${esc(t('rn.' + c.r))}</i>
         </span>
-        <span class="puntos">
-          <b>${num(ali.puntos[i])}</b>
-          <i>${esc(t('pvp.sim.min'))} ${num(min)}</i>
+        <span class="tac-pill tac-${seg}">${esc(t('tac.' + tac))} · ${num(miPunto)}</span>
+        <span class="contras">${detalle}</span>
+      </div>`;
+    }).join('');
+
+    return `<h3 class="sub-tit">${esc(t('pvp.plan.rate'))}</h3>
+      <p class="gran-prob ${claseProb(prob)}">${num(prob * 100)} %</p>
+      <p class="hint">${esc(t('pvp.plan.of'))} ${plan.ganadas} / ${r.g.length}</p>
+
+      <h3 class="sub-tit">${esc(t('pvp.plan.line'))}</h3>
+      <div class="alineacion">${filas}</div>
+
+      ${sinApuntar ? `<p class="aviso-cambio"><b>${esc(t("pvp.plan.holesT"))}</b><span>${esc(t("pvp.plan.holes"))} ${sinApuntar}</span></p>` : ""}
+
+      <button class="btn-calc" id="simBtn" type="button">${esc(t('pvp.plan.sim'))}</button>
+      <div id="simOut"></div>
+
+      <p class="note">${t('pvp.plan.how')}</p>`;
+  }
+
+  /* ---------- simular un abordaje ---------- */
+
+  function dano(c, miTac, suTac, gano){
+    const base = gano ? PVP.VIDA_GANAR : PVP.VIDA;
+    const mult = (suTac && R.beats(miTac, suTac)) ? PVP.CONTRA : 1;
+    return R.health(c) * base * mult;
+  }
+
+  function simularHTML(){
+    if (!ultimoPlan) return '';
+    const r = ultimoPlan.r, crew = ultimoPlan.crew, plan = ultimoPlan.plan;
+
+    // El servidor elige una guardia al azar, y ninguna queda excluida.
+    const gi = Math.floor(Math.random() * r.g.length);
+    const guardia = r.g[gi];
+
+    let mios = 0, suyos = 0;
+    const duelos = plan.idx.map((k, i) => {
+      const c = crew[k], tac = plan.tac[i];
+      const def = defensor(guardia[i]);
+      const miPunto = R.score(c, tac);
+      const gano = ganoPuesto(miPunto, tac, def);
+      mios  += miPunto;
+      suyos += (def === SIN || def === CONCEDE) ? 0 : def.punto;
+      /* Un puesto que el rival concede no tiene a nadie enfrente, así que
+         no cuesta vida. Uno sin apuntar sí: se cuenta como duelo perdido
+         para no dar un número más bonito de lo que sabes. */
+      const dmg = (def === CONCEDE) ? 0
+                : dano(c, tac, def === SIN ? null : def.tac, gano);
+      return { c: c, tac: tac, def: def, gano: gano, dmg: dmg };
+    });
+
+    const ganados = duelos.filter(d => d.gano).length;
+    const gana = ganados >= 2;
+
+    // Casco: 3-0, o 2-1 amplio/ajustado según la suma de puntos.
+    let tipo;
+    if (ganados === 3 || ganados === 0) tipo = 'tres';
+    else {
+      const alto = gana ? mios : suyos, bajo = gana ? suyos : mios;
+      tipo = (bajo <= 0 || alto / bajo >= PVP.AMPLIO) ? 'amplio' : 'ajust';
+    }
+    const casco = PVP.CASCO[tipo];
+    const miCasco = gana ? casco.gana : casco.pierde;
+    const etiqueta = tipo === 'tres' ? (ganados === 3 ? '3-0' : '0-3')
+                   : t(tipo === 'amplio' ? 'pvp.hull.wide' : 'pvp.hull.tight');
+
+    const filas = duelos.map((d, i) => {
+      const quien = d.def === SIN ? '?' : (d.def === CONCEDE ? '—' : nameOf(d.def.c));
+      const suTac = (d.def === SIN || d.def === CONCEDE) ? '' : t('tac.' + d.def.tac);
+      return `<div class="duelo ${d.gano ? 'gano' : 'perdio'}">
+        <span class="pos">${i + 1}</span>
+        <span class="lado">
+          <b>${esc(nameOf(d.c))}</b>
+          <i>${esc(t('tac.' + d.tac))} · −${num(d.dmg, 1)}</i>
+        </span>
+        <span class="marca">${d.gano ? '▸' : '◂'}</span>
+        <span class="lado der">
+          <b>${esc(quien)}</b><i>${esc(suTac)}</i>
         </span>
       </div>`;
     }).join('');
 
-    const ranking = mios.map(c => individual(c, suyos))
-      .sort((a, b) => b.prob - a.prob)
-      .map((a, i) => {
-        const desglose = R.TACTICS.map(tac =>
-          `<span${tac === a.mejor ? ' class="on"' : ''}>${esc(t('ta.' + tac))} ${pct(a.porTactica[tac])}</span>`
-        ).join('');
-        return `<div class="rank">
-          <div class="rank-top">
-            <span class="idx">${i + 1}</span>
-            <span class="nom">${esc(nameOf(a.personaje))}</span>
-            <span class="tac-badge">${esc(t('tac.' + a.mejor))}</span>
-            <span class="pc ${claseProb(a.prob)}">${pct(a.prob)}</span>
-          </div>
-          <div class="barra"><span style="width:${Math.round(a.prob * 100)}%"></span></div>
-          <div class="desglose">${desglose}</div>
-        </div>`;
-      }).join('');
+    const vidaTot = duelos.reduce((s, d) => s + d.dmg, 0);
 
-    return `<section class="panel">
-      <h2>${esc(t('pvp.sim.prob'))}</h2>
-      <p class="gran-prob ${claseProb(res.prob)}">${pct(res.prob)}</p>
+    return `<div class="sim-caja">
+      <p class="hint">${esc(t('pvp.plan.rolled'))} <b>${esc(t('pvp.riv.guard'))} ${gi + 1}</b></p>
+      <p class="sim-res ${gana ? 'win-hi' : 'win-lo'}">
+        ${ganados}-${3 - ganados} · ${esc(t(gana ? 'pvp.plan.win' : 'pvp.plan.lose'))}
+      </p>
+      <div class="duelos">${filas}</div>
+      <p class="botin ${gana ? 'gana' : 'pierde'}">${esc(t('pvp.plan.hull'))}: −${num(miCasco * 100)} % · ${esc(etiqueta)}</p>
+      <p class="botin neutro">−${num(vidaTot, 1)} ${esc(t('pve.sim.health'))}</p>
+    </div>`;
+  }
 
-      <h3 class="sub-tit">${esc(t('pvp.sim.line'))}</h3>
-      <div class="alineacion">${filas}</div>
-      <p class="note">${t('pvp.sim.minNote')}</p>
-      <p class="note">${t('pvp.sim.how')}</p>
-    </section>
+  /* ---------- montaje ---------- */
 
-    <section class="panel">
-      <h2>${esc(t('pvp.sim.indiv'))}</h2>
-      <div class="rank-list">${ranking}</div>
-      <p class="note">${esc(t('pvp.sim.indivNote'))}</p>
-    </section>`;
+  function llenarSelect(){
+    const antes = els.sel.value;
+    els.sel.innerHTML = `<option value="">${esc(t('pvp.plan.none'))}</option>` +
+      RV.lista().map(r => `<option value="${esc(r.id)}">${esc(r.n)}</option>`).join('');
+    els.sel.value = antes;
+    if (els.sel.selectedIndex === -1) els.sel.value = '';
+  }
+
+  function rellenarDatalist(){
+    els.datalist.innerHTML = DB.map(c => `<option value="${esc(nameOf(c))}"></option>`).join('');
   }
 
   function render(){
     els.crew.innerHTML  = crewHTML();
-    els.lista.innerHTML = rivalesHTML();
-    const listo = C.personajes().length >= 3 && rivales.length === 3;
-    els.calc.disabled = !listo;
-    els.input.disabled = rivales.length >= 3;
-    els.addBtn.disabled = rivales.length >= 3;
+    els.lista.innerHTML = listaHTML();
+    llenarSelect();
+    els.out.innerHTML   = planHTML();
   }
 
-  function rellenarDatalist(){
-    els.datalist.innerHTML = DB.map(nameOf)
-      .sort((a, b) => a.localeCompare(b, isES() ? 'es' : 'en'))
-      .map(n => `<option value="${esc(n)}"></option>`).join('');
-  }
-
-  /* ---------- eventos ---------- */
-
-  let avisoTimer;
+  let avisoTimer = null;
   function aviso(clave){
     els.hint.textContent = t(clave);
     els.hint.classList.add('err');
     clearTimeout(avisoTimer);
-    avisoTimer = setTimeout(() => { els.hint.textContent = ''; els.hint.classList.remove('err'); }, 2800);
+    avisoTimer = setTimeout(() => {
+      els.hint.textContent = '';
+      els.hint.classList.remove('err');
+    }, 2800);
   }
 
-  function añadirRival(){
-    const escrito = els.input.value.trim();
-    if (!escrito) return;
-    const buscado = fold(escrito);
-    const c = DB.find(x => fold(x.n) === buscado || (x.es && fold(x.es) === buscado));
-    if (!c) { aviso('pvp.sim.notFound'); return; }
-    if (rivales.indexOf(c.n) !== -1) { aviso('pvp.sim.dupe'); return; }
-    rivales.push(c.n);
+  /* ---------- eventos ---------- */
+
+  function anadirRival(){
+    const id = RV.añadir(els.input.value);
+    if (!id) { aviso('pvp.riv.bad'); return; }
     els.input.value = '';
-    els.out.innerHTML = '';
     render();
+    els.sel.value = id;
+    els.out.innerHTML = planHTML();
     els.input.focus();
   }
 
-  els.addBtn.addEventListener('click', añadirRival);
-  els.input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); añadirRival(); }
-  });
+  els.addBtn.addEventListener('click', anadirRival);
+  els.input.addEventListener('keydown', e => { if (e.key === 'Enter') anadirRival(); });
 
+  // Botones de las tarjetas: borrar rival, quitar guardia, añadir guardia.
   els.lista.addEventListener('click', e => {
-    const b = e.target.closest('.mini-rm');
-    if (!b) return;
-    rivales = rivales.filter(n => n !== b.dataset.name);
-    els.out.innerHTML = '';
-    render();
+    const card = e.target.closest('.rival-card');
+    if (!card) return;
+    const id = card.dataset.id;
+    if (e.target.closest('.rival-del')) { RV.borrar(id); render(); return; }
+    if (e.target.closest('.g-add'))     { RV.addGuardia(id); render(); return; }
+    const gDel = e.target.closest('.g-del');
+    if (gDel) {
+      RV.delGuardia(id, Number(gDel.closest('.guardia').dataset.g));
+      render();
+    }
   });
 
-  els.calc.addEventListener('click', () => {
-    els.out.innerHTML = resultadoHTML();
-    els.out.scrollIntoView({ block: 'nearest' });
+  /* Los campos se guardan al salir del campo (change), no en cada tecla:
+     repintar mientras escribes te quitaría el foco. */
+  els.lista.addEventListener('change', e => {
+    const card = e.target.closest('.rival-card');
+    if (!card) return;
+    const id = card.dataset.id;
+
+    if (e.target.classList.contains('rival-nom')) {
+      RV.renombrar(id, e.target.value);
+      llenarSelect();
+      els.out.innerHTML = planHTML();
+      return;
+    }
+
+    const puesto = e.target.closest('.puesto');
+    if (!puesto) return;
+    const gi    = Number(puesto.closest('.guardia').dataset.g);
+    const pos   = Number(puesto.dataset.p);
+    const campo = puesto.querySelector('.p-n');
+    const tac   = puesto.querySelector('.p-t').value;
+    const clave = aClave(campo.value);
+
+    if (campo.value.trim() && !clave) {
+      campo.classList.add('err');
+      aviso('pvp.riv.notFound');
+      return;
+    }
+    campo.classList.remove('err');
+    // Se reescribe con el nombre tal cual lo llama el juego en este idioma.
+    if (clave && clave !== RV.VACIO) campo.value = nameOf(porNombre(clave));
+    RV.setPuesto(id, gi, pos, clave, tac);
+    els.out.innerHTML = planHTML();
   });
 
-  document.addEventListener('langchange', () => {
-    rellenarDatalist();
-    render();
-    if (els.out.innerHTML) els.out.innerHTML = resultadoHTML();
+  els.sel.addEventListener('change', () => { els.out.innerHTML = planHTML(); });
+
+  els.out.addEventListener('click', e => {
+    if (!e.target.closest('#simBtn')) return;
+    const salida = document.getElementById('simOut');
+    if (salida) salida.innerHTML = simularHTML();
   });
 
-  /* ---------- arranque ---------- */
+  document.addEventListener('langchange', () => { rellenarDatalist(); render(); });
+
   rellenarDatalist();
   render();
 })();

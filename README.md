@@ -17,7 +17,7 @@ listo. Todo es HTML, CSS y JavaScript sin dependencias.
 | `index.html` | Portada con los seis menús |
 | `data.html` | Los 226 personajes, en lista o en álbum por capítulos |
 | `crew.html` | Tu tripulación: poder, velocidad, bonus de rol y a quién sobra |
-| `pve.html` | Las 155 islas con sus enemigos, y qué alineación gana en cada una |
+| `pve.html` | Las 156 islas con sus enemigos, y qué alineación gana en cada una |
 | `pvp.html` | Simulador 3v3 contra las guardias rivales |
 | `tips.html` | Consejos |
 | `guide.html` | La guía del jugador |
@@ -28,7 +28,7 @@ assets/js/i18n.js        los textos en español e inglés
 assets/js/site.js        cabecera y pie compartidos
 assets/js/rules.js       las fórmulas del juego, en un solo sitio
 assets/js/characters.js  los 226 personajes
-assets/js/islands.js     las 155 islas y sus enemigos
+assets/js/islands.js     las 156 islas y sus enemigos
 assets/js/items.js       los 14 objetos de la tienda
 ```
 

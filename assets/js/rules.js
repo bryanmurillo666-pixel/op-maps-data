@@ -135,15 +135,27 @@ window.RULES = (function () {
 
   function isUsefulRole(role){ return USEFUL_ROLES.indexOf(role) !== -1; }
 
+  /* Roles cuyo efecto es del BARCO y no depende de que su portador pelee:
+     valen aunque su puntuacion sea mala, asi que protegen a quien los lleva.
+     Swordsman NO esta en la lista a proposito: su unico efecto es el x1.10
+     en Asalto, que solo se cobra si de verdad sale a una guardia. Un
+     espadachin que no pelea no aporta nada que otro no pueda aportar. */
+  const PASSIVE_ROLES = [
+    'Captain', 'Commander', 'Musician', 'Sniper', 'Helmsman', 'Navigator',
+    'Archaeologist', 'Doctor', 'Cook', 'Shipwright'
+  ];
+
+  function hasPassiveRole(role){ return PASSIVE_ROLES.indexOf(role) !== -1; }
+
   // Un personaje lee poneglifos por rol (1) o por sangre Kozuki (2).
   function isReader(c){ return c.rd > 0; }
 
   return {
     COUNTER, AFFINITY, HULL, MAX_CREW,
-    TACTICS, BEATS, ROLE_FOR, USEFUL_ROLES,
+    TACTICS, BEATS, ROLE_FOR, USEFUL_ROLES, PASSIVE_ROLES,
     total, power, health, price, speedShare, searchShare,
     score, scores, bestTactic, hasAffinity,
     crewSpeed, crewPower, rpChance, conquestTime, supplies, SUPPORT_ROLES,
-    beats, duelWin, isUsefulRole, isReader
+    beats, duelWin, isUsefulRole, hasPassiveRole, isReader
   };
 })();

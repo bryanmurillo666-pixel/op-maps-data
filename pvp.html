@@ -58,26 +58,35 @@
       <p class="parrafo" data-i18n-html="pvp.tri.d"></p>
     </section>
 
-    <!-- el simulador -->
+    <!-- los rivales que vas descubriendo -->
     <section class="panel">
-      <h2 data-i18n="pvp.sim.t">Simulador 3 vs 3</h2>
+      <h2 data-i18n="pvp.riv.t">Rivales</h2>
+      <p class="parrafo" data-i18n-html="pvp.riv.d"></p>
+      <div class="add-row">
+        <input type="text" id="rivalAdd" autocomplete="off"
+               data-i18n-attr="placeholder:pvp.riv.ph; aria-label:pvp.riv.ph">
+        <button class="btn-add" id="rivalBtn" data-i18n="pvp.riv.add">Añadir rival</button>
+      </div>
+      <p class="hint" id="rivalHint"></p>
+      <div id="rivalList"></div>
+    </section>
+
+    <!-- el plan de ataque contra uno de ellos -->
+    <section class="panel">
+      <h2 data-i18n="pvp.plan.t">Tu plan de ataque</h2>
 
       <h3 class="sub-tit" data-i18n="pvp.sim.crew">Tu tripulación sale de Mi tripulación</h3>
       <div id="miCrew"></div>
 
-      <h3 class="sub-tit" data-i18n="pvp.sim.rivals">Los 3 del rival</h3>
-      <div class="add-row">
-        <input type="text" id="rivalAdd" list="db" autocomplete="off"
-               data-i18n-attr="placeholder:pvp.sim.rivalPh; aria-label:pvp.sim.rivalPh">
-        <button class="btn-add" id="rivalBtn" data-i18n="pvp.sim.add">Añadir</button>
+      <div class="pve-form">
+        <label class="campo campo-ancho">
+          <span data-i18n="pvp.plan.pick">Contra quién</span>
+          <select id="planRival" class="isla-select"></select>
+        </label>
       </div>
-      <p class="hint" id="rivalHint"></p>
-      <div id="rivalList"></div>
 
-      <button class="btn-calc" id="calcBtn" disabled data-i18n="pvp.sim.calc">Calcular</button>
+      <div id="resultado"></div>
     </section>
-
-    <div id="resultado"></div>
 
     <!-- las reglas -->
     <section class="panel">
@@ -169,6 +178,7 @@
 <script src="assets/js/characters.js"></script>
 <script src="assets/js/rules.js"></script>
 <script src="assets/js/crew-store.js"></script>
+<script src="assets/js/rivals-store.js"></script>
 <script src="assets/js/pvp.js"></script>
 </body>
 </html>

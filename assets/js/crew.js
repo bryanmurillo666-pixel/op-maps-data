@@ -185,7 +185,9 @@
     /* --- candidatos --- */
     const cuentaRol = {};
     crew.forEach(c => { cuentaRol[c.r] = (cuentaRol[c.r] || 0) + 1; });
-    const sinBonus = c => !R.isUsefulRole(c.r) || cuentaRol[c.r] > 1;
+    // Solo escuda un rol cuyo efecto sea del barco. El x1.10 de afinidad no
+    // escuda a nadie: si no entra en ninguna guardia, no lo llega a cobrar.
+    const sinBonus = c => !R.hasPassiveRole(c.r) || cuentaRol[c.r] > 1;
 
     let candidatos = crew.filter(c => !protegidos[c.n] && sinBonus(c));
     if (!candidatos.length) candidatos = crew.filter(c => !protegidos[c.n]);
@@ -210,6 +212,8 @@
       razon = t('crew.why.dup') + (otro ? ' (' + nameOf(otro) + ')' : '');
     } else if (!R.isUsefulRole(peor.r)) {
       razon = t('crew.why.flavour');
+    } else if (!R.hasPassiveRole(peor.r)) {
+      razon = t('crew.why.affinity');
     } else {
       razon = t('crew.why.weak');
     }
