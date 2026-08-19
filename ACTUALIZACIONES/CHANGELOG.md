@@ -5,6 +5,50 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.3.0 — 19 ago 2026
+
+El PvP responde ahora las dos mitades: cómo le ganas y cómo te defiendes.
+
+### Sus guardias, por lista
+
+En una guardia suya solo puede haber gente suya, así que el puesto pasa de
+campo de texto contra los 226 a un **desplegable con su tripulación**, más
+«sin averiguar» y «puesto vacío». Si en el guardado hubiera alguien que ya
+no está en su tripulación, se le deja como opción para no borrarlo por la
+espalda.
+
+### Tus guardias contra él
+
+Panel nuevo, y es el problema espejo. Cambian tres cosas respecto al ataque:
+
+- **El empate es tuyo**: defendiendo basta con igualar.
+- **Él elige un plan y el servidor sortea una de tus guardias.** Él apunta a un
+  sitio y tú repartes el riesgo entre tres. Lo que decide no es tener una
+  guardia buenísima, sino que **ninguna jugada suya se lleve varias a la vez**.
+- **No sabes con qué va a atacar**, así que se mide contra todos los planes que
+  podría montar con su tripulación.
+
+Se prueban todas las guardias que puedes montar contra todos sus ataques
+posibles y se eligen las tres que menos caen en conjunto, respetando la regla
+del juego de que quien repite entre guardias cambia de fila.
+
+Se enseñan **dos números**: lo que aguantas de media, que es lo que manda, y lo
+que aguantarías si te estudiara y eligiera su mejor jugada. Si existe un plan
+suyo que tumba tus tres guardias, sale un aviso: mientras no las conozca da
+igual, pero los informes de combate se comparten.
+
+**Por qué la media y no el peor caso.** Optimizar contra su contra perfecta
+sería paranoia: te haría elegir guardias peores contra todo lo que de verdad te
+va a mandar. El peor caso se calcula igual, pero solo como aviso.
+
+**Cómo se busca.** Probarlas todas es inviable, y quedarse con «las N mejores
+sueltas» tampoco vale: las mejores guardias suelen poner al mismo personaje en
+el mismo puesto y entonces ninguna pareja cumple la regla de repetición. Así
+que se arranca de `25` semillas distintas y se mejora cada guardia por
+separado. Tarda entre `10` y `150 ms`.
+
+---
+
 ## 1.2.0 — 19 ago 2026
 
 El PvP deja de tratar lo desconocido como perdido y pasa a estimarlo.

@@ -1321,3 +1321,14 @@ input[type=search]:focus,.toolbar select:focus{outline:2px solid var(--brass);ou
 
 /* un rival al que ganas unas veces sí y otras no */
 .vs-mix{color:var(--brass);border-color:rgba(212,162,83,.45);background:rgba(212,162,83,.08)}
+
+/* ---- PvP: las guardias que te recomienda montar ---- */
+.def-guardias{display:grid;gap:10px}
+.puesto-fijo{
+  display:flex;align-items:center;gap:7px;
+  background:var(--sea);border:0.5px solid var(--line);
+  border-radius:8px;padding:8px;
+}
+.puesto-fijo .pos{flex:0 0 auto;font-family:var(--mono);font-size:10px;color:var(--mist)}
+.puesto-fijo b{flex:1;min-width:0;font-size:12.5px;color:var(--parch)}
+.puesto-fijo .tac-pill{font-size:9.5px;padding:3px 7px}

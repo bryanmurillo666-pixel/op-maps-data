@@ -430,11 +430,272 @@ window.PVP_MODEL = (function () {
     });
   }
 
+  /* ============================================================
+     TUS GUARDIAS CONTRA ÉL — el problema espejo
+     ------------------------------------------------------------
+     Aquí defiendes tú, y cambian tres cosas:
+
+     1. El EMPATE ES TUYO. Defendiendo te basta con igualar, así que
+        ganas el puesto si él no te supera estrictamente.
+     2. Él elige UN plan de ataque y el servidor sortea UNA de tus
+        guardias. O sea: él apunta a un sitio y tú repartes el riesgo
+        entre tres. Lo que decide no es tener una guardia buenísima,
+        sino que ninguna jugada suya se lleve varias a la vez.
+     3. No sabes con qué va a atacar. Así que se mide contra TODOS los
+        planes que podría montar con su tripulación.
+
+     Se buscan las tres guardias que aguantan su MEJOR ataque, no su
+     ataque medio: es el criterio seguro, y además es el que tiene
+     sentido cuando el rival puede ir aprendiendo tus guardias a base
+     de informes de combate.
+
+     Con máscaras de bits sale directo: si A, B y C son los planes suyos
+     que tumban cada una de tus tres guardias, entonces A&B&C son los
+     que te tumban las tres, y (A&B)|(A&C)|(B&C) los que te tumban dos.
+     Vacías esas dos y ninguna jugada suya te gana más de una de tres.
+     ============================================================ */
+
+  /* Los suyos que pueden atacar y los tuyos que pueden defender: en los
+     dos casos, los mejores, porque nadie reparte a los flojos. */
+  function nucleo(lista, tope){
+    const dentro = {}, out = [];
+    const mete = c => { if (!dentro[c.n]) { dentro[c.n] = true; out.push(c); } };
+    T.forEach(t => lista.slice().sort((a, b) => R.score(b, t) - R.score(a, t))
+                        .slice(0, 3).forEach(mete));
+    lista.slice()
+      .sort((a, b) => Math.max.apply(null, T.map(t => R.score(b, t))) -
+                      Math.max.apply(null, T.map(t => R.score(a, t))))
+      .forEach(mete);
+    return out.slice(0, tope);
+  }
+
+  /* Todas las alineaciones de 3 (personajes distintos, en orden, cada uno
+     con su táctica) que se pueden montar con esa gente. */
+  function alineaciones(pool){
+    const out = [];
+    for (let a = 0; a < pool.length; a++)
+    for (let b = 0; b < pool.length; b++){ if (b === a) continue;
+    for (let c = 0; c < pool.length; c++){ if (c === a || c === b) continue;
+      for (let x = 0; x < 3; x++)
+      for (let y = 0; y < 3; y++)
+      for (let z = 0; z < 3; z++)
+        out.push({ c: [a, b, c], t: [x, y, z] });
+    }}
+    return out;
+  }
+
+  /* Igual, pero para un rival al que no le dan los personajes para llenar
+     tres puestos: los que no puede cubrir los concede. */
+  function alineacionesCon(pool){
+    if (pool.length >= 3) return alineaciones(pool);
+    const colocaciones = [];
+    (function rec(pos, usados, actual){
+      if (pos === 3) { colocaciones.push(actual.slice()); return; }
+      rec(pos + 1, usados, actual.concat([CONCEDE]));
+      for (let i = 0; i < pool.length; i++) {
+        if (usados.indexOf(i) !== -1) continue;
+        rec(pos + 1, usados.concat([i]), actual.concat([i]));
+      }
+    })(0, [], []);
+
+    const out = [];
+    colocaciones.forEach(cs => {
+      for (let x = 0; x < 3; x++)
+      for (let y = 0; y < 3; y++)
+      for (let z = 0; z < 3; z++) out.push({ c: cs, t: [x, y, z] });
+    });
+    return out;
+  }
+
+  /* Regla del juego: quien repite entre guardias tiene que cambiar de
+     fila. Dentro de una guardia ya van tres distintos por construcción. */
+  function compatibles(g1, g2){
+    for (let i = 0; i < 3; i++)
+      for (let j = 0; j < 3; j++)
+        if (i === j && g1.c[i] === g2.c[j]) return false;
+    return true;
+  }
+
+  function mejoresGuardias(crew, rival){
+    if (!crew || crew.length < 3 || !rival) return null;
+
+    const RV = window.RIVALES;
+    const caidos = {};
+    rival.r.forEach(m => { if (m.e === RV.CAIDO) caidos[m.n] = true; });
+
+    const nombres = [];
+    const mete = n => {
+      if (n && n !== RV.VACIO && !caidos[n] && nombres.indexOf(n) === -1) nombres.push(n);
+    };
+    rival.r.forEach(m => mete(m.n));
+    rival.g.forEach(g => g.forEach(p => { if (p) mete(p.n); }));
+    const suyosTodos = nombres.map(n => DB.find(c => c.n === n)).filter(Boolean);
+    if (suyosTodos.length < 1) return { vacio: true };
+
+    const suyos = nucleo(suyosTodos, 5);
+    const mios  = nucleo(crew, 6);
+
+    // Cuántas guardias reparte el juego a TU tripulación.
+    const nG = crew.length === 2 ? 2 : 3;
+
+    /* Tabla: ¿gano yo el puesto? Defendiendo, el empate es mío, así que
+       gano si él NO me supera. */
+    const gano = [];
+    for (let m = 0; m < mios.length; m++) {
+      gano.push([]);
+      for (let u = 0; u < 3; u++) {
+        const miPunto = R.score(mios[m], T[u]);
+        const fila = [];
+        for (let s = 0; s < suyos.length; s++) {
+          const col = [];
+          for (let v = 0; v < 3; v++) {
+            col.push(!R.duelWin(R.score(suyos[s], T[v]), T[v], miPunto, T[u]));
+          }
+          fila.push(col);
+        }
+        gano[m].push(fila);
+      }
+    }
+
+    const ataques  = alineacionesCon(suyos);  // todo lo que él podría montar
+    const defensas = alineaciones(mios);      // todo lo que tú podrías poner
+    if (!ataques.length || !defensas.length) return { vacio: true };
+    const words = Math.ceil(ataques.length / 32) || 1;
+
+    /* Para cada guardia tuya, los ataques suyos que la tumban. */
+    const cand = defensas.map(d => {
+      const w = new Uint32Array(words);
+      let n = 0;
+      for (let k = 0; k < ataques.length; k++) {
+        const at = ataques[k];
+        let puntos = 0;
+        for (let i = 0; i < 3; i++) {
+          // un puesto que él no puede cubrir te lo concede
+          if (at.c[i] === CONCEDE || gano[d.c[i]][d.t[i]][at.c[i]][at.t[i]]) puntos++;
+        }
+        if (puntos < 2) { w[k >> 5] |= (1 << (k & 31)); n++; }
+      }
+      return { d: d, w: w, n: n };
+    });
+
+    /* Las que menos caen, pero con tope por reparto de personajes: si no,
+       las 400 primeras serían las 27 variantes de táctica del mismo trío
+       en el mismo orden, y entonces ninguna pareja cumpliría la regla de
+       repetición y no habría con qué formar las tres guardias. */
+    cand.sort((a, b) => a.n - b.n);
+    const top = [], cuantas = {};
+    for (let i = 0; i < cand.length && top.length < 400; i++) {
+      const k = cand[i].d.c.join(',');
+      if ((cuantas[k] || 0) >= 6) continue;
+      cuantas[k] = (cuantas[k] || 0) + 1;
+      top.push(cand[i]);
+    }
+
+    const total  = ataques.length;
+    const combos = nG === 2 ? 2 : 3;
+
+    const evalua = grupo => {
+      const A = grupo[0].w, B = grupo[1].w, Cw = grupo.length > 2 ? grupo[2].w : null;
+      let tres = 0, dos = 0, una = 0, suma = 0;
+      for (let k = 0; k < words; k++) {
+        const a = A[k], b = B[k], c = Cw ? Cw[k] : 0;
+        if (Cw) {
+          tres += popcount(a & b & c);
+          dos  += popcount((a & b) | (a & c) | (b & c));
+          una  += popcount(a | b | c);
+        } else {
+          dos += popcount(a & b);
+          una += popcount(a | b);
+        }
+      }
+      grupo.forEach(x => { suma += x.n; });
+      let peor, caenPeor;
+      if (Cw && tres) { peor = 3; caenPeor = tres; }
+      else if (dos)   { peor = 2; caenPeor = dos; }
+      else if (una)   { peor = 1; caenPeor = una; }
+      else            { peor = 0; caenPeor = 0; }
+      return { peor: peor, caenPeor: caenPeor, suma: suma };
+    };
+
+    /* Manda cuánto aguantas DE MEDIA, no el peor caso. El rival no ve tus
+       guardias cuando ataca, así que optimizar contra su contra perfecta
+       sería paranoia: te haría elegir guardias peores contra todo lo que
+       de verdad te va a mandar. El peor caso se calcula igual y se enseña
+       aparte, porque a base de informes de combate sí puede ir
+       aprendiéndotelas. */
+    const mejorQue = (a, b) => {
+      if (!b) return true;
+      if (a.suma !== b.suma) return a.suma < b.suma;      // cae menos veces
+      if (a.peor !== b.peor) return a.peor < b.peor;      // y si te estudia, aguanta
+      return a.caenPeor < b.caenPeor;                     // y de menos maneras
+    };
+
+    const encajan = (grupo, x) => grupo.every(g => compatibles(g.d, x.d));
+
+    /* Búsqueda voraz con mejoras. Probarlas todas sería inviable, y
+       quedarse con "las N mejores sueltas" tampoco vale: las mejores
+       guardias suelen poner al mismo personaje en el mismo puesto, y
+       entonces ninguna pareja cumple la regla de repetición. Así que se
+       arranca de varias semillas distintas y luego se intenta mejorar
+       cada guardia por separado. */
+    let mejor = null;
+    const semillas = Math.min(top.length, 25);
+
+    for (let s = 0; s < semillas; s++) {
+      const grupo = [top[s]];
+      while (grupo.length < combos) {
+        let elegido = null, valor = null;
+        for (let i = 0; i < top.length; i++) {
+          if (grupo.indexOf(top[i]) !== -1 || !encajan(grupo, top[i])) continue;
+          const v = evalua(grupo.concat([top[i]]));
+          if (!valor || mejorQue(v, valor)) { valor = v; elegido = top[i]; }
+        }
+        if (!elegido) break;
+        grupo.push(elegido);
+      }
+      if (grupo.length < combos) continue;
+
+      // mejoras: se intenta cambiar cada guardia por otra mejor
+      for (let ronda = 0; ronda < 3; ronda++) {
+        for (let g = 0; g < grupo.length; g++) {
+          const resto = grupo.filter((_, k) => k !== g);
+          let actual = evalua(grupo), cambio = null;
+          for (let i = 0; i < top.length; i++) {
+            if (grupo.indexOf(top[i]) !== -1 || !encajan(resto, top[i])) continue;
+            const v = evalua(resto.concat([top[i]]));
+            if (mejorQue(v, actual)) { actual = v; cambio = top[i]; }
+          }
+          if (cambio) grupo[g] = cambio;
+        }
+      }
+
+      const v = evalua(grupo);
+      if (mejorQue(v, mejor)) mejor = Object.assign({ trio: grupo.slice() }, v);
+    }
+    if (!mejor) return { vacio: true };
+
+    return {
+      guardias: mejor.trio.map(x => ({
+        puestos: [0, 1, 2].map(i => ({ c: mios[x.d.c[i]], t: T[x.d.t[i]] })),
+        cae: x.n
+      })),
+      // lo que aguantas si él juega su mejor plan, y si lo elige al azar
+      peor:  1 - mejor.peor / combos,
+      media: 1 - mejor.suma / (combos * total),
+      nG: combos,
+      ataques: total,
+      suyos: suyos,
+      // de cuántos planes suyos se defiende del todo
+      inmune: mejor.peor === 0
+    };
+  }
+
   return {
     CONCEDE: CONCEDE,
     evaluar: evaluar,
     resolver: resolver,
     formaciones: formaciones,
-    patronesTactica: patronesTactica
+    patronesTactica: patronesTactica,
+    mejoresGuardias: mejoresGuardias
   };
 })();

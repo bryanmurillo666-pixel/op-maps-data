@@ -44,6 +44,7 @@
     crew:     document.getElementById('miCrew'),
     sel:      document.getElementById('planRival'),
     out:      document.getElementById('resultado'),
+    def:      document.getElementById('defensa'),
     datalist: document.getElementById('db')
   };
 
@@ -141,14 +142,28 @@
     </div>`;
   }
 
-  function puestoHTML(p, i){
-    const c = (p && p.n !== RV.VACIO) ? porNombre(p.n) : null;
-    const valor = p ? (p.n === RV.VACIO ? RV.VACIO : (c ? nameOf(c) : '')) : '';
+  /* En una guardia suya solo puede haber gente suya, así que en vez de
+     escribir contra los 226 se elige de su tripulación. Si en el guardado
+     hubiera alguien que ya no está en ella, se le deja como opción para
+     no borrarlo por la espalda. */
+  function opcionesQuien(r, sel){
+    const nombres = r.r.map(m => m.n);
+    if (sel && sel !== RV.VACIO && nombres.indexOf(sel) === -1) nombres.push(sel);
+    const op = (v, txt, extra) =>
+      `<option value="${esc(v)}"${v === (sel || '') ? ' selected' : ''}${extra || ''}>${esc(txt)}</option>`;
+    return op('', '— ' + t('pvp.riv.unknown') + ' —')
+         + op(RV.VACIO, t('pvp.riv.empty'))
+         + nombres.map(n => {
+             const c = porNombre(n);
+             return c ? op(n, nameOf(c)) : '';
+           }).join('');
+  }
+
+  function puestoHTML(r, p, i){
+    const sel = p ? p.n : '';
     return `<div class="puesto" data-p="${i}">
       <span class="pos">${i + 1}</span>
-      <input class="p-n" list="db" autocomplete="off" value="${esc(valor)}"
-             placeholder="${esc(t('pvp.riv.slot'))}"
-             aria-label="${esc(t('pvp.riv.slot'))} ${i + 1}">
+      <select class="p-n" aria-label="${esc(t('pvp.riv.slot'))} ${i + 1}">${opcionesQuien(r, sel)}</select>
       <select class="p-t" aria-label="${esc(t('pvp.riv.tac'))}">${opcionesTactica(p ? p.t : R.TACTICS[0])}</select>
     </div>`;
   }
@@ -165,7 +180,7 @@
         <h5>${esc(t('pvp.riv.guard'))} ${gi + 1}</h5>
         <button type="button" class="btn-x g-clear">${esc(t('pvp.riv.gClear'))}</button>
       </div>
-      <div class="puestos">${g.map(puestoHTML).join('')}</div>
+      <div class="puestos">${g.map((p, i) => puestoHTML(r, p, i)).join("")}</div>
     </div>`).join('');
 
     return `<div class="rival-card" data-id="${esc(r.id)}">
@@ -286,6 +301,56 @@
       <p class="note">${t(exacto ? 'pvp.plan.howExact' : 'pvp.plan.howEst')}</p>`;
   }
 
+  /* ---------- pintado: tus guardias contra él ---------- */
+
+  function defensaHTML(){
+    const r = RV.porId(els.sel.value);
+    if (!r) return `<p class="hint">${esc(t('pvp.def.pick'))}</p>`;
+
+    const crew = enPie();
+    if (crew.length < 3) {
+      return `<p class="hint">${esc(t(crew.length ? 'pvp.sim.few' : 'pvp.sim.empty'))}</p>`;
+    }
+
+    const res = M.mejoresGuardias(crew, r);
+    if (!res || res.vacio) {
+      return `<p class="aviso-cambio"><b>${esc(t('pvp.plan.noDataT'))}</b>
+        <span>${esc(t('pvp.def.none'))}</span></p>`;
+    }
+
+    const seg = x => x === 'Assault' ? 'f' : (x === 'Manoeuvre' ? 'v' : 'i');
+
+    const guardias = res.guardias.map((g, gi) => `<div class="guardia">
+      <div class="guardia-cab">
+        <h5>${esc(t('pvp.riv.guard'))} ${gi + 1}</h5>
+        <span class="hint">${esc(t('pvp.def.falls'))} ${num(g.cae)} / ${num(res.ataques)}</span>
+      </div>
+      <div class="puestos">${g.puestos.map((p, i) => `
+        <div class="puesto-fijo">
+          <span class="pos">${i + 1}</span>
+          <b>${esc(nameOf(p.c))}</b>
+          <span class="tac-pill tac-${seg(p.t)}">${esc(t('tac.' + p.t))}</span>
+        </div>`).join('')}</div>
+    </div>`).join('');
+
+    // Que pueda tumbarte las tres con una sola jugada es lo que de verdad
+    // hay que avisar: significa que no estás repartiendo el riesgo.
+    const aviso = res.peor === 0
+      ? `<p class="aviso-cambio"><b>${esc(t('pvp.def.warnT'))}</b>
+         <span>${esc(t('pvp.def.warn'))}</span></p>`
+      : '';
+
+    return `<h3 class="sub-tit">${esc(t('pvp.def.avg'))}</h3>
+      <p class="gran-prob ${claseProb(res.media)}">${num(res.media * 100)} %</p>
+      <p class="sellos">
+        <span class="sello ${res.peor >= 0.5 ? 'exacto' : 'estimado'}">${num(res.peor * 100)} %</span>
+        <span class="hint">${esc(t('pvp.def.worst'))}</span>
+      </p>
+      ${aviso}
+      <div class="def-guardias">${guardias}</div>
+      <p class="note">${t('pvp.def.how')}</p>`;
+  }
+
   /* ---------- simular un abordaje ---------- */
 
   function dano(c, miTac, suTac, gano){
@@ -370,7 +435,10 @@
     els.datalist.innerHTML = DB.map(c => `<option value="${esc(nameOf(c))}"></option>`).join('');
   }
 
-  function repintaPlan(){ els.out.innerHTML = planHTML(); }
+  function repintaPlan(){
+    els.out.innerHTML = planHTML();
+    els.def.innerHTML = defensaHTML();
+  }
 
   function render(){
     els.crew.innerHTML  = crewHTML();
@@ -480,18 +548,9 @@
     if (!puesto) return;
     const gi    = Number(puesto.closest('.guardia').dataset.g);
     const pos   = Number(puesto.dataset.p);
-    const campo = puesto.querySelector('.p-n');
+    const quien = puesto.querySelector('.p-n').value;
     const tac   = puesto.querySelector('.p-t').value;
-    const clave = aClave(campo.value);
-
-    if (campo.value.trim() && !clave) {
-      campo.classList.add('err');
-      aviso('pvp.riv.notFound');
-      return;
-    }
-    campo.classList.remove('err');
-    if (clave && clave !== RV.VACIO) campo.value = nameOf(porNombre(clave));
-    RV.setPuesto(id, gi, pos, clave, tac);
+    RV.setPuesto(id, gi, pos, quien, tac);
     repintaPlan();
   });
 

@@ -11,13 +11,9 @@
 
 ## Ideas que salieron del PvP
 
-- [ ] **¿Qué patrón de guardias es el mejor?** El usuario preguntó si
-      alguno de los tres estilos (una táctica por guardia, una de cada,
-      dos y una) es superior. Se puede responder con el motor que ya
-      existe: para una tripulación dada, evaluar cada patrón contra el
-      mejor plan que un atacante listo montaría, y quedarse con el que
-      menos veces cae. Sería el espejo del plan de ataque: en vez de
-      «cómo le gano», «cómo me defiendo».
+- [x] **¿Qué patrón de guardias es el mejor?** Resuelto el 19 ago 2026 con el
+      panel «Tus guardias contra él»: en vez de elegir un patrón, calcula las
+      tres guardias concretas que menos caen contra ese rival.
 - [ ] **Compartir rivales por código.** Exportar la libreta a un texto
       que se pega en el chat de la alianza y se importa. Sin servidor.
 

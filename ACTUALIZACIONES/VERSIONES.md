@@ -4,7 +4,7 @@ Estado a **19 de agosto de 2026**.
 
 | Fuente | Versión | Fecha | Estado |
 |---|---|---|---|
-| Sitio OP-MAPS DATA | `1.2.0` | 19 ago 2026 | sin publicar |
+| Sitio OP-MAPS DATA | `1.3.0` | 19 ago 2026 | sin publicar |
 | Guía del jugador | `5.0` | 18 ago 2026 | ✅ aplicada |
 | Changelog del juego | `v0.44.0` | 18 ago 2026 | ✅ leído |
 | Álbum del juego (ES/EN) | export | 16 ago 2026 | ✅ 226 personajes verificados |
