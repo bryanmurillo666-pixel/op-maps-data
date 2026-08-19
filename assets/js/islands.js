@@ -1,7 +1,9 @@
 /* ============================================================
    OP-MAPS DATA - las 156 islas del mapa y sus enemigos
    ------------------------------------------------------------
-   Sacado de CONTEXTO/Island.html.
+   Sacado del export Island.html del juego, ya apartado a
+   Desktop/Programas/OPMAPSDATA-ARCHIVO/ porque este archivo lo supera: tiene
+   sus 155 islas mas Scrap island, que aporto el usuario el 2026-08-19.
 
      m = mar, indice sobre ISLAND_SEAS
      n = nombre de la isla

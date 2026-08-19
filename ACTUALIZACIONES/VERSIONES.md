@@ -4,11 +4,11 @@ Estado a **19 de agosto de 2026**.
 
 | Fuente | Versión | Fecha | Estado |
 |---|---|---|---|
-| Sitio OP-MAPS DATA | `1.1.0` | 19 ago 2026 | publicado |
+| Sitio OP-MAPS DATA | `1.2.0` | 19 ago 2026 | sin publicar |
 | Guía del jugador | `5.0` | 18 ago 2026 | ✅ aplicada |
 | Changelog del juego | `v0.44.0` | 18 ago 2026 | ✅ leído |
 | Álbum del juego (ES/EN) | export | 16 ago 2026 | ✅ 226 personajes verificados |
-| Islas (`Island.html`) | export | 17 ago 2026 | ✅ 156 islas |
+| Islas | `islands.js` | 19 ago 2026 | ✅ 156 islas (el export `Island.html` se quedó corto y se apartó) |
 | Tienda | export | 16 ago 2026 | ✅ 14 objetos |
 
 ## Historial de guías

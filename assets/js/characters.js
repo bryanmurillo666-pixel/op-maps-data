@@ -5,7 +5,8 @@
      1. CONTEXTO/Orden y tripulantes album en ingles.txt  (export del juego)
      2. CONTEXTO/Orden y tripulantes album.txt           (el mismo, en espanol)
         -> de ahi salen numero, capitulo, ROL y los dos nombres
-     3. CONTEXTO/Data Crews.html  -> solo los stats FUE/NAV/INT
+     3. Data Crews.html -> solo los stats FUE/NAV/INT. Ya volcado y
+        verificado; el archivo vive en Desktop/Programas/OPMAPSDATA-ARCHIVO/
 
      a  = numero de ficha del album (1-226), el orden oficial del juego
      n  = nombre en ingles         es = nombre en espanol (solo si cambia)

@@ -5,6 +5,61 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.2.0 — 19 ago 2026
+
+El PvP deja de tratar lo desconocido como perdido y pasa a estimarlo.
+
+### Qué se sabe de un rival, y qué no
+
+La guía v5.0 aclara que **antes de atacar sí ves su tripulación** y la banda de
+salud de cada uno (Sano `70-100 %`, Herido `30-69 %`, Crítico `1-29 %`, Caído
+`0 %`). Lo que no ves son sus guardias. El sitio ahora separa las dos cosas:
+
+- **Su tripulación** se apunta con el estado de cada uno. Un **Caído** no puede
+  defender: en su puesto entra una reserva desconocida, así que ese puesto se
+  estima aunque lo tuvieras apuntado.
+- **Sus guardias** siguen apuntándose a mano, pero ya no hacen falta para
+  empezar: con la tripulación basta para tener un número.
+
+### El motor (`assets/js/pvp-model.js`)
+
+Archivo nuevo, con toda la matemática separada de la interfaz.
+
+- **Simplificación de fondo.** Como el servidor sortea una guardia entre las
+  suyas de forma uniforme, cada guardia aporta exactamente `1/n`. No hace falta
+  razonar sobre conjuntos de guardias: basta con ir guardia a guardia.
+- **Formaciones plausibles.** Se construyen cruzando dos ejes: *quién defiende*
+  (sus mejores, repartidos en ventana cíclica, que cumple sola la regla del
+  juego de que quien repite cambia de fila) y *qué tácticas*, con los tres
+  estilos que se ven en la práctica — una por guardia, una de cada, o dos de una
+  y una de otra. Las tres familias pesan lo mismo, porque si no «dos de una»
+  arrasaría solo por ser `18` de los `27` repartos posibles.
+- **Inferencia.** Lo que hayas apuntado descarta las formaciones que no encajan.
+  En la práctica, apuntar **una sola guardia** baja el espacio de `540`
+  formaciones a `6-12`, y de paso dice qué estilo usa el rival.
+- **Velocidad.** Cada posición tuya solo pelea contra su homóloga, así que se
+  precalculan máscaras de bits y «gano 2 de 3» se resuelve con
+  `(a&b)|(a&c)|(b&c)` y un contador de bits. El peor caso — no saber nada de un
+  rival con cinco personajes — tarda `60 ms`.
+
+### En la página
+
+- El número viene con un sello: **Exacto** si conoces sus tres guardias,
+  **Estimado** si no, y en ese caso cuántas formaciones quedan en pie y qué
+  estilo parece usar.
+- Cada posición de tu plan enseña contra quién pelearía y cuántas veces gana
+  (`6/12`), en vez de un solo rival fijo.
+- **Los tuyos que estén caídos** se marcan tocándolos y quedan fuera del plan.
+- La simulación sortea dos veces: qué formación es la de verdad y qué guardia
+  elige el servidor. Avisa de cuándo la guardia sale de una suposición.
+
+### Arreglos
+
+- Se cae el apaño de contar los puestos sin apuntar como perdidos. Ya no hace
+  falta: ahora se estiman.
+
+---
+
 ## 1.1.0 — 19 ago 2026
 
 La guía del juego pasó de la `v4.0` a la `v5.0` y con ella cambia el PvE de
@@ -67,6 +122,11 @@ raíz. Además el PvP deja de adivinar y pasa a trabajar con datos reales.
 ### Sitio
 
 - Nace esta carpeta `ACTUALIZACIONES/`.
+- **Limpieza de las fuentes.** Todo lo ya volcado al sitio (la guía `v4.0`, los
+  export `Island.html` y `Data Crews.html`, los simuladores viejos y la carpeta
+  `Personajes/`) se apartó a `Desktop/Programas/OPMAPSDATA-ARCHIVO/`. `CONTEXTO/`
+  pasa de **5,7 MB a 141 KB** y se queda solo con lo vivo: la guía `v5.0`, las
+  novedades, el álbum en los dos idiomas y la tienda.
 
 ---
 

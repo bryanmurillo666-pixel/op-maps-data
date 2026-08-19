@@ -1270,3 +1270,54 @@ input[type=search]:focus,.toolbar select:focus{outline:2px solid var(--brass);ou
 .tac-f{color:var(--blood);background:rgba(193,80,75,.12); border:0.5px solid rgba(193,80,75,.4)}
 .tac-v{color:var(--foam); background:rgba(88,180,166,.12);border:0.5px solid rgba(88,180,166,.4)}
 .tac-i{color:var(--brass);background:rgba(212,162,83,.12);border:0.5px solid rgba(212,162,83,.4)}
+
+/* ---- PvP: la tripulación del rival y su estado ---- */
+.bloque-tit{
+  font-family:var(--mono);font-size:9px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--brass);
+  margin:14px 0 7px;padding-top:10px;border-top:0.5px solid var(--line);
+}
+.add-row.chica input{padding:7px 9px;font-size:12px}
+.add-row.chica .btn-add{padding:7px 13px}
+
+.suyos{display:grid;gap:5px}
+.suyo{
+  display:flex;align-items:center;gap:7px;
+  background:var(--sea);border:0.5px solid var(--line);
+  border-left-width:2.5px;border-radius:8px;padding:6px 8px;
+}
+.suyo-n{flex:1;min-width:0}
+.suyo-n b{display:block;font-size:12.5px;color:var(--parch)}
+.suyo-n i{
+  display:block;font-family:var(--mono);font-size:9.5px;
+  font-style:normal;color:var(--mist);
+}
+.suyo-e{
+  flex:0 0 auto;background:var(--hull-2);
+  border:0.5px solid var(--line);border-radius:6px;
+  color:var(--mist);font-family:var(--mono);font-size:9.5px;padding:3px 4px;
+}
+/* el borde izquierdo dice de un vistazo cómo está cada uno */
+.suyo.est-ok {border-left-color:var(--line)}
+.suyo.est-her{border-left-color:var(--brass)}
+.suyo.est-cri{border-left-color:#d0763f}
+.suyo.est-ko {border-left-color:var(--blood);opacity:.62}
+
+/* los tuyos: se pulsan para marcarlos caídos */
+.mini-chip.mio{cursor:pointer;text-align:left;font:inherit}
+.mini-chip.mio.ko{
+  opacity:.5;border-color:rgba(193,80,75,.45);
+  background:rgba(193,80,75,.08);text-decoration:line-through;
+}
+
+/* de qué está hecho el número */
+.sellos{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+.sello{
+  font-family:var(--mono);font-size:9px;letter-spacing:.12em;
+  text-transform:uppercase;border-radius:999px;padding:3px 9px;
+}
+.sello.exacto  {color:var(--foam); border:0.5px solid rgba(88,180,166,.5); background:rgba(88,180,166,.1)}
+.sello.estimado{color:var(--brass);border:0.5px solid rgba(212,162,83,.5); background:rgba(212,162,83,.1)}
+
+/* un rival al que ganas unas veces sí y otras no */
+.vs-mix{color:var(--brass);border-color:rgba(212,162,83,.45);background:rgba(212,162,83,.08)}

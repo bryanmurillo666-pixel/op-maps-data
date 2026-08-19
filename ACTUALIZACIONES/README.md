@@ -28,7 +28,8 @@ Cuando dos fuentes se contradicen, manda la de más arriba:
 2. **`CONTEXTO/player-guide-v5.0.txt`** — la guía oficial. Manda en mecánicas,
    fórmulas y constantes.
 3. **Exports del juego** — `Orden y tripulantes album*.txt` (nombres, roles,
-   número de ficha y capítulo), `Island.html` (islas y guardias) y `Tienda.txt`
-   (objetos y precios).
-4. **Recopilaciones del autor** — `Data Crews.html` y la carpeta `Personajes/`.
-   Solo para stats FUE/NAV/INT, y ya verificadas contra el juego.
+   número de ficha y capítulo) y `Tienda.txt` (objetos y precios). Las islas
+   ya no tienen export vivo: manda `assets/js/islands.js`, que además incluye
+   las que fue aportando el autor.
+4. **Recopilaciones del autor** — ya volcadas y verificadas contra el juego, así
+   que se apartaron a `Desktop/Programas/OPMAPSDATA-ARCHIVO/` el 19 ago 2026.
