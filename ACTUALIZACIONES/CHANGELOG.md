@@ -5,6 +5,73 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.4.0 — 19 ago 2026
+
+Reordenada la página de PvP, y arreglado en las dos páginas por qué salían
+personajes flojos en las alineaciones.
+
+### Por qué salían personajes que no pintaban nada
+
+Dos causas, las dos mías:
+
+1. **Se probaba el orden invertido.** Entre las formaciones plausibles del rival
+   se incluía el orden «sus peores primero», que nadie usa. Eso llenaba el
+   cálculo de guardias imposibles con sus personajes más flojos, y el plan
+   recomendado salía afinado contra ellas. Fuera.
+2. **No había desempate por fuerza.** Muchísimos planes empatan en resultado, y
+   se quedaba con el primero que salía del bucle. Ahora, a igualdad de guardias
+   ganadas y de duelos sueltos, gana el trío con más puntuación. Mismo
+   resultado, mejor gente.
+
+Lo mismo se aplicó al panel de defensa.
+
+### El mismo fallo, también en el PvE
+
+El PvE elegía alineación con exactamente los dos mismos empates mal resueltos:
+
+- **La táctica de cada uno** se elegía con `>` estricto, así que a igualdad de
+  tácticas ganadas se quedaba siempre con Asalto por ser la primera de la lista.
+  Ahora, a igualdad, gana la de más puntuación.
+- **El trío** se quedaba con el primero del bucle cuando empataban probabilidad y
+  duelos, o sea con el orden en que metiste la tripulación.
+
+Y un cuarto criterio nuevo, para cuando dos de los tuyos son de verdad
+intercambiables (los dos ganan las 3 tácticas de su enemigo, y la suma no los
+distingue): se **empareja al más fuerte tuyo con el enemigo más fuerte**.
+Maximizar la suma de los productos hace justo eso y deja el mayor margen donde
+más apretado está el duelo.
+
+### La página, en desgloses
+
+Cuatro secciones que se abren y se cierran, y recuerdan cómo las dejaste:
+**Rivales**, **Tu plan de ataque**, **Tus guardias contra él** y **Las reglas
+del PvP**. Con varios rivales apuntados la página ya no se estira.
+
+- **Cada rival es su propio desglose** dentro de Rivales, con su nombre, cuántos
+  tripulantes le has apuntado (`5/11`) y cuántas guardias tienes averiguadas
+  (`1/3`). Se abren de uno en uno, y el que acabas de crear se queda abierto.
+- **Tope de 11.** Al llegar a `11/11` desaparece el campo de añadir, que es el
+  tope de tripulantes del juego.
+- El selector **Contra quién** vive fuera de los desgloses, porque manda sobre
+  ataque y defensa a la vez.
+
+### Fuera
+
+- **El triángulo de tácticas.** Lo que explicaba ya está en «Cómo se puntúa un
+  duelo», dentro de las reglas.
+- **La tira de tus personajes con el interruptor de caído.** Se da por hecho que
+  tu tripulación está entera: quién esté tocado cambia cada media hora y no es
+  lo que se viene a mirar aquí. Los estados del RIVAL se quedan, que esos sí son
+  información que recoges tú.
+
+### Arreglos
+
+- Colisión de nombres en el CSS: la clase `desglose` ya existía con
+  `display:flex` y descuadraba las secciones nuevas. Las nuevas pasan a
+  llamarse `plegable`.
+
+---
+
 ## 1.3.0 — 19 ago 2026
 
 El PvP responde ahora las dos mitades: cómo le ganas y cómo te defiendes.

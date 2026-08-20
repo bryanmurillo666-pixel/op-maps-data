@@ -428,6 +428,9 @@
       'pvp.def.warn':  'Existe un plan que le gana a tus tres guardias. Mientras no sepa cuáles son da igual, pero los informes de combate se comparten: si te estudia, esto es lo que te haría. Suele pasar cuando te quedan pocos en pie y las tres guardias acaban pareciéndose demasiado.',
       'pvp.def.how':   'Se prueban todas las guardias que puedes montar contra todos los ataques que él puede montar, y se eligen las tres que menos caen <b>en conjunto</b>. Lo que decide no es tener una guardia buenísima, sino que ninguna jugada suya se lleve varias a la vez: por eso a veces sale una guardia suelta más floja de lo que esperarías. Manda cuánto aguantas de media, no el peor caso — optimizar contra su contra perfecta sería paranoia y te haría elegir peor contra todo lo que de verdad te va a mandar. Se respeta la regla del juego: quien repite entre guardias cambia de fila.',
 
+      'pvp.riv.gShort':   'guardias',
+      'pvp.riv.crewFull': 'Ya tiene los 11 tripulantes, que es el tope del juego.',
+      'pvp.reglas.t':     'Las reglas del PvP',
       'pvp.dmg.t': 'Lo que cuesta cada duelo',
       'pvp.dmg.1': 'Quien <b>pierde</b> el duelo se deja el <b>34 %</b> de su vida máxima.',
       'pvp.dmg.2': 'Quien lo <b>gana</b> se deja el <b>8 %</b>: ganar tampoco sale gratis.',
@@ -874,6 +877,9 @@
       'pvp.def.warn':  'There is a plan that beats all three of your guards. While they do not know what your guards are it does not matter, but battle reports get shared: if they study you, this is what they would do. It usually happens when few of yours are standing and the three guards end up too much alike.',
       'pvp.def.how':   'Every guard you could field is tried against every attack they could field, and the three that fall least <b>as a set</b> are chosen. What decides it is not having one excellent guard but making sure no single play of theirs takes several at once, which is why one guard on its own sometimes looks weaker than you would expect. What ranks them is how much you hold on average, not the worst case — optimising against their perfect counter would be paranoia and would make you choose worse against everything they will actually send. The game rule is respected: anyone repeating across guards moves to a different row.',
 
+      'pvp.riv.gShort':   'guards',
+      'pvp.riv.crewFull': 'That is already 11 crew members, the game cap.',
+      'pvp.reglas.t':     'The PvP rules',
       'pvp.dmg.t': 'What each duel costs',
       'pvp.dmg.1': 'Whoever <b>loses</b> the duel takes <b>34 %</b> of their max health.',
       'pvp.dmg.2': 'Whoever <b>wins</b> takes <b>8 %</b>: winning is not free either.',

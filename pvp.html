@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PvP — OP-MAPS DATA</title>
-<meta name="description" content="El PvP 3v3 de OP-MAPS: triángulo de tácticas, simulador contra las guardias rivales, daños y reglas de las guardias.">
+<meta name="description" content="El PvP 3v3 de OP-MAPS: libreta de rivales, plan de ataque contra sus guardias y qué guardias montar tú para defenderte.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -22,156 +22,133 @@
       <p data-i18n="pvp.lead">El PvP son tres contra tres, posición contra posición: tu primero solo pelea con su primero. El poder total no decide nada.</p>
     </header>
 
-    <!-- el triángulo -->
-    <section class="panel">
-      <h2 data-i18n="pvp.tri.t">El triángulo de tácticas</h2>
-      <div class="tri-wrap">
-        <!-- el viewBox va holgado por los lados: "Emboscada" y "Maniobra"
-             son más largas que sus equivalentes en inglés y se salían -->
-        <svg viewBox="-34 0 368 190" width="100%" role="img" aria-hidden="true">
-          <defs>
-            <marker id="arw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M0,0 L10,5 L0,10 z" fill="#D4A253"/>
-            </marker>
-          </defs>
-          <path d="M138,44 C170,50 196,70 208,96" fill="none" stroke="#D4A253" stroke-width="1.4" marker-end="url(#arw)" opacity=".85"/>
-          <path d="M196,132 C168,150 132,150 108,136" fill="none" stroke="#D4A253" stroke-width="1.4" marker-end="url(#arw)" opacity=".85"/>
-          <path d="M92,96 C104,70 118,52 132,44" fill="none" stroke="#D4A253" stroke-width="1.4" marker-end="url(#arw)" opacity=".85"/>
-          <g>
-            <circle cx="150" cy="34" r="9" fill="#18314552" stroke="#C1504B" stroke-width="1.3"/>
-            <text x="150" y="20" text-anchor="middle" fill="#E9DFC8" font-size="12" font-weight="700" font-family="Space Mono,monospace" data-i18n="tac.Assault">Asalto</text>
-            <text x="150" y="52" text-anchor="middle" fill="#7E93A6" font-size="8.5" font-family="Space Mono,monospace" data-i18n="st.f">FUE</text>
-          </g>
-          <g>
-            <circle cx="222" cy="122" r="9" fill="#18314552" stroke="#58B4A6" stroke-width="1.3"/>
-            <text x="238" y="120" text-anchor="start" fill="#E9DFC8" font-size="12" font-weight="700" font-family="Space Mono,monospace" data-i18n="tac.Manoeuvre">Maniobra</text>
-            <text x="238" y="134" text-anchor="start" fill="#7E93A6" font-size="8.5" font-family="Space Mono,monospace" data-i18n="st.v">NAV</text>
-          </g>
-          <g>
-            <circle cx="78" cy="122" r="9" fill="#18314552" stroke="#D4A253" stroke-width="1.3"/>
-            <text x="62" y="120" text-anchor="end" fill="#E9DFC8" font-size="12" font-weight="700" font-family="Space Mono,monospace" data-i18n="tac.Ambush">Emboscada</text>
-            <text x="62" y="134" text-anchor="end" fill="#7E93A6" font-size="8.5" font-family="Space Mono,monospace" data-i18n="st.i">INT</text>
-          </g>
-        </svg>
-        <p class="tri-cap" data-i18n="pvp.tri.cap"></p>
+    <!-- 1. la libreta de rivales -->
+    <details class="plegable" data-k="riv" open>
+      <summary>
+        <h2 data-i18n="pvp.riv.t">Rivales</h2>
+        <span class="cuenta" id="rivCount"></span>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="pvp.riv.d"></p>
+        <div class="add-row">
+          <input type="text" id="rivalAdd" autocomplete="off"
+                 data-i18n-attr="placeholder:pvp.riv.ph; aria-label:pvp.riv.ph">
+          <button class="btn-add" id="rivalBtn" data-i18n="pvp.riv.add">Añadir rival</button>
+        </div>
+        <p class="hint" id="rivalHint"></p>
+        <div id="rivalList"></div>
       </div>
-      <p class="parrafo" data-i18n-html="pvp.tri.d"></p>
+    </details>
+
+    <!-- contra cuál de ellos se calcula todo lo de abajo -->
+    <section class="panel elige">
+      <label class="campo campo-ancho">
+        <span data-i18n="pvp.plan.pick">Contra quién</span>
+        <select id="planRival" class="isla-select"></select>
+      </label>
     </section>
 
-    <!-- los rivales que vas descubriendo -->
-    <section class="panel">
-      <h2 data-i18n="pvp.riv.t">Rivales</h2>
-      <p class="parrafo" data-i18n-html="pvp.riv.d"></p>
-      <div class="add-row">
-        <input type="text" id="rivalAdd" autocomplete="off"
-               data-i18n-attr="placeholder:pvp.riv.ph; aria-label:pvp.riv.ph">
-        <button class="btn-add" id="rivalBtn" data-i18n="pvp.riv.add">Añadir rival</button>
+    <!-- 2. cómo le ganas -->
+    <details class="plegable" data-k="atq" open>
+      <summary><h2 data-i18n="pvp.plan.t">Tu plan de ataque</h2></summary>
+      <div class="plegable-body">
+        <div id="resultado"></div>
       </div>
-      <p class="hint" id="rivalHint"></p>
-      <div id="rivalList"></div>
-    </section>
+    </details>
 
-    <!-- el plan de ataque contra uno de ellos -->
-    <section class="panel">
-      <h2 data-i18n="pvp.plan.t">Tu plan de ataque</h2>
-
-      <h3 class="sub-tit" data-i18n="pvp.sim.crew">Tu tripulación sale de Mi tripulación</h3>
-      <div id="miCrew"></div>
-
-      <div class="pve-form">
-        <label class="campo campo-ancho">
-          <span data-i18n="pvp.plan.pick">Contra quién</span>
-          <select id="planRival" class="isla-select"></select>
-        </label>
+    <!-- 3. cómo te defiendes de él -->
+    <details class="plegable" data-k="def">
+      <summary><h2 data-i18n="pvp.def.t">Tus guardias contra él</h2></summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="pvp.def.d"></p>
+        <div id="defensa"></div>
       </div>
+    </details>
 
-      <div id="resultado"></div>
-    </section>
+    <!-- de consulta: las reglas del PvP -->
+    <details class="plegable" data-k="reg">
+      <summary><h2 data-i18n="pvp.reglas.t">Las reglas del PvP</h2></summary>
+      <div class="plegable-body">
 
-    <!-- el problema espejo: cómo te defiendes de ese mismo rival -->
-    <section class="panel">
-      <h2 data-i18n="pvp.def.t">Tus guardias contra él</h2>
-      <p class="parrafo" data-i18n-html="pvp.def.d"></p>
-      <div id="defensa"></div>
-    </section>
+        <section class="panel">
+          <h2 data-i18n="pvp.score.t">Cómo se puntúa un duelo</h2>
+          <ul>
+            <li data-i18n-html="pvp.score.1"></li>
+            <li data-i18n-html="pvp.score.2"></li>
+            <li data-i18n-html="pvp.score.3"></li>
+            <li data-i18n-html="pvp.score.4"></li>
+          </ul>
+        </section>
 
-    <!-- las reglas -->
-    <section class="panel">
-      <h2 data-i18n="pvp.score.t">Cómo se puntúa un duelo</h2>
-      <ul>
-        <li data-i18n-html="pvp.score.1"></li>
-        <li data-i18n-html="pvp.score.2"></li>
-        <li data-i18n-html="pvp.score.3"></li>
-        <li data-i18n-html="pvp.score.4"></li>
-      </ul>
-    </section>
+        <div class="pve-cols">
+          <section class="panel">
+            <h2 data-i18n="pvp.dmg.t">Lo que cuesta cada duelo</h2>
+            <ul>
+              <li data-i18n-html="pvp.dmg.1"></li>
+              <li data-i18n-html="pvp.dmg.2"></li>
+              <li data-i18n-html="pvp.dmg.3"></li>
+              <li data-i18n-html="pvp.dmg.4"></li>
+            </ul>
+          </section>
 
-    <div class="pve-cols">
-      <section class="panel">
-        <h2 data-i18n="pvp.dmg.t">Lo que cuesta cada duelo</h2>
-        <ul>
-          <li data-i18n-html="pvp.dmg.1"></li>
-          <li data-i18n-html="pvp.dmg.2"></li>
-          <li data-i18n-html="pvp.dmg.3"></li>
-          <li data-i18n-html="pvp.dmg.4"></li>
-        </ul>
-      </section>
+          <section class="panel">
+            <h2 data-i18n="pvp.cost.t">Lo que cuesta perder el combate</h2>
+            <ul>
+              <li data-i18n-html="pvp.cost.1"></li>
+              <li data-i18n-html="pvp.cost.2"></li>
+              <li data-i18n-html="pvp.cost.3"></li>
+              <li data-i18n-html="pvp.cost.4"></li>
+              <li data-i18n-html="pvp.cost.5"></li>
+            </ul>
+          </section>
+        </div>
 
-      <section class="panel">
-        <h2 data-i18n="pvp.cost.t">Lo que cuesta perder el combate</h2>
-        <ul>
-          <li data-i18n-html="pvp.cost.1"></li>
-          <li data-i18n-html="pvp.cost.2"></li>
-          <li data-i18n-html="pvp.cost.3"></li>
-          <li data-i18n-html="pvp.cost.4"></li>
-          <li data-i18n-html="pvp.cost.5"></li>
-        </ul>
-      </section>
-    </div>
+        <section class="panel">
+          <h2 data-i18n="pvp.hull.t">Daño al casco según el marcador</h2>
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th data-i18n="pvp.hull.head">Marcador</th>
+                <th data-i18n="pvp.hull.lose">Casco del perdedor</th>
+                <th data-i18n="pvp.hull.win">Casco del ganador</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>3-0</td><td>35 %</td><td>5 %</td></tr>
+              <tr><td data-i18n="pvp.hull.wide">2-1 amplio</td><td>25 %</td><td>10 %</td></tr>
+              <tr><td data-i18n="pvp.hull.tight">2-1 ajustado</td><td>18 %</td><td>12 %</td></tr>
+            </tbody>
+          </table>
+          <p class="note" data-i18n-html="pvp.hull.note"></p>
+        </section>
 
-    <section class="panel">
-      <h2 data-i18n="pvp.hull.t">Daño al casco según el marcador</h2>
-      <table class="tabla">
-        <thead>
-          <tr>
-            <th data-i18n="pvp.hull.head">Marcador</th>
-            <th data-i18n="pvp.hull.lose">Casco del perdedor</th>
-            <th data-i18n="pvp.hull.win">Casco del ganador</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>3-0</td><td>35 %</td><td>5 %</td></tr>
-          <tr><td data-i18n="pvp.hull.wide">2-1 amplio</td><td>25 %</td><td>10 %</td></tr>
-          <tr><td data-i18n="pvp.hull.tight">2-1 ajustado</td><td>18 %</td><td>12 %</td></tr>
-        </tbody>
-      </table>
-      <p class="note" data-i18n-html="pvp.hull.note"></p>
-    </section>
+        <div class="pve-cols">
+          <section class="panel">
+            <h2 data-i18n="pvp.guard.t">Tus guardias</h2>
+            <ul>
+              <li data-i18n-html="pvp.guard.1"></li>
+              <li data-i18n-html="pvp.guard.2"></li>
+              <li data-i18n-html="pvp.guard.3"></li>
+              <li data-i18n-html="pvp.guard.4"></li>
+              <li data-i18n-html="pvp.guard.5"></li>
+              <li data-i18n-html="pvp.guard.6"></li>
+            </ul>
+          </section>
 
-    <div class="pve-cols">
-      <section class="panel">
-        <h2 data-i18n="pvp.guard.t">Tus guardias</h2>
-        <ul>
-          <li data-i18n-html="pvp.guard.1"></li>
-          <li data-i18n-html="pvp.guard.2"></li>
-          <li data-i18n-html="pvp.guard.3"></li>
-          <li data-i18n-html="pvp.guard.4"></li>
-          <li data-i18n-html="pvp.guard.5"></li>
-          <li data-i18n-html="pvp.guard.6"></li>
-        </ul>
-      </section>
+          <section class="panel">
+            <h2 data-i18n="pvp.when.t">Cuándo puedes atacar</h2>
+            <ul>
+              <li data-i18n-html="pvp.when.1"></li>
+              <li data-i18n-html="pvp.when.2"></li>
+              <li data-i18n-html="pvp.when.3"></li>
+              <li data-i18n-html="pvp.when.4"></li>
+              <li data-i18n-html="pvp.when.5"></li>
+            </ul>
+          </section>
+        </div>
 
-      <section class="panel">
-        <h2 data-i18n="pvp.when.t">Cuándo puedes atacar</h2>
-        <ul>
-          <li data-i18n-html="pvp.when.1"></li>
-          <li data-i18n-html="pvp.when.2"></li>
-          <li data-i18n-html="pvp.when.3"></li>
-          <li data-i18n-html="pvp.when.4"></li>
-          <li data-i18n-html="pvp.when.5"></li>
-        </ul>
-      </section>
-    </div>
+      </div>
+    </details>
 
   </div>
 </main>

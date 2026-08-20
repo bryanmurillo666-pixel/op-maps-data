@@ -171,10 +171,14 @@ window.PVP_MODEL = (function () {
     const mejor = c => Math.max.apply(null, T.map(t => R.score(c, t)));
     const porPuntos = idx.slice().sort((a, b) => mejor(pool[b]) - mejor(pool[a]));
 
+    /* Solo órdenes que alguien pondría de verdad: por su mejor puntuación
+       y por cada táctica, para cubrir tanto "delante el más fuerte" como
+       "delante el especialista". NO se prueba el orden invertido: nadie
+       manda de guardia a sus tres peores, y meterlo llenaba el cálculo de
+       formaciones imposibles con sus personajes más flojos. */
     const listas = [ porPuntos ];
     T.forEach(t => listas.push(
       idx.slice().sort((a, b) => R.score(pool[b], t) - R.score(pool[a], t))));
-    listas.push(porPuntos.slice().reverse());
 
     /* El orden que encaja con lo apuntado. La guardia j empieza por el
        j-ésimo del orden, así que ver a alguien en la guardia j, fila i,
@@ -332,6 +336,10 @@ window.PVP_MODEL = (function () {
       }));
     }
 
+    /* Puntuación de cada uno de los tuyos en cada táctica: se usa para
+       construir las máscaras y como último desempate entre planes. */
+    const puntosDe = crew.map(c => T.map(tac => R.score(c, tac)));
+
     /* --- máscaras de bits ---
        Un bit por cada par (formación, guardia). */
     const pares = forms.length * nG;
@@ -342,7 +350,7 @@ window.PVP_MODEL = (function () {
     for (let m = 0; m < crew.length; m++) {
       mask.push([]);
       for (let u = 0; u < 3; u++) {
-        const puntos = R.score(crew[m], T[u]);
+        const puntos = puntosDe[m][u];
         const porPos = [];
         for (let i = 0; i < 3; i++) {
           const w = new Uint32Array(words);
@@ -389,9 +397,16 @@ window.PVP_MODEL = (function () {
               ganadas += popcount(tmp[k]);
               duelos  += popcount(p) + popcount(q) + popcount(r);
             }
+            /* Tercer desempate: la puntuación del trío. Muchos planes
+               empatan en resultado, y sin esto se quedaba con el primero
+               que salía del bucle — por eso aparecía gente floja pudiendo
+               mandar a alguien mejor que hacía exactamente lo mismo. */
+            const fuerza = puntosDe[a][x] + puntosDe[b][y] + puntosDe[c][z];
             if (!mejor || ganadas > mejor.ganadas ||
-                (ganadas === mejor.ganadas && duelos > mejor.duelos)){
-              mejor = { ganadas: ganadas, duelos: duelos,
+                (ganadas === mejor.ganadas &&
+                  (duelos > mejor.duelos ||
+                    (duelos === mejor.duelos && fuerza > mejor.fuerza)))){
+              mejor = { ganadas: ganadas, duelos: duelos, fuerza: fuerza,
                         idx: [a, b, c], tac: [T[x], T[y], T[z]] };
             }
           }
@@ -575,7 +590,10 @@ window.PVP_MODEL = (function () {
         }
         if (puntos < 2) { w[k >> 5] |= (1 << (k & 31)); n++; }
       }
-      return { d: d, w: w, n: n };
+      const f = R.score(mios[d.c[0]], T[d.t[0]])
+              + R.score(mios[d.c[1]], T[d.t[1]])
+              + R.score(mios[d.c[2]], T[d.t[2]]);
+      return { d: d, w: w, n: n, f: f };
     });
 
     /* Las que menos caen, pero con tope por reparto de personajes: si no,
@@ -608,13 +626,14 @@ window.PVP_MODEL = (function () {
           una += popcount(a | b);
         }
       }
-      grupo.forEach(x => { suma += x.n; });
+      let fuerza = 0;
+      grupo.forEach(x => { suma += x.n; fuerza += x.f; });
       let peor, caenPeor;
       if (Cw && tres) { peor = 3; caenPeor = tres; }
       else if (dos)   { peor = 2; caenPeor = dos; }
       else if (una)   { peor = 1; caenPeor = una; }
       else            { peor = 0; caenPeor = 0; }
-      return { peor: peor, caenPeor: caenPeor, suma: suma };
+      return { peor: peor, caenPeor: caenPeor, suma: suma, fuerza: fuerza };
     };
 
     /* Manda cuánto aguantas DE MEDIA, no el peor caso. El rival no ve tus
@@ -627,7 +646,8 @@ window.PVP_MODEL = (function () {
       if (!b) return true;
       if (a.suma !== b.suma) return a.suma < b.suma;      // cae menos veces
       if (a.peor !== b.peor) return a.peor < b.peor;      // y si te estudia, aguanta
-      return a.caenPeor < b.caenPeor;                     // y de menos maneras
+      if (a.caenPeor !== b.caenPeor) return a.caenPeor < b.caenPeor;
+      return a.fuerza > b.fuerza;                         // y con la gente mas fuerte
     };
 
     const encajan = (grupo, x) => grupo.every(g => compatibles(g.d, x.d));

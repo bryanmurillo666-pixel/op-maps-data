@@ -123,14 +123,24 @@
      se calcula la mejor táctica de cada uno contra cada puesto y luego se
      prueban todas las formas de repartir tres personajes distintos. */
   function mejorAlineacion(crew, enemigos){
+    /* La mejor táctica de cada uno contra cada enemigo. A igualdad de
+       tácticas ganadas se queda con la de más puntuación: si no, ganaba
+       siempre Asalto por ser la primera de la lista. */
     const mejor = crew.map(c => enemigos.map(en => {
-      let top = { tac: R.TACTICS[0], gana: -1 };
+      let top = { tac: R.TACTICS[0], gana: -1, punto: -1 };
       for (const tac of R.TACTICS) {
         const g = ganadas(c, tac, en);
-        if (g > top.gana) top = { tac: tac, gana: g };
+        const punto = R.score(c, tac);
+        if (g > top.gana || (g === top.gana && punto > top.punto)) {
+          top = { tac: tac, gana: g, punto: punto };
+        }
       }
       return top;
     }));
+
+    // lo fuerte que es cada enemigo en su mejor táctica
+    const duro = enemigos.map(en =>
+      Math.max.apply(null, R.TACTICS.map(tac => R.score(en, tac))));
 
     let salida = null;
     for (let a = 0; a < crew.length; a++)
@@ -143,9 +153,31 @@
           // A igualdad de probabilidad, la que gana más duelos sueltos:
           // cada duelo perdido cuesta el 34 % de la vida de ese tripulante.
           const duelos = trio[0].gana + trio[1].gana + trio[2].gana;
-          if (!salida || p > salida.prob + 1e-12 ||
-              (p > salida.prob - 1e-12 && duelos > salida.duelos)) {
-            salida = { prob: p, duelos: duelos, idx: [a, b, c], puestos: trio };
+          /* Y en tercer lugar, la puntuación del trío. Muchísimas
+             alineaciones empatan en todo lo demás, y sin esto se quedaba
+             con la primera que salía del bucle — o sea, con el orden en
+             que metiste la tripulación. Por eso aparecía gente floja
+             pudiendo mandar a alguien mejor que hacía lo mismo. */
+          const fuerza = trio[0].punto + trio[1].punto + trio[2].punto;
+          /* Cuarto criterio, para cuando dos de los tuyos son
+             intercambiables (los dos ganan las 3 tácticas de su enemigo y
+             la suma no los distingue): se empareja al más fuerte tuyo con
+             el enemigo más fuerte. Maximizar la suma de los productos hace
+             justo eso, y deja el mayor margen donde más apretado está. */
+          const pareo = trio[0].punto * duro[0]
+                      + trio[1].punto * duro[1]
+                      + trio[2].punto * duro[2];
+          const mejorQue =
+            !salida ||
+            p > salida.prob + 1e-12 ||
+            (p > salida.prob - 1e-12 &&
+              (duelos > salida.duelos ||
+                (duelos === salida.duelos &&
+                  (fuerza > salida.fuerza ||
+                    (fuerza === salida.fuerza && pareo > salida.pareo)))));
+          if (mejorQue) {
+            salida = { prob: p, duelos: duelos, fuerza: fuerza, pareo: pareo,
+                       idx: [a, b, c], puestos: trio };
           }
         }
       }

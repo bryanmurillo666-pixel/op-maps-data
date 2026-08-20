@@ -8,8 +8,10 @@
    ver (su tripulación y en qué banda de salud está cada uno) y lo
    que solo se averigua peleando (sus guardias).
 
-   Los tuyos que estén caídos se marcan aquí y quedan fuera del plan:
-   no pueden desembarcar ni abordar.
+   La página va en tres desgloses: la libreta de rivales, cómo le ganas
+   y cómo te defiendes de él. Se da por hecho que tu tripulación está
+   entera: quién esté tocado cambia cada media hora y no es lo que se
+   viene a mirar aquí.
    ============================================================ */
 (function () {
 
@@ -34,14 +36,13 @@
     }
   };
 
-  const CAIDOS_KEY = 'opmaps-caidos';
 
   const els = {
     input:    document.getElementById('rivalAdd'),
     addBtn:   document.getElementById('rivalBtn'),
     lista:    document.getElementById('rivalList'),
     hint:     document.getElementById('rivalHint'),
-    crew:     document.getElementById('miCrew'),
+    count:    document.getElementById('rivCount'),
     sel:      document.getElementById('planRival'),
     out:      document.getElementById('resultado'),
     def:      document.getElementById('defensa'),
@@ -79,38 +80,10 @@
     return c ? c.n : '';
   }
 
-  /* ---------- los tuyos que están caídos ---------- */
-
-  let caidos = {};
-  function cargarCaidos(){
-    try {
-      const g = JSON.parse(localStorage.getItem(CAIDOS_KEY) || '[]');
-      caidos = {};
-      if (Array.isArray(g)) g.forEach(n => { caidos[n] = true; });
-    } catch(e){ caidos = {}; }
-  }
-  function guardarCaidos(){
-    try { localStorage.setItem(CAIDOS_KEY, JSON.stringify(Object.keys(caidos))); }
-    catch(e){ /* si el navegador lo bloquea, dura la sesión */ }
-  }
-  const enPie = () => C.personajes().filter(c => !caidos[c.n]);
-
-  /* ---------- pintado: tu tripulación ---------- */
-
-  function crewHTML(){
-    const crew = C.personajes();
-    if (!crew.length) return `<p class="hint">${esc(t('pvp.sim.empty'))}</p>`;
-    return `<div class="mini-crew">${crew.map(c => {
-      const tac = R.bestTactic(c);
-      const ko = !!caidos[c.n];
-      return `<button type="button" class="mini-chip mio${ko ? ' ko' : ''}"
-                data-mio="${esc(c.n)}" title="${esc(t('pvp.mine.toggle'))}">
-        <b>${esc(nameOf(c))}</b>
-        <i>${ko ? esc(t('pvp.est.ko')) : esc(t('tac.' + tac)) + ' ' + num(R.score(c, tac))}</i>
-      </button>`;
-    }).join('')}</div>
-    <p class="hint">${esc(t('pvp.mine.hint'))}</p>`;
-  }
+  /* Tu tripulación, tal cual está en Mi tripulación. Aquí se da por hecho
+     que todos están enteros: quién esté tocado en un momento dado cambia
+     cada media hora y no es lo que se viene a mirar a esta página. */
+  const mios = () => C.personajes();
 
   /* ---------- pintado: un rival ---------- */
 
@@ -168,8 +141,12 @@
     </div>`;
   }
 
-  function rivalHTML(r){
+  /* Cada rival va en su propio desglose: con varios apuntados la página no
+     se estira, y se abre solo el que estés mirando. */
+  function rivalHTML(r, abierto){
     const nG = RV.nGuardias(r);
+    const tope = R.MAX_CREW;
+    const lleno = r.r.length >= tope;
 
     const suyos = r.r.length
       ? `<div class="suyos">${r.r.map(miembroHTML).join('')}</div>`
@@ -180,34 +157,53 @@
         <h5>${esc(t('pvp.riv.guard'))} ${gi + 1}</h5>
         <button type="button" class="btn-x g-clear">${esc(t('pvp.riv.gClear'))}</button>
       </div>
-      <div class="puestos">${g.map((p, i) => puestoHTML(r, p, i)).join("")}</div>
+      <div class="puestos">${g.map((p, i) => puestoHTML(r, p, i)).join('')}</div>
     </div>`).join('');
 
-    return `<div class="rival-card" data-id="${esc(r.id)}">
-      <div class="rival-top">
-        <input class="rival-nom" value="${esc(r.n)}" maxlength="40"
-               aria-label="${esc(t('pvp.riv.name'))}">
-        <button type="button" class="btn-x rival-del">${esc(t('pvp.riv.del'))}</button>
-      </div>
+    // cuántas guardias tiene ya averiguadas del todo
+    const hechas = r.g.slice(0, nG).filter(g => g.every(p => p)).length;
 
-      <h5 class="bloque-tit">${esc(t('pvp.riv.crew'))}</h5>
-      <div class="add-row chica">
-        <input type="text" class="suyo-add" list="db" autocomplete="off"
-               placeholder="${esc(t('pvp.riv.crewPh'))}" aria-label="${esc(t('pvp.riv.crewPh'))}">
-        <button type="button" class="btn-add suyo-btn">+</button>
-      </div>
-      ${suyos}
-      <p class="note">${t('pvp.riv.stateNote')}</p>
+    return `<details class="rival-card" data-id="${esc(r.id)}"${abierto ? ' open' : ''}>
+      <summary>
+        <b class="rival-n">${esc(r.n)}</b>
+        <span class="cuenta${lleno ? ' full' : ''}">${r.r.length}/${tope}</span>
+        <span class="cuenta">${hechas}/${nG} ${esc(t('pvp.riv.gShort'))}</span>
+      </summary>
+      <div class="plegable-body">
+        <div class="rival-top">
+          <input class="rival-nom" value="${esc(r.n)}" maxlength="40"
+                 aria-label="${esc(t('pvp.riv.name'))}">
+          <button type="button" class="btn-x rival-del">${esc(t('pvp.riv.del'))}</button>
+        </div>
 
-      <h5 class="bloque-tit">${esc(t('pvp.riv.guards'))}</h5>
-      ${guardias}
-    </div>`;
+        <h5 class="bloque-tit">${esc(t('pvp.riv.crew'))} <span class="cuenta${lleno ? ' full' : ''}">${r.r.length}/${tope}</span></h5>
+        ${lleno
+          ? `<p class="hint">${esc(t('pvp.riv.crewFull'))}</p>`
+          : `<div class="add-row chica">
+              <input type="text" class="suyo-add" list="db" autocomplete="off"
+                     placeholder="${esc(t('pvp.riv.crewPh'))}" aria-label="${esc(t('pvp.riv.crewPh'))}">
+              <button type="button" class="btn-add suyo-btn">+</button>
+            </div>`}
+        ${suyos}
+        <p class="note">${t('pvp.riv.stateNote')}</p>
+
+        <h5 class="bloque-tit">${esc(t('pvp.riv.guards'))}</h5>
+        ${guardias}
+      </div>
+    </details>`;
   }
 
-  function listaHTML(){
+  /* Qué rivales estaban abiertos, para no cerrarlos al repintar. */
+  function abiertos(){
+    const set = {};
+    els.lista.querySelectorAll('.rival-card[open]').forEach(d => { set[d.dataset.id] = true; });
+    return set;
+  }
+
+  function listaHTML(previos){
     const rs = RV.lista();
     if (!rs.length) return `<p class="hint">${esc(t('pvp.riv.none'))}</p>`;
-    return `<div class="rivales">${rs.map(rivalHTML).join('')}</div>`;
+    return `<div class="rivales">${rs.map(r => rivalHTML(r, previos && previos[r.id])).join('')}</div>`;
   }
 
   /* ---------- pintado: el plan ---------- */
@@ -241,7 +237,7 @@
     const r = RV.porId(els.sel.value);
     if (!r) return `<p class="hint">${esc(t('pvp.plan.pick2'))}</p>`;
 
-    const crew = enPie();
+    const crew = mios();
     if (crew.length < 3) {
       return `<p class="hint">${esc(t(crew.length ? 'pvp.sim.few' : 'pvp.sim.empty'))}</p>`;
     }
@@ -307,7 +303,7 @@
     const r = RV.porId(els.sel.value);
     if (!r) return `<p class="hint">${esc(t('pvp.def.pick'))}</p>`;
 
-    const crew = enPie();
+    const crew = mios();
     if (crew.length < 3) {
       return `<p class="hint">${esc(t(crew.length ? 'pvp.sim.few' : 'pvp.sim.empty'))}</p>`;
     }
@@ -440,9 +436,14 @@
     els.def.innerHTML = defensaHTML();
   }
 
-  function render(){
-    els.crew.innerHTML  = crewHTML();
-    els.lista.innerHTML = listaHTML();
+  /* Repintar cierra los desgloses, así que antes se apunta cuáles estaban
+     abiertos. `abrir` fuerza uno más, para el rival que acabas de crear. */
+  function render(abrir){
+    const previos = abiertos();
+    if (abrir) previos[abrir] = true;
+    els.lista.innerHTML = listaHTML(previos);
+    const n = RV.lista().length;
+    els.count.textContent = n ? n : '';
     llenarSelect();
     repintaPlan();
   }
@@ -464,7 +465,7 @@
     const id = RV.añadir(els.input.value);
     if (!id) { aviso('pvp.riv.bad'); return; }
     els.input.value = '';
-    render();
+    render(id);                 // el nuevo se queda abierto
     els.sel.value = id;
     repintaPlan();
     els.input.focus();
@@ -473,16 +474,6 @@
   els.addBtn.addEventListener('click', anadirRival);
   els.input.addEventListener('keydown', e => { if (e.key === 'Enter') anadirRival(); });
 
-  // marcar a uno de los tuyos como caído
-  els.crew.addEventListener('click', e => {
-    const b = e.target.closest('[data-mio]');
-    if (!b) return;
-    const n = b.dataset.mio;
-    if (caidos[n]) delete caidos[n]; else caidos[n] = true;
-    guardarCaidos();
-    els.crew.innerHTML = crewHTML();
-    repintaPlan();
-  });
 
   els.lista.addEventListener('click', e => {
     const card = e.target.closest('.rival-card');
@@ -496,7 +487,8 @@
       const clave = aClave(campo.value);
       if (!clave || clave === RV.VACIO) { campo.classList.add('err'); aviso('pvp.riv.notFound'); return; }
       const q = RV.addMiembro(id, clave);
-      if (q !== 'ok') { aviso('pvp.riv.dupe'); return; }
+      if (q === 'llena') { aviso('pvp.riv.crewFull'); return; }
+      if (q !== 'ok')    { aviso('pvp.riv.dupe'); return; }
       campo.value = '';
       render();
       return;
@@ -564,7 +556,24 @@
 
   document.addEventListener('langchange', () => { rellenarDatalist(); render(); });
 
-  cargarCaidos();
+  /* Los tres desgloses vuelven como los dejaste. */
+  const ABRE_KEY = 'opmaps-pvp-abre';
+  (function recordarDesgloses(){
+    let guardado = {};
+    try { guardado = JSON.parse(localStorage.getItem(ABRE_KEY) || '{}') || {}; }
+    catch(e){ guardado = {}; }
+
+    document.querySelectorAll('details.plegable[data-k]').forEach(d => {
+      const k = d.dataset.k;
+      if (Object.prototype.hasOwnProperty.call(guardado, k)) d.open = !!guardado[k];
+      d.addEventListener('toggle', () => {
+        guardado[k] = d.open;
+        try { localStorage.setItem(ABRE_KEY, JSON.stringify(guardado)); }
+        catch(e){ /* si el navegador lo bloquea, dura la sesión */ }
+      });
+    });
+  })();
+
   rellenarDatalist();
   render();
 })();
