@@ -307,6 +307,8 @@
     els.resumen.innerHTML = crew.length ? resumenHTML(crew) : '';
     els.roles.innerHTML   = crew.length ? rolesHTML(crew) : '';
     els.lista.innerHTML   = avisoHTML(crew, rec) + miembrosHTML(crew, rec);
+    // que las guardias sepan que la tripulación ha cambiado
+    document.dispatchEvent(new CustomEvent("crewchange"));
   }
 
   function rellenarDatalist(){

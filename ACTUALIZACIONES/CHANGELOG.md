@@ -5,6 +5,112 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.5.2 — 21 ago 2026
+
+- **La información del PvP vuelve.** En la 1.5.1 quité el desglose y me llevé
+  por delante el contenido, que no era lo pedido. Los cinco paneles de consulta
+  (puntuación de un duelo, daños, coste de perder, tabla de casco, reglas de
+  guardias y cuándo puedes atacar) están otra vez, ahora sueltos y siempre a la
+  vista.
+- **Icono del sitio.** La misma brújula de la cabecera, en `assets/favicon.svg`,
+  enlazada desde las ocho páginas. Va sobre un cuadrado del color del fondo para
+  que se lea a `16 px` y también con el navegador en tema claro.
+- **El título de la portada** se queda en `OP-MAPS DATA`, sin el "Compendio del
+  juego" detrás.
+
+---
+
+## 1.5.1 — 21 ago 2026
+
+Ajustes de colocación, y un fallo de CSS de la versión anterior.
+
+- **Mis rivales** pasa a ir detrás de Mi tripulación, en el menú y en la
+  portada. Las tarjetas se renumeran solas.
+- **Importar y exportar** suben a lo primero de Mis rivales, uno al lado del
+  otro, y dejan de ir plegados.
+- **Fuera el desglose de reglas del PvP.** Lo que explicaba (puntuación de un
+  duelo, daños, tabla de casco, reglas de guardias, cuándo puedes atacar) sigue
+  en `i18n.js` sin usarse: es material de consulta y su sitio natural es la
+  Guía, cuando se escriba.
+- **La tripulación del rival es plegable** y sus miembros ya no enseñan su mejor
+  puntuación: ahí solo interesa quién es y en qué estado está.
+
+### El fallo de CSS
+
+Los tres formularios de puesto usan clases distintas para que el JS los
+distinga —`p-` las guardias del rival, `g-` las tuyas, `a-` el formulario de
+ataques— pero el CSS solo tenía regla para `p-`. Los otros dos salían con los
+desplegables por defecto del navegador. Ahora la regla cubre los tres.
+
+De paso, `.botin.neutro` tampoco tenía color y heredaba el del contenedor.
+
+---
+
+## 1.5.0 — 21 ago 2026
+
+Guía `v5.1`, libreta de rivales con página propia, y tus guardias entran en el
+cálculo.
+
+### Guía v5.1
+
+Actualización pequeña y toda del **Recubrimiento de Submarino**, que zanja la
+contradicción que arrastrábamos con el texto de la tienda. Manda la guía:
+sobrevives **sin daño** y sin perder oro ni poneglifos; el recubrimiento se
+gasta igual; y te deja **sumergido 120 min** (o sales a flote enseguida si ya
+estabas abajo). No salta si sigues aturdido cuando cae el rayo. Aplicado en
+`items.js`, y de paso se pusieron al día todas las referencias a la versión de
+la guía por el sitio, incluido el pie de página.
+
+### Mis rivales, en su propia pestaña
+
+La libreta sale del PvP y pasa a `rivals.html`, con su entrada en el menú y su
+tarjeta en la portada. El PvP ya no edita nada: solo lee y calcula.
+
+Nuevo en la libreta: **sus ataques contra ti**, con si le salieron bien o mal.
+
+### Compartir sin servidor
+
+Un **código de texto** que se pega en el chat de la alianza. Un rival completo
+ocupa unos `160` caracteres, así que la libreta entera cabe en un mensaje. Se
+usan los números de ficha del álbum en vez de los nombres: ocupa mucho menos y
+no se rompe al cambiar de idioma. Al importar, un rival con el mismo nombre se
+sustituye.
+
+**Por qué no un código de invitación**: para que diez personas vean una libreta
+común hace falta un servidor donde viva, y esto es un sitio estático. Cualquier
+backend metido aquí llevaría sus claves a la vista, o sea que cualquiera podría
+leer y escribir en la libreta de la alianza.
+
+### Tus tres guardias
+
+Se apuntan en Mi tripulación, en un panel nuevo que avisa si te saltas las
+reglas del juego (tres distintos por guardia; quien repite cambia de fila).
+
+Con eso, el PvP enseña **lo que aguantan las que tienes puestas contra lo que
+aguantarían las recomendadas**, con la diferencia entre ambas. Si lo que tienes
+ya aguanta lo mismo, te lo dice y no tocas nada.
+
+### La predicción del próximo ataque
+
+La idea del usuario, y funciona: **la gente repite**. Si un ataque le salió bien
+lo vuelve a mandar, y si le falló muchas veces lo intenta otra vez antes de
+cambiar. Así que su último ataque apuntado deja de pesar como uno entre mil:
+
+- le **salió bien** → pesa un `50 %` de la predicción
+- le **falló** → pesa un `25 %`
+
+Medido en la prueba, con el mismo rival y las mismas guardias: sin ataque
+apuntado se aguanta un `74 %`; con su último ataque apuntado y ganador, `87 %`;
+y si le falló, `80,6 %`.
+
+### Comprobaciones
+
+`aguante()` (evalúa unas guardias concretas) y `mejoresGuardias()` (busca las
+mejores) llegan al mismo número sobre las mismas guardias, que es la
+comprobación cruzada de que las dos rutas de cálculo concuerdan.
+
+---
+
 ## 1.4.0 — 19 ago 2026
 
 Reordenada la página de PvP, y arreglado en las dos páginas por qué salían

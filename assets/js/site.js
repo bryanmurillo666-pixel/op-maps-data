@@ -16,6 +16,7 @@
     { id:'home',  href:'index.html', key:'nav.home'  },
     { id:'data',  href:'data.html',  key:'nav.data'  },
     { id:'crew',  href:'crew.html',  key:'nav.crew'  },
+    { id:'rivals',href:'rivals.html',key:'nav.rivals'},
     { id:'pve',   href:'pve.html',   key:'nav.pve'   },
     { id:'pvp',   href:'pvp.html',   key:'nav.pvp'   },
     { id:'tips',  href:'tips.html',  key:'nav.tips'  },

@@ -18,7 +18,8 @@ listo. Todo es HTML, CSS y JavaScript sin dependencias.
 | `data.html` | Los 226 personajes, en lista o en álbum por capítulos |
 | `crew.html` | Tu tripulación: poder, velocidad, bonus de rol y a quién sobra |
 | `pve.html` | Las 156 islas con sus enemigos, y qué alineación gana en cada una |
-| `pvp.html` | Simulador 3v3 contra las guardias rivales |
+| `pvp.html` | Tu plan de ataque y qué guardias montar contra cada rival |
+| `rivals.html` | Tu libreta de rivales, con código para compartirla |
 | `tips.html` | Consejos |
 | `guide.html` | La guía del jugador |
 

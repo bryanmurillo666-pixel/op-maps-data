@@ -75,11 +75,19 @@ window.RIVALES = (function () {
       g.push(out);
     }
 
+    // sus ataques contra ti, del más reciente al más viejo
+    const a = (Array.isArray(r.a) ? r.a : []).map(at => {
+      if (!at || !Array.isArray(at.p)) return null;
+      const p = [0, 1, 2].map(i => limpiaPuesto(at.p[i]));
+      return p.some(Boolean) ? { p: p, w: at.w ? 1 : 0 } : null;
+    }).filter(Boolean).slice(0, 10);
+
     return {
       id: String(r.id || ('r' + Date.now() + Math.random().toString(36).slice(2, 7))),
       n:  String(r.n || '').slice(0, 40),
       r:  rr.slice(0, window.RULES.MAX_CREW),
-      g:  g
+      g:  g,
+      a:  a
     };
   }
 
@@ -114,7 +122,7 @@ window.RIVALES = (function () {
     if (lista.some(r => r.n.toLowerCase() === n.toLowerCase())) return null;
     const r = {
       id: 'r' + Date.now() + Math.random().toString(36).slice(2, 7),
-      n: n, r: [],
+      n: n, r: [], a: [],
       g: [guardiaVacia(), guardiaVacia(), guardiaVacia()]
     };
     lista.push(r);
@@ -179,6 +187,144 @@ window.RIVALES = (function () {
     guardar();
   }
 
+  /* ---------- sus ataques contra ti ----------
+     Para qué sirve: la gente repite. Si un ataque le funcionó, lo vuelve a
+     mandar; y si le falló, muchas veces lo intenta otra vez antes de
+     cambiar. Apuntar el último te deja predecir el siguiente mejor que
+     cualquier media. */
+
+  const MAX_ATAQUES = 10;
+
+  function addAtaque(id, puestos, gano){
+    const r = porId(id);
+    if (!r) return 'noExiste';
+    const p = [0, 1, 2].map(i => limpiaPuesto(puestos && puestos[i]));
+    if (!p.some(Boolean)) return 'vacio';
+    r.a.unshift({ p: p, w: gano ? 1 : 0 });   // el más reciente, delante
+    r.a = r.a.slice(0, MAX_ATAQUES);
+    guardar();
+    return 'ok';
+  }
+
+  function delAtaque(id, idx){
+    const r = porId(id);
+    if (!r || !r.a[idx]) return;
+    r.a.splice(idx, 1);
+    guardar();
+  }
+
+  const ultimoAtaque = r => (r && r.a && r.a.length) ? r.a[0] : null;
+
+  /* ---------- compartir la libreta ----------
+     Un código de texto que se pega en el chat. Se usan los números de
+     ficha del álbum (1-226) en vez de los nombres: ocupa mucho menos y no
+     se rompe al cambiar de idioma. */
+
+  const CABECERA = 'OPMR1:';
+
+  function b64(txt){
+    const bytes = new TextEncoder().encode(txt);
+    let bin = '';
+    bytes.forEach(b => { bin += String.fromCharCode(b); });
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  function deB64(txt){
+    let t = txt.replace(/-/g, '+').replace(/_/g, '/');
+    while (t.length % 4) t += '=';
+    const bin = atob(t);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+
+  const album = n => {
+    const c = window.CHARACTERS.find(x => x.n === n);
+    return c ? c.a : 0;
+  };
+  const porAlbum = a => window.CHARACTERS.find(x => x.a === a);
+
+  //  0 = sin averiguar   -1 = puesto vacío   [ficha, táctica]
+  function codPuesto(p){
+    if (!p) return 0;
+    if (p.n === VACIO) return -1;
+    const a = album(p.n);
+    return a ? [a, window.RULES.TACTICS.indexOf(p.t)] : 0;
+  }
+
+  function dePuesto(c){
+    if (c === -1) return { n: VACIO, t: window.RULES.TACTICS[0] };
+    if (!Array.isArray(c)) return null;
+    const p = porAlbum(c[0]);
+    const t = window.RULES.TACTICS[c[1]];
+    return (p && t) ? { n: p.n, t: t } : null;
+  }
+
+  function exportar(ids){
+    const cuales = (ids && ids.length)
+      ? lista.filter(r => ids.indexOf(r.id) !== -1)
+      : lista;
+    if (!cuales.length) return '';
+
+    const datos = cuales.map(r => [
+      r.n,
+      r.r.map(m => [album(m.n), ESTADOS.indexOf(m.e)]).filter(x => x[0]),
+      r.g.map(g => g.map(codPuesto)),
+      r.a.map(at => [at.p.map(codPuesto), at.w])
+    ]);
+    return CABECERA + b64(JSON.stringify(datos));
+  }
+
+  /* Devuelve {nuevos, actualizados} o null si el código no vale. Un rival
+     con el mismo nombre se sustituye: al compartir, lo último que alguien
+     averiguó es lo bueno. */
+  function importar(codigo){
+    const txt = String(codigo || '').trim();
+    if (txt.indexOf(CABECERA) !== 0) return null;
+
+    let datos;
+    try { datos = JSON.parse(deB64(txt.slice(CABECERA.length))); }
+    catch(e){ return null; }
+    if (!Array.isArray(datos)) return null;
+
+    let nuevos = 0, actualizados = 0;
+
+    datos.forEach(d => {
+      if (!Array.isArray(d)) return;
+      const nombre = String(d[0] || '').trim().slice(0, 40);
+      if (!nombre) return;
+
+      const crudo = {
+        n: nombre,
+        r: (Array.isArray(d[1]) ? d[1] : []).map(m => {
+          const c = porAlbum(m[0]);
+          return c ? { n: c.n, e: ESTADOS[m[1]] || 'ok' } : null;
+        }).filter(Boolean),
+        g: (Array.isArray(d[2]) ? d[2] : []).map(g =>
+          (Array.isArray(g) ? g : []).map(dePuesto)),
+        a: (Array.isArray(d[3]) ? d[3] : []).map(at => ({
+          p: (Array.isArray(at[0]) ? at[0] : []).map(dePuesto),
+          w: at[1] ? 1 : 0
+        }))
+      };
+
+      const ya = lista.find(r => r.n.toLowerCase() === nombre.toLowerCase());
+      if (ya) {
+        crudo.id = ya.id;
+        const limpio = limpiaRival(crudo);
+        Object.assign(ya, limpio);
+        actualizados++;
+      } else {
+        const limpio = limpiaRival(crudo);
+        lista.push(limpio);
+        nuevos++;
+      }
+    });
+
+    guardar();
+    return { nuevos: nuevos, actualizados: actualizados };
+  }
+
   cargar();
 
   return {
@@ -198,6 +344,11 @@ window.RIVALES = (function () {
     setEstado:  setEstado,
     setPuesto:  setPuesto,
     vaciarGuardia: vaciarGuardia,
+    addAtaque:  addAtaque,
+    delAtaque:  delAtaque,
+    ultimoAtaque: ultimoAtaque,
+    exportar:   exportar,
+    importar:   importar,
     recargar:  cargar
   };
 })();

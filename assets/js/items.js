@@ -3,7 +3,7 @@
    ------------------------------------------------------------
    Nombres, precios y descripciones en español: CONTEXTO/Tienda.txt,
    que es la tienda del juego tal cual. Los nombres y efectos en inglés
-   salen de la guía v4.0 (la tienda solo la tenemos en español).
+   salen de la guía v5.1 (la tienda solo la tenemos en español).
 
      id    = identificador interno
      es/en = nombre en cada idioma
@@ -12,11 +12,22 @@
      cd    = enfriamiento del uso automático, en horas (0 = no tiene)
      ds/de = descripción en español (tienda) e inglés (guía)
 
-   OJO, hay una diferencia entre las dos fuentes con el Recubrimiento de
-   Submarino: la guía v4.0 dice que te salva del rayo de Imu sin más, y la
-   tienda dice que lo convierte en daño fuerte al casco en vez de una
-   derrota instantánea. La tienda es lo que está vivo en el juego, así que
-   manda ella, pero conviene confirmarlo antes de escribir la sección de IMU.
+   RESUELTO con la guía v5.1 (20 ago 2026). Había una contradicción con el
+   Recubrimiento de Submarino: el texto de la tienda dice que convierte el
+   rayo de Imu en "daño fuerte al casco", y la guía dice que sobrevives sin
+   daño ninguno. Manda la guía: es posterior al export de la tienda y se
+   declara a sí misma la fuente única de las mecánicas. Lo que hace de
+   verdad, según la v5.1:
+
+     · sobrevives, SIN daño y sin perder oro ni poneglifos
+     · el recubrimiento se gasta pase lo que pase
+     · si salta contra el rayo, te deja sumergido 120 min: ahí no navegas y
+       solo puedes pelear contra otras tripulaciones sumergidas
+     · si ya estabas sumergido cuando cayó el rayo, se gasta en absorberlo
+       y sales a flote enseguida
+     · NO salta si sigues aturdido cuando cae el rayo; si el aturdimiento
+       ya se te había pasado, salta con normalidad
+     · sumergirte rompe una conquista en curso
    ============================================================ */
 window.ITEMS = [
   { id:'ration', es:'Ración', en:'Ration', p:100, auto:false, cd:0,
@@ -56,12 +67,12 @@ window.ITEMS = [
     de:'Auto-triggers when you become stunned.' },
 
   { id:'coating', es:'Recubrimiento de Submarino', en:'Submarine Coating', p:1000, auto:true, cd:4,
-    ds:'Se activa automáticamente cuando un rayo de Imu golpea a tu tripulación. Sumerge el barco para convertir la destrucción instantánea en daño fuerte al casco.',
-    de:'Auto-triggers against IMU, saves you and submerges you for 120 min.' },
+    ds:'Salta solo cuando te cae un rayo de Imu: sobrevives sin daño y sin perder oro ni poneglifos. Te deja sumergido 120 min, y ahí ni navegas ni puedes pelear con nadie que no esté sumergido. No salta si sigues aturdido cuando cae el rayo.',
+    de:'Auto-triggers against an IMU strike: you survive with no damage and lose no gold or poneglyphs. It leaves you submerged for 120 min, where you cannot sail and can only fight other submerged crews. It does not fire if you are still stunned when the strike lands.' },
 
   { id:'coating-manual', es:'Recubrimiento de Submarino (Manual)', en:'Submarine Coating (Manual)', p:500, auto:false, cd:0,
-    ds:'Recubrimiento de uso manual. Actívalo para sumergirte y convertir el próximo rayo de Imu en daño fuerte al casco en lugar de una derrota instantánea.',
-    de:'Submerges you manually for 60 min.' },
+    ds:'Recubrimiento de uso manual: te sumerges 60 min cuando tú quieras. Si el rayo te pilla ya sumergido, se gasta en absorberlo y sales a flote enseguida.',
+    de:'Submerges you manually for 60 min. If a strike lands while you are already under, this coating is spent absorbing it and you surface right away.' },
 
   { id:'anchor', es:'Ancla', en:'Anchor', p:1000, auto:false, cd:0,
     ds:'Echa el ancla durante 4 horas. El barco se detiene sin perder su rumbo. Super Cola puede romper el efecto antes.',

@@ -45,3 +45,8 @@
       ni capítulo ni el ser lectores: es una casilla de la hoja de cálculo con un
       criterio propio del autor. El sitio no depende de ella y los stats de esas
       filas ya coincidían. El archivo se apartó a `OPMAPSDATA-ARCHIVO/`.
+- [x] **Efecto del Recubrimiento de Submarino** (21 ago 2026). La guía `v5.1`
+      zanja la contradicción con el texto de la tienda: sobrevives **sin daño**
+      y sin perder oro ni poneglifos, el recubrimiento se gasta igual, y te deja
+      **sumergido 120 min** (o sales a flote enseguida si ya estabas abajo). No
+      salta si sigues aturdido cuando cae el rayo. Aplicado en `items.js`.

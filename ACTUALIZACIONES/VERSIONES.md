@@ -1,11 +1,11 @@
 # Versiones que sigue el sitio
 
-Estado a **19 de agosto de 2026**.
+Estado a **21 de agosto de 2026**.
 
 | Fuente | Versión | Fecha | Estado |
 |---|---|---|---|
-| Sitio OP-MAPS DATA | `1.4.0` | 19 ago 2026 | sin publicar |
-| Guía del jugador | `5.0` | 18 ago 2026 | ✅ aplicada |
+| Sitio OP-MAPS DATA | `1.5.2` | 21 ago 2026 | sin publicar |
+| Guía del jugador | `5.1` | 20 ago 2026 | ✅ aplicada |
 | Changelog del juego | `v0.44.0` | 18 ago 2026 | ✅ leído |
 | Álbum del juego (ES/EN) | export | 16 ago 2026 | ✅ 226 personajes verificados |
 | Islas | `islands.js` | 19 ago 2026 | ✅ 156 islas (el export `Island.html` se quedó corto y se apartó) |
@@ -17,6 +17,7 @@ Estado a **19 de agosto de 2026**.
 |---|---|---|
 | `v4.0` | juego `v0.36.0` | Primera que se usó para montar el sitio. |
 | `v5.0` | juego `v0.44.0` | El PvE deja de ser un `50%` fijo y pasa a ser un `3v3` real contra la guardia de la isla. Aparecen el mercado entre tripulaciones y el plan de ataque como pantalla propia. |
+| `v5.1` | juego `v0.44.0` | Solo aclaraciones del **Recubrimiento de Submarino**: sobrevives sin daño, se gasta siempre, y te deja sumergido `120 min` (o sales a flote si ya lo estabas). No salta si sigues aturdido. |
 
 ## Cómo comprobar si hay algo nuevo
 

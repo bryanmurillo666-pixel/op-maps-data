@@ -1,17 +1,14 @@
 /* ============================================================
-   OP-MAPS DATA — PvP: rivales y plan de ataque
+   OP-MAPS DATA — PvP: plan de ataque y guardias
    ------------------------------------------------------------
    Esto es la interfaz. Toda la matemática está en pvp-model.js.
 
-   Tu tripulación sale de crew-store.js y los rivales de
-   rivals-store.js. De cada rival se apunta lo que el juego te deja
-   ver (su tripulación y en qué banda de salud está cada uno) y lo
-   que solo se averigua peleando (sus guardias).
+   Aquí NO se edita nada: la libreta de rivales se lleva en Mis
+   rivales y tus guardias en Mi tripulación. Esta página solo lee
+   las dos cosas y calcula.
 
-   La página va en tres desgloses: la libreta de rivales, cómo le ganas
-   y cómo te defiendes de él. Se da por hecho que tu tripulación está
-   entera: quién esté tocado cambia cada media hora y no es lo que se
-   viene a mirar aquí.
+   Se da por hecho que tu tripulación está entera: quién esté
+   tocado cambia cada media hora y no es lo que se viene a mirar.
    ============================================================ */
 (function () {
 
@@ -19,9 +16,10 @@
   const DB = window.CHARACTERS;
   const C  = window.CREW;
   const RV = window.RIVALES;
+  const MG = window.MIS_GUARDIAS;
   const M  = window.PVP_MODEL;
 
-  /* Lo que cuesta un combate, de la guía v5.0. El casco depende del
+  /* Lo que cuesta un combate, de la guía v5.1. El casco depende del
      marcador; un 2-1 es "amplio" si el ganador suma al menos 1,25 veces
      los puntos del perdedor. */
   const PVP = {
@@ -36,17 +34,10 @@
     }
   };
 
-
   const els = {
-    input:    document.getElementById('rivalAdd'),
-    addBtn:   document.getElementById('rivalBtn'),
-    lista:    document.getElementById('rivalList'),
-    hint:     document.getElementById('rivalHint'),
-    count:    document.getElementById('rivCount'),
-    sel:      document.getElementById('planRival'),
-    out:      document.getElementById('resultado'),
-    def:      document.getElementById('defensa'),
-    datalist: document.getElementById('db')
+    sel: document.getElementById('planRival'),
+    out: document.getElementById('resultado'),
+    def: document.getElementById('defensa')
   };
 
   /* ---------- utilidades ---------- */
@@ -54,10 +45,8 @@
   const t = k => window.I18N.t(k);
   const isES = () => window.I18N.lang !== 'en';
   const nameOf = c => (isES() && c.es) ? c.es : c.n;
+  const porNombre = n => DB.find(x => x.n === n);
 
-  function fold(s){
-    return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  }
   function esc(s){
     return String(s).replace(/[&<>"']/g, m => (
       { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]
@@ -69,150 +58,15 @@
     });
   }
   const claseProb = p => p >= 0.6 ? 'win-hi' : (p >= 0.34 ? 'win-mid' : 'win-lo');
-  const porNombre = n => DB.find(x => x.n === n);
-
-  /* Del texto escrito al nombre en inglés, que es el que se guarda. */
-  function aClave(texto){
-    const q = fold(texto);
-    if (!q) return '';
-    if (q === RV.VACIO) return RV.VACIO;
-    const c = DB.find(x => fold(x.n) === q || (x.es && fold(x.es) === q));
-    return c ? c.n : '';
-  }
-
-  /* Tu tripulación, tal cual está en Mi tripulación. Aquí se da por hecho
-     que todos están enteros: quién esté tocado en un momento dado cambia
-     cada media hora y no es lo que se viene a mirar a esta página. */
+  const seg = x => x === 'Assault' ? 'f' : (x === 'Manoeuvre' ? 'v' : 'i');
   const mios = () => C.personajes();
 
-  /* ---------- pintado: un rival ---------- */
-
-  function opcionesTactica(sel){
-    return R.TACTICS.map(tac =>
-      '<option value="' + tac + '"' + (tac === sel ? ' selected' : '') + '>' +
-      esc(t('tac.' + tac)) + '</option>'
-    ).join('');
-  }
-
-  function opcionesEstado(sel){
-    return RV.ESTADOS.map(e =>
-      '<option value="' + e + '"' + (e === sel ? ' selected' : '') + '>' +
-      esc(t('pvp.est.' + e)) + '</option>'
-    ).join('');
-  }
-
-  function miembroHTML(m){
-    const c = porNombre(m.n);
-    if (!c) return '';
-    const tac = R.bestTactic(c);
-    return `<div class="suyo est-${m.e}" data-quien="${esc(m.n)}">
-      <span class="suyo-n">
-        <b>${esc(nameOf(c))}</b>
-        <i>${esc(t('tac.' + tac))} ${num(R.score(c, tac))}</i>
-      </span>
-      <select class="suyo-e" aria-label="${esc(t('pvp.riv.state'))}">${opcionesEstado(m.e)}</select>
-      <button type="button" class="btn-x suyo-del" aria-label="${esc(t('pvp.riv.del'))}">×</button>
-    </div>`;
-  }
-
-  /* En una guardia suya solo puede haber gente suya, así que en vez de
-     escribir contra los 226 se elige de su tripulación. Si en el guardado
-     hubiera alguien que ya no está en ella, se le deja como opción para
-     no borrarlo por la espalda. */
-  function opcionesQuien(r, sel){
-    const nombres = r.r.map(m => m.n);
-    if (sel && sel !== RV.VACIO && nombres.indexOf(sel) === -1) nombres.push(sel);
-    const op = (v, txt, extra) =>
-      `<option value="${esc(v)}"${v === (sel || '') ? ' selected' : ''}${extra || ''}>${esc(txt)}</option>`;
-    return op('', '— ' + t('pvp.riv.unknown') + ' —')
-         + op(RV.VACIO, t('pvp.riv.empty'))
-         + nombres.map(n => {
-             const c = porNombre(n);
-             return c ? op(n, nameOf(c)) : '';
-           }).join('');
-  }
-
-  function puestoHTML(r, p, i){
-    const sel = p ? p.n : '';
-    return `<div class="puesto" data-p="${i}">
-      <span class="pos">${i + 1}</span>
-      <select class="p-n" aria-label="${esc(t('pvp.riv.slot'))} ${i + 1}">${opcionesQuien(r, sel)}</select>
-      <select class="p-t" aria-label="${esc(t('pvp.riv.tac'))}">${opcionesTactica(p ? p.t : R.TACTICS[0])}</select>
-    </div>`;
-  }
-
-  /* Cada rival va en su propio desglose: con varios apuntados la página no
-     se estira, y se abre solo el que estés mirando. */
-  function rivalHTML(r, abierto){
-    const nG = RV.nGuardias(r);
-    const tope = R.MAX_CREW;
-    const lleno = r.r.length >= tope;
-
-    const suyos = r.r.length
-      ? `<div class="suyos">${r.r.map(miembroHTML).join('')}</div>`
-      : `<p class="hint">${esc(t('pvp.riv.crewNone'))}</p>`;
-
-    const guardias = r.g.slice(0, nG).map((g, gi) => `<div class="guardia" data-g="${gi}">
-      <div class="guardia-cab">
-        <h5>${esc(t('pvp.riv.guard'))} ${gi + 1}</h5>
-        <button type="button" class="btn-x g-clear">${esc(t('pvp.riv.gClear'))}</button>
-      </div>
-      <div class="puestos">${g.map((p, i) => puestoHTML(r, p, i)).join('')}</div>
-    </div>`).join('');
-
-    // cuántas guardias tiene ya averiguadas del todo
-    const hechas = r.g.slice(0, nG).filter(g => g.every(p => p)).length;
-
-    return `<details class="rival-card" data-id="${esc(r.id)}"${abierto ? ' open' : ''}>
-      <summary>
-        <b class="rival-n">${esc(r.n)}</b>
-        <span class="cuenta${lleno ? ' full' : ''}">${r.r.length}/${tope}</span>
-        <span class="cuenta">${hechas}/${nG} ${esc(t('pvp.riv.gShort'))}</span>
-      </summary>
-      <div class="plegable-body">
-        <div class="rival-top">
-          <input class="rival-nom" value="${esc(r.n)}" maxlength="40"
-                 aria-label="${esc(t('pvp.riv.name'))}">
-          <button type="button" class="btn-x rival-del">${esc(t('pvp.riv.del'))}</button>
-        </div>
-
-        <h5 class="bloque-tit">${esc(t('pvp.riv.crew'))} <span class="cuenta${lleno ? ' full' : ''}">${r.r.length}/${tope}</span></h5>
-        ${lleno
-          ? `<p class="hint">${esc(t('pvp.riv.crewFull'))}</p>`
-          : `<div class="add-row chica">
-              <input type="text" class="suyo-add" list="db" autocomplete="off"
-                     placeholder="${esc(t('pvp.riv.crewPh'))}" aria-label="${esc(t('pvp.riv.crewPh'))}">
-              <button type="button" class="btn-add suyo-btn">+</button>
-            </div>`}
-        ${suyos}
-        <p class="note">${t('pvp.riv.stateNote')}</p>
-
-        <h5 class="bloque-tit">${esc(t('pvp.riv.guards'))}</h5>
-        ${guardias}
-      </div>
-    </details>`;
-  }
-
-  /* Qué rivales estaban abiertos, para no cerrarlos al repintar. */
-  function abiertos(){
-    const set = {};
-    els.lista.querySelectorAll('.rival-card[open]').forEach(d => { set[d.dataset.id] = true; });
-    return set;
-  }
-
-  function listaHTML(previos){
-    const rs = RV.lista();
-    if (!rs.length) return `<p class="hint">${esc(t('pvp.riv.none'))}</p>`;
-    return `<div class="rivales">${rs.map(r => rivalHTML(r, previos && previos[r.id])).join('')}</div>`;
-  }
-
-  /* ---------- pintado: el plan ---------- */
+  /* ---------- el plan de ataque ---------- */
 
   let ultimo = null;
 
-  /* Para cada posición, contra quién se pelea en las formaciones que
-     quedan en pie y cuántas veces se gana. Es lo que sustituye al viejo
-     "sus tres de siempre": ahora puede haber varios candidatos. */
+  /* Para cada posición, contra quién pelea en las formaciones que quedan
+     en pie y cuántas veces gana. */
   function rivalesDePosicion(res, mio, tac, i){
     const cuenta = {};
     res.forms.forEach(f => {
@@ -248,7 +102,6 @@
       <span>${esc(t('pvp.plan.noData'))}</span></p>`;
 
     ultimo = { r: r, crew: crew, res: res };
-
     const exacto = res.completas >= res.nG;
 
     const filas = res.plan.idx.map((k, i) => {
@@ -259,19 +112,17 @@
         const marca = (x.g === x.t || x.g === 0) ? '' : ` ${x.g}/${x.t}`;
         return `<span class="vs ${clase}">${esc(quien)}${marca}</span>`;
       }).join('');
-      const seg = tac === 'Assault' ? 'f' : (tac === 'Manoeuvre' ? 'v' : 'i');
       return `<div class="linea">
         <span class="pos">${i + 1}</span>
         <span class="quien">
           <b>${esc(nameOf(c))}</b>
           <i>${esc(t('rn.' + c.r))}</i>
         </span>
-        <span class="tac-pill tac-${seg}">${esc(t('tac.' + tac))} · ${num(R.score(c, tac))}</span>
+        <span class="tac-pill tac-${seg(tac)}">${esc(t('tac.' + tac))} · ${num(R.score(c, tac))}</span>
         <span class="contras">${contra}</span>
       </div>`;
     }).join('');
 
-    // De qué está hecho el número: exacto, estimado, o mezcla.
     let base;
     if (exacto) {
       base = `<span class="sello exacto">${esc(t('pvp.plan.exact'))}</span>`;
@@ -297,7 +148,22 @@
       <p class="note">${t(exacto ? 'pvp.plan.howExact' : 'pvp.plan.howEst')}</p>`;
   }
 
-  /* ---------- pintado: tus guardias contra él ---------- */
+  /* ---------- tus guardias contra él ---------- */
+
+  function guardiaHTML(puestos, titulo, extra){
+    return `<div class="guardia">
+      <div class="guardia-cab">
+        <h5>${esc(titulo)}</h5>
+        ${extra || ''}
+      </div>
+      <div class="puestos">${puestos.map((p, i) => `
+        <div class="puesto-fijo">
+          <span class="pos">${i + 1}</span>
+          <b>${esc(nameOf(p.c))}</b>
+          <span class="tac-pill tac-${seg(p.t)}">${esc(t('tac.' + p.t))}</span>
+        </div>`).join('')}</div>
+    </div>`;
+  }
 
   function defensaHTML(){
     const r = RV.porId(els.sel.value);
@@ -314,35 +180,61 @@
         <span>${esc(t('pvp.def.none'))}</span></p>`;
     }
 
-    const seg = x => x === 'Assault' ? 'f' : (x === 'Manoeuvre' ? 'v' : 'i');
+    /* Las que tienes puestas ahora mismo, si las has apuntado en Mi
+       tripulación. Solo cuentan las que estén completas. */
+    const puestas = MG.todas().slice(0, MG.nGuardias())
+      .filter(g => g.every(Boolean))
+      .map(g => g.map(p => ({ c: porNombre(p.n), t: p.t })))
+      .filter(g => g.every(p => p.c));
+    const ahora = puestas.length ? M.aguante(puestas, r) : null;
 
-    const guardias = res.guardias.map((g, gi) => `<div class="guardia">
-      <div class="guardia-cab">
-        <h5>${esc(t('pvp.riv.guard'))} ${gi + 1}</h5>
-        <span class="hint">${esc(t('pvp.def.falls'))} ${num(g.cae)} / ${num(res.ataques)}</span>
+    /* La comparación es lo primero que quieres ver: si lo que tienes
+       puesto ya aguanta lo mismo, no hay nada que tocar. */
+    let comparacion;
+    if (!ahora) {
+      comparacion = `<p class="aviso-cambio"><b>${esc(t('pvp.def.sinTuyas'))}</b>
+        <span>${t('pvp.def.sinTuyasD')}</span></p>`;
+    } else {
+      const delta = res.media - ahora.media;
+      const clase = delta > 0.005 ? 'win-hi' : (delta < -0.005 ? 'win-lo' : 'win-mid');
+      const signo = delta > 0 ? '+' : '';
+      comparacion = `<div class="compara">
+        <div class="compara-caja">
+          <span>${esc(t('pvp.def.ahora'))}</span>
+          <b class="${claseProb(ahora.media)}">${num(ahora.media * 100)} %</b>
+          <em>${num(ahora.peor * 100)} % ${esc(t('pvp.def.worstShort'))}</em>
+        </div>
+        <div class="compara-flecha ${clase}">${signo}${num(delta * 100, 1)}</div>
+        <div class="compara-caja">
+          <span>${esc(t('pvp.def.reco'))}</span>
+          <b class="${claseProb(res.media)}">${num(res.media * 100)} %</b>
+          <em>${num(res.peor * 100)} % ${esc(t('pvp.def.worstShort'))}</em>
+        </div>
       </div>
-      <div class="puestos">${g.puestos.map((p, i) => `
-        <div class="puesto-fijo">
-          <span class="pos">${i + 1}</span>
-          <b>${esc(nameOf(p.c))}</b>
-          <span class="tac-pill tac-${seg(p.t)}">${esc(t('tac.' + p.t))}</span>
-        </div>`).join('')}</div>
-    </div>`).join('');
+      <p class="hint">${esc(t(delta > 0.005 ? 'pvp.def.mejora'
+                            : (delta < -0.005 ? 'pvp.def.peora' : 'pvp.def.igual')))}</p>`;
+    }
 
-    // Que pueda tumbarte las tres con una sola jugada es lo que de verdad
-    // hay que avisar: significa que no estás repartiendo el riesgo.
+    // qué dice la predicción, si has apuntado algún ataque suyo
+    const pred = res.rec
+      ? `<p class="aviso-pred"><b>${esc(t('pvp.def.predT'))}</b>
+         <span>${t(res.rec.gano ? 'pvp.def.predWon' : 'pvp.def.predLost')}</span></p>`
+      : `<p class="hint">${t('pvp.def.predNone')}</p>`;
+
+    const guardias = res.guardias.map((g, gi) =>
+      guardiaHTML(g.puestos, t('pvp.riv.guard') + ' ' + (gi + 1),
+        `<span class="hint">${esc(t('pvp.def.falls'))} ${num(g.cae)} / ${num(res.ataques)}</span>`)
+    ).join('');
+
     const aviso = res.peor === 0
       ? `<p class="aviso-cambio"><b>${esc(t('pvp.def.warnT'))}</b>
          <span>${esc(t('pvp.def.warn'))}</span></p>`
       : '';
 
-    return `<h3 class="sub-tit">${esc(t('pvp.def.avg'))}</h3>
-      <p class="gran-prob ${claseProb(res.media)}">${num(res.media * 100)} %</p>
-      <p class="sellos">
-        <span class="sello ${res.peor >= 0.5 ? 'exacto' : 'estimado'}">${num(res.peor * 100)} %</span>
-        <span class="hint">${esc(t('pvp.def.worst'))}</span>
-      </p>
+    return `${comparacion}
+      ${pred}
       ${aviso}
+      <h3 class="sub-tit">${esc(t('pvp.def.reco'))}</h3>
       <div class="def-guardias">${guardias}</div>
       <p class="note">${t('pvp.def.how')}</p>`;
   }
@@ -359,19 +251,17 @@
     if (!ultimo) return '';
     const res = ultimo.res, crew = ultimo.crew;
 
-    /* Dos sorteos: cuál de las formaciones plausibles es la de verdad
-       (si ya las conoces todas, solo hay una) y cuál de sus guardias
-       elige el servidor. */
+    /* Dos sorteos: cuál de las formaciones plausibles es la de verdad, y
+       cuál de sus guardias elige el servidor. */
     const f  = res.forms[Math.floor(Math.random() * res.forms.length)];
     const gi = Math.floor(Math.random() * res.nG);
-
     const duelos = M.resolver(crew, res.plan, f.g[gi], res.suyos);
 
-    let mios = 0, suyos = 0;
+    let miosPts = 0, suyosPts = 0;
     duelos.forEach(d => {
-      mios  += d.punto;
-      suyos += d.concede ? 0 : R.score(d.suyo, d.suTac);
-      d.dmg  = d.concede ? 0 : dano(d.mio, d.tac, d.suTac, d.gano);
+      miosPts  += d.punto;
+      suyosPts += d.concede ? 0 : R.score(d.suyo, d.suTac);
+      d.dmg = d.concede ? 0 : dano(d.mio, d.tac, d.suTac, d.gano);
     });
 
     const ganados = duelos.filter(d => d.gano).length;
@@ -380,7 +270,7 @@
     let tipo;
     if (ganados === 3 || ganados === 0) tipo = 'tres';
     else {
-      const alto = gana ? mios : suyos, bajo = gana ? suyos : mios;
+      const alto = gana ? miosPts : suyosPts, bajo = gana ? suyosPts : miosPts;
       tipo = (bajo <= 0 || alto / bajo >= PVP.AMPLIO) ? 'amplio' : 'ajust';
     }
     const casco = PVP.CASCO[tipo];
@@ -427,126 +317,12 @@
     if (els.sel.selectedIndex === -1) els.sel.value = '';
   }
 
-  function rellenarDatalist(){
-    els.datalist.innerHTML = DB.map(c => `<option value="${esc(nameOf(c))}"></option>`).join('');
-  }
-
-  function repintaPlan(){
+  function repinta(){
     els.out.innerHTML = planHTML();
     els.def.innerHTML = defensaHTML();
   }
 
-  /* Repintar cierra los desgloses, así que antes se apunta cuáles estaban
-     abiertos. `abrir` fuerza uno más, para el rival que acabas de crear. */
-  function render(abrir){
-    const previos = abiertos();
-    if (abrir) previos[abrir] = true;
-    els.lista.innerHTML = listaHTML(previos);
-    const n = RV.lista().length;
-    els.count.textContent = n ? n : '';
-    llenarSelect();
-    repintaPlan();
-  }
-
-  let avisoTimer = null;
-  function aviso(clave){
-    els.hint.textContent = t(clave);
-    els.hint.classList.add('err');
-    clearTimeout(avisoTimer);
-    avisoTimer = setTimeout(() => {
-      els.hint.textContent = '';
-      els.hint.classList.remove('err');
-    }, 2800);
-  }
-
-  /* ---------- eventos ---------- */
-
-  function anadirRival(){
-    const id = RV.añadir(els.input.value);
-    if (!id) { aviso('pvp.riv.bad'); return; }
-    els.input.value = '';
-    render(id);                 // el nuevo se queda abierto
-    els.sel.value = id;
-    repintaPlan();
-    els.input.focus();
-  }
-
-  els.addBtn.addEventListener('click', anadirRival);
-  els.input.addEventListener('keydown', e => { if (e.key === 'Enter') anadirRival(); });
-
-
-  els.lista.addEventListener('click', e => {
-    const card = e.target.closest('.rival-card');
-    if (!card) return;
-    const id = card.dataset.id;
-
-    if (e.target.closest('.rival-del')) { RV.borrar(id); render(); return; }
-
-    if (e.target.closest('.suyo-btn')) {
-      const campo = card.querySelector('.suyo-add');
-      const clave = aClave(campo.value);
-      if (!clave || clave === RV.VACIO) { campo.classList.add('err'); aviso('pvp.riv.notFound'); return; }
-      const q = RV.addMiembro(id, clave);
-      if (q === 'llena') { aviso('pvp.riv.crewFull'); return; }
-      if (q !== 'ok')    { aviso('pvp.riv.dupe'); return; }
-      campo.value = '';
-      render();
-      return;
-    }
-
-    const suyoDel = e.target.closest('.suyo-del');
-    if (suyoDel) {
-      RV.delMiembro(id, suyoDel.closest('.suyo').dataset.quien);
-      render();
-      return;
-    }
-
-    const gClear = e.target.closest('.g-clear');
-    if (gClear) {
-      RV.vaciarGuardia(id, Number(gClear.closest('.guardia').dataset.g));
-      render();
-    }
-  });
-
-  els.lista.addEventListener('keydown', e => {
-    if (e.key !== 'Enter' || !e.target.classList.contains('suyo-add')) return;
-    e.preventDefault();
-    e.target.closest('.rival-card').querySelector('.suyo-btn').click();
-  });
-
-  /* Los campos se guardan al salir del campo (change), no en cada tecla:
-     repintar mientras escribes te quitaría el foco. */
-  els.lista.addEventListener('change', e => {
-    const card = e.target.closest('.rival-card');
-    if (!card) return;
-    const id = card.dataset.id;
-
-    if (e.target.classList.contains('rival-nom')) {
-      RV.renombrar(id, e.target.value);
-      llenarSelect();
-      repintaPlan();
-      return;
-    }
-
-    if (e.target.classList.contains('suyo-e')) {
-      const fila = e.target.closest('.suyo');
-      RV.setEstado(id, fila.dataset.quien, e.target.value);
-      fila.className = 'suyo est-' + e.target.value;
-      repintaPlan();
-      return;
-    }
-
-    const puesto = e.target.closest('.puesto');
-    if (!puesto) return;
-    const gi    = Number(puesto.closest('.guardia').dataset.g);
-    const pos   = Number(puesto.dataset.p);
-    const quien = puesto.querySelector('.p-n').value;
-    const tac   = puesto.querySelector('.p-t').value;
-    RV.setPuesto(id, gi, pos, quien, tac);
-    repintaPlan();
-  });
-
-  els.sel.addEventListener('change', repintaPlan);
+  els.sel.addEventListener('change', repinta);
 
   els.out.addEventListener('click', e => {
     if (!e.target.closest('#simBtn')) return;
@@ -554,9 +330,9 @@
     if (salida) salida.innerHTML = simularHTML();
   });
 
-  document.addEventListener('langchange', () => { rellenarDatalist(); render(); });
+  document.addEventListener('langchange', () => { llenarSelect(); repinta(); });
 
-  /* Los tres desgloses vuelven como los dejaste. */
+  /* Los desgloses vuelven como los dejaste. */
   const ABRE_KEY = 'opmaps-pvp-abre';
   (function recordarDesgloses(){
     let guardado = {};
@@ -574,6 +350,6 @@
     });
   })();
 
-  rellenarDatalist();
-  render();
+  llenarSelect();
+  repinta();
 })();

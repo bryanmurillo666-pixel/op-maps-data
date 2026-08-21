@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Guía — OP-MAPS DATA</title>
+<meta name="description" content="La guía completa de OP-MAPS, por secciones: tripulación, roles, duelos, navegación, PvE, PvP, conquista, IMU, economía, poneglifos, rankings y alianzas.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -15,23 +17,326 @@
 
 <main>
   <div class="wrap">
+
     <header class="page-head">
-      <span class="tag" data-i18n="soon.tag">En construcción</span>
       <h1 data-i18n="nav.guide">Guía</h1>
-      <p data-i18n="soon.lead">La estructura del sitio ya está en pie. Este menú se llenará en el siguiente paso.</p>
+      <p data-i18n="gd.lead"></p>
     </header>
 
-    <section class="panel">
-      <h2 data-i18n="soon.what">Lo que llevará</h2>
-      <ul>
-        <li data-i18n-html="soon.guide.1"></li>
-        <li data-i18n-html="soon.guide.2"></li>
-        <li data-i18n-html="soon.guide.3"></li>
-        <li data-i18n-html="soon.guide.4"></li>
-      </ul>
+    <!-- siempre arriba: qué versión de la guía sigue el sitio -->
+    <section class="panel version-guia">
+      <div class="ver-caja">
+        <span class="ver-eti" data-i18n="gd.ver.t">Guía del jugador</span>
+        <b class="ver-num" id="verNum">—</b>
+        <span class="ver-fecha" id="verFecha"></span>
+      </div>
+      <p class="parrafo" data-i18n="gd.ver.d"></p>
+      <p class="note" data-i18n="gd.ver.note"></p>
     </section>
 
-    <a class="back-link" href="index.html" data-i18n="soon.back">← Volver al inicio</a>
+    <div class="todo-btns">
+      <button type="button" class="btn-mini" id="abrirTodo" data-i18n="gd.all.open">Abrir todo</button>
+      <button type="button" class="btn-mini" id="cerrarTodo" data-i18n="gd.all.shut">Cerrar todo</button>
+    </div>
+
+    <details class="plegable" data-k="gd-start">
+      <summary>
+        <span class="gd-num">01</span>
+        <h2 data-i18n="gd.start.t"></h2>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="gd.start.d"></p>
+        <ul>
+          <li data-i18n-html="gd.start.1"></li>
+          <li data-i18n-html="gd.start.2"></li>
+          <li data-i18n-html="gd.start.3"></li>
+          <li data-i18n-html="gd.start.4"></li>
+          <li data-i18n-html="gd.start.5"></li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="plegable" data-k="gd-crew">
+      <summary>
+        <span class="gd-num">02</span>
+        <h2 data-i18n="gd.crew.t"></h2>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="gd.crew.d"></p>
+        <ul>
+          <li data-i18n-html="gd.crew.1"></li>
+          <li data-i18n-html="gd.crew.2"></li>
+          <li data-i18n-html="gd.crew.3"></li>
+          <li data-i18n-html="gd.crew.4"></li>
+          <li data-i18n-html="gd.crew.5"></li>
+          <li data-i18n-html="gd.crew.6"></li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="plegable" data-k="gd-roles">
+      <summary>
+        <span class="gd-num">03</span>
+        <h2 data-i18n="gd.roles.t"></h2>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="gd.roles.d"></p>
+        <ul>
+          <li data-i18n-html="gd.roles.1"></li>
+          <li data-i18n-html="gd.roles.2"></li>
+          <li data-i18n-html="gd.roles.3"></li>
+          <li data-i18n-html="gd.roles.4"></li>
+          <li data-i18n-html="gd.roles.5"></li>
+          <li data-i18n-html="gd.roles.6"></li>
+          <li data-i18n-html="gd.roles.7"></li>
+          <li data-i18n-html="gd.roles.8"></li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="plegable" data-k="gd-duel">
+      <summary>
+        <span class="gd-num">04</span>
+        <h2 data-i18n="gd.duel.t"></h2>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="gd.duel.d"></p>
+        <ul>
+          <li data-i18n-html="gd.duel.1"></li>
+          <li data-i18n-html="gd.duel.2"></li>
+          <li data-i18n-html="gd.duel.3"></li>
+          <li data-i18n-html="gd.duel.4"></li>
+          <li data-i18n-html="gd.duel.5"></li>
+          <li data-i18n-html="gd.duel.6"></li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="plegable" data-k="gd-sail">
+      <summary>
+        <span class="gd-num">05</span>
+        <h2 data-i18n="gd.sail.t"></h2>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="gd.sail.d"></p>
+        <ul>
+          <li data-i18n-html="gd.sail.1"></li>
+          <li data-i18n-html="gd.sail.2"></li>
+          <li data-i18n-html="gd.sail.3"></li>
+          <li data-i18n-html="gd.sail.4"></li>
+          <li data-i18n-html="gd.sail.5"></li>
+          <li data-i18n-html="gd.sail.6"></li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="plegable" data-k="gd-pve">
+      <summary>
+        <span class="gd-num">06</span>
+        <h2 data-i18n="gd.pve.t"></h2>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="gd.pve.d"></p>
+        <ul>
+          <li data-i18n-html="gd.pve.1"></li>
+          <li data-i18n-html="gd.pve.2"></li>
+          <li data-i18n-html="gd.pve.3"></li>
+          <li data-i18n-html="gd.pve.4"></li>
+          <li data-i18n-html="gd.pve.5"></li>
+          <li data-i18n-html="gd.pve.6"></li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="plegable" data-k="gd-pvp">
+      <summary>
+        <span class="gd-num">07</span>
+        <h2 data-i18n="gd.pvp.t"></h2>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="gd.pvp.d"></p>
+        <ul>
+          <li data-i18n-html="gd.pvp.1"></li>
+          <li data-i18n-html="gd.pvp.2"></li>
+          <li data-i18n-html="gd.pvp.3"></li>
+          <li data-i18n-html="gd.pvp.4"></li>
+          <li data-i18n-html="gd.pvp.5"></li>
+          <li data-i18n-html="gd.pvp.6"></li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="plegable" data-k="gd-guards">
+      <summary>
+        <span class="gd-num">08</span>
+        <h2 data-i18n="gd.guards.t"></h2>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="gd.guards.d"></p>
+        <ul>
+          <li data-i18n-html="gd.guards.1"></li>
+          <li data-i18n-html="gd.guards.2"></li>
+          <li data-i18n-html="gd.guards.3"></li>
+          <li data-i18n-html="gd.guards.4"></li>
+          <li data-i18n-html="gd.guards.5"></li>
+          <li data-i18n-html="gd.guards.6"></li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="plegable" data-k="gd-conquest">
+      <summary>
+        <span class="gd-num">09</span>
+        <h2 data-i18n="gd.conquest.t"></h2>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="gd.conquest.d"></p>
+        <ul>
+          <li data-i18n-html="gd.conquest.1"></li>
+          <li data-i18n-html="gd.conquest.2"></li>
+          <li data-i18n-html="gd.conquest.3"></li>
+          <li data-i18n-html="gd.conquest.4"></li>
+          <li data-i18n-html="gd.conquest.5"></li>
+          <li data-i18n-html="gd.conquest.6"></li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="plegable" data-k="gd-imu">
+      <summary>
+        <span class="gd-num">10</span>
+        <h2 data-i18n="gd.imu.t"></h2>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="gd.imu.d"></p>
+        <ul>
+          <li data-i18n-html="gd.imu.1"></li>
+          <li data-i18n-html="gd.imu.2"></li>
+          <li data-i18n-html="gd.imu.3"></li>
+          <li data-i18n-html="gd.imu.4"></li>
+          <li data-i18n-html="gd.imu.5"></li>
+          <li data-i18n-html="gd.imu.6"></li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="plegable" data-k="gd-gold">
+      <summary>
+        <span class="gd-num">11</span>
+        <h2 data-i18n="gd.gold.t"></h2>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="gd.gold.d"></p>
+        <ul>
+          <li data-i18n-html="gd.gold.1"></li>
+          <li data-i18n-html="gd.gold.2"></li>
+          <li data-i18n-html="gd.gold.3"></li>
+          <li data-i18n-html="gd.gold.4"></li>
+          <li data-i18n-html="gd.gold.5"></li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="plegable" data-k="gd-market">
+      <summary>
+        <span class="gd-num">12</span>
+        <h2 data-i18n="gd.market.t"></h2>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="gd.market.d"></p>
+        <ul>
+          <li data-i18n-html="gd.market.1"></li>
+          <li data-i18n-html="gd.market.2"></li>
+          <li data-i18n-html="gd.market.3"></li>
+          <li data-i18n-html="gd.market.4"></li>
+          <li data-i18n-html="gd.market.5"></li>
+          <li data-i18n-html="gd.market.6"></li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="plegable" data-k="gd-rp">
+      <summary>
+        <span class="gd-num">13</span>
+        <h2 data-i18n="gd.rp.t"></h2>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="gd.rp.d"></p>
+        <ul>
+          <li data-i18n-html="gd.rp.1"></li>
+          <li data-i18n-html="gd.rp.2"></li>
+          <li data-i18n-html="gd.rp.3"></li>
+          <li data-i18n-html="gd.rp.4"></li>
+          <li data-i18n-html="gd.rp.5"></li>
+          <li data-i18n-html="gd.rp.6"></li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="plegable" data-k="gd-rank">
+      <summary>
+        <span class="gd-num">14</span>
+        <h2 data-i18n="gd.rank.t"></h2>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="gd.rank.d"></p>
+        <ul>
+          <li data-i18n-html="gd.rank.1"></li>
+          <li data-i18n-html="gd.rank.2"></li>
+          <li data-i18n-html="gd.rank.3"></li>
+          <li data-i18n-html="gd.rank.4"></li>
+          <li data-i18n-html="gd.rank.5"></li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="plegable" data-k="gd-ally">
+      <summary>
+        <span class="gd-num">15</span>
+        <h2 data-i18n="gd.ally.t"></h2>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="gd.ally.d"></p>
+        <ul>
+          <li data-i18n-html="gd.ally.1"></li>
+          <li data-i18n-html="gd.ally.2"></li>
+          <li data-i18n-html="gd.ally.3"></li>
+          <li data-i18n-html="gd.ally.4"></li>
+          <li data-i18n-html="gd.ally.5"></li>
+          <li data-i18n-html="gd.ally.6"></li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="plegable" data-k="gd-season">
+      <summary>
+        <span class="gd-num">16</span>
+        <h2 data-i18n="gd.season.t"></h2>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="gd.season.d"></p>
+        <ul>
+          <li data-i18n-html="gd.season.1"></li>
+          <li data-i18n-html="gd.season.2"></li>
+          <li data-i18n-html="gd.season.3"></li>
+          <li data-i18n-html="gd.season.4"></li>
+          <li data-i18n-html="gd.season.5"></li>
+          <li data-i18n-html="gd.season.6"></li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="plegable" data-k="gd-num">
+      <summary>
+        <span class="gd-num">17</span>
+        <h2 data-i18n="gd.num.t">Todos los números</h2>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n="gd.num.d"></p>
+        <div id="tablaNumeros"></div>
+      </div>
+    </details>
+
   </div>
 </main>
 
@@ -39,5 +344,10 @@
 
 <script src="assets/js/i18n.js"></script>
 <script src="assets/js/site.js"></script>
+<script src="assets/js/characters.js"></script>
+<script src="assets/js/islands.js"></script>
+<script src="assets/js/rules.js"></script>
+<script src="assets/js/items.js"></script>
+<script src="assets/js/guide.js"></script>
 </body>
 </html>

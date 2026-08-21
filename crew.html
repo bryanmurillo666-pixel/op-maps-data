@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mi tripulación — OP-MAPS DATA</title>
 <meta name="description" content="Monta tu tripulación de OP-MAPS y consulta su poder, velocidad, bonus de rol y tiempos de conquista.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -45,8 +46,16 @@
       </section>
 
       <div id="roles"></div>
-
     </div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2 data-i18n="crew.guards.t">Tus tres guardias</h2>
+        <span class="panel-count" id="gCount"></span>
+      </div>
+      <p class="parrafo" data-i18n-html="crew.guards.d"></p>
+      <div id="misGuardias"></div>
+    </section>
 
   </div>
 </main>
@@ -61,6 +70,8 @@
 <script src="assets/js/characters.js"></script>
 <script src="assets/js/rules.js"></script>
 <script src="assets/js/crew-store.js"></script>
+<script src="assets/js/guards-store.js"></script>
 <script src="assets/js/crew.js"></script>
+<script src="assets/js/my-guards.js"></script>
 </body>
 </html>

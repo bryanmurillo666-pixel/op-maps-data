@@ -531,6 +531,114 @@ window.PVP_MODEL = (function () {
     return true;
   }
 
+  /* ---------- la predicción del próximo ataque ----------
+     La gente repite. Si un ataque le funcionó lo vuelve a mandar, y si le
+     falló muchas veces lo intenta otra vez antes de cambiar. Así que su
+     último ataque conocido no pesa como uno más entre mil: se le da un
+     peso propio y el resto se reparte entre todo lo demás.
+
+     Ganó  → 50 %. Repetir lo que funciona es lo más humano que hay.
+     Falló → 25 %. Menos, pero muy por encima de una jugada cualquiera. */
+  const PESO_GANO  = 0.5;
+  const PESO_FALLO = 0.25;
+
+  /* Sus mejores, más quien saliera en su último ataque aunque no esté
+     entre los mejores: si lo mandó una vez, puede repetirlo. */
+  function nucleoConAtaque(pool, rival, tope){
+    const base = nucleo(pool, tope);
+    const ult = window.RIVALES.ultimoAtaque(rival);
+    if (ult) ult.p.forEach(p => {
+      if (!p) return;
+      const c = pool.find(x => x.n === p.n);
+      if (c && base.indexOf(c) === -1) base.push(c);
+    });
+    return base;
+  }
+
+  /* Localiza su último ataque dentro de la lista de ataques posibles.
+     Devuelve {i, w} con el índice y el peso, o null si no lo has apuntado
+     entero (con un puesto en blanco no hay nada que predecir). */
+  function ataqueRecordado(rival, suyos, ataques){
+    const ult = window.RIVALES.ultimoAtaque(rival);
+    if (!ult || !ult.p.every(Boolean)) return null;
+
+    const c = [], t = [];
+    for (let i = 0; i < 3; i++) {
+      const p = ult.p[i];
+      const k = suyos.findIndex(x => x.n === p.n);
+      if (k === -1) return null;
+      c.push(k);
+      t.push(T.indexOf(p.t));
+    }
+    const i = ataques.findIndex(a =>
+      a.c[0] === c[0] && a.c[1] === c[1] && a.c[2] === c[2] &&
+      a.t[0] === t[0] && a.t[1] === t[1] && a.t[2] === t[2]);
+    if (i === -1) return null;
+    return { i: i, w: ult.w ? PESO_GANO : PESO_FALLO, gano: !!ult.w };
+  }
+
+  /* ---------- lo que aguantan UNAS guardias concretas ----------
+     Para poder comparar las que tienes puestas con las que se recomiendan.
+     `guardias` son filas de {c: personaje, t: táctica} o null. */
+  function aguante(guardias, rival){
+    if (!rival) return null;
+    const RV = window.RIVALES;
+
+    const caidos = {};
+    rival.r.forEach(m => { if (m.e === RV.CAIDO) caidos[m.n] = true; });
+    const nombres = [];
+    const mete = n => {
+      if (n && n !== RV.VACIO && !caidos[n] && nombres.indexOf(n) === -1) nombres.push(n);
+    };
+    rival.r.forEach(m => mete(m.n));
+    rival.g.forEach(g => g.forEach(p => { if (p) mete(p.n); }));
+    const todos = nombres.map(n => DB.find(c => c.n === n)).filter(Boolean);
+    if (!todos.length) return null;
+
+    const suyos = nucleoConAtaque(todos, rival, 5);
+    const ataques = alineacionesCon(suyos);
+    if (!ataques.length) return null;
+
+    const usables = guardias.filter(g => g && g.every(Boolean));
+    if (!usables.length) return null;
+
+    const rec = ataqueRecordado(rival, suyos, ataques);
+    const total = ataques.length;
+
+    let suma = 0, peor = 0, sumaRec = 0;
+    for (let k = 0; k < ataques.length; k++) {
+      const at = ataques[k];
+      let caen = 0;
+      usables.forEach(g => {
+        let mios3 = 0;
+        for (let i = 0; i < 3; i++) {
+          const suyo = at.c[i] === CONCEDE ? null : suyos[at.c[i]];
+          // defendiendo, el empate es tuyo: ganas si él no te supera
+          if (!suyo || !R.duelWin(R.score(suyo, T[at.t[i]]), T[at.t[i]],
+                                  R.score(g[i].c, g[i].t), g[i].t)) mios3++;
+        }
+        if (mios3 < 2) caen++;
+      });
+      suma += caen;
+      if (caen > peor) peor = caen;
+      if (rec && k === rec.i) sumaRec = caen;
+    }
+
+    const nG = usables.length;
+    const medioUniforme = suma / total;
+    const medio = rec
+      ? (1 - rec.w) * medioUniforme + rec.w * sumaRec
+      : medioUniforme;
+
+    return {
+      media: 1 - medio / nG,
+      peor:  1 - peor / nG,
+      nG:    nG,
+      ataques: total,
+      rec:   rec ? { gano: rec.gano, peso: rec.w } : null
+    };
+  }
+
   function mejoresGuardias(crew, rival){
     if (!crew || crew.length < 3 || !rival) return null;
 
@@ -547,7 +655,7 @@ window.PVP_MODEL = (function () {
     const suyosTodos = nombres.map(n => DB.find(c => c.n === n)).filter(Boolean);
     if (suyosTodos.length < 1) return { vacio: true };
 
-    const suyos = nucleo(suyosTodos, 5);
+    const suyos = nucleoConAtaque(suyosTodos, rival, 5);
     const mios  = nucleo(crew, 6);
 
     // Cuántas guardias reparte el juego a TU tripulación.
@@ -575,6 +683,7 @@ window.PVP_MODEL = (function () {
     const ataques  = alineacionesCon(suyos);  // todo lo que él podría montar
     const defensas = alineaciones(mios);      // todo lo que tú podrías poner
     if (!ataques.length || !defensas.length) return { vacio: true };
+    const rec = ataqueRecordado(rival, suyos, ataques);
     const words = Math.ceil(ataques.length / 32) || 1;
 
     /* Para cada guardia tuya, los ataques suyos que la tumban. */
@@ -593,7 +702,8 @@ window.PVP_MODEL = (function () {
       const f = R.score(mios[d.c[0]], T[d.t[0]])
               + R.score(mios[d.c[1]], T[d.t[1]])
               + R.score(mios[d.c[2]], T[d.t[2]]);
-      return { d: d, w: w, n: n, f: f };
+      const rep = rec ? ((w[rec.i >> 5] >>> (rec.i & 31)) & 1) : 0;
+      return { d: d, w: w, n: n, f: f, rep: rep };
     });
 
     /* Las que menos caen, pero con tope por reparto de personajes: si no,
@@ -626,14 +736,20 @@ window.PVP_MODEL = (function () {
           una += popcount(a | b);
         }
       }
-      let fuerza = 0;
-      grupo.forEach(x => { suma += x.n; fuerza += x.f; });
+      let fuerza = 0, repCae = 0;
+      grupo.forEach(x => { suma += x.n; fuerza += x.f; repCae += x.rep; });
       let peor, caenPeor;
       if (Cw && tres) { peor = 3; caenPeor = tres; }
       else if (dos)   { peor = 2; caenPeor = dos; }
       else if (una)   { peor = 1; caenPeor = una; }
       else            { peor = 0; caenPeor = 0; }
-      return { peor: peor, caenPeor: caenPeor, suma: suma, fuerza: fuerza };
+      /* Cuántas de tus guardias te tumba un ataque suyo, de media. Si has
+         apuntado su último ataque, ese pesa aparte: la gente repite. */
+      const coste = rec
+        ? (1 - rec.w) * (suma / total) + rec.w * repCae
+        : suma / total;
+      return { peor: peor, caenPeor: caenPeor, suma: suma,
+               coste: coste, fuerza: fuerza };
     };
 
     /* Manda cuánto aguantas DE MEDIA, no el peor caso. El rival no ve tus
@@ -644,7 +760,7 @@ window.PVP_MODEL = (function () {
        aprendiéndotelas. */
     const mejorQue = (a, b) => {
       if (!b) return true;
-      if (a.suma !== b.suma) return a.suma < b.suma;      // cae menos veces
+      if (Math.abs(a.coste - b.coste) > 1e-9) return a.coste < b.coste;  // cae menos
       if (a.peor !== b.peor) return a.peor < b.peor;      // y si te estudia, aguanta
       if (a.caenPeor !== b.caenPeor) return a.caenPeor < b.caenPeor;
       return a.fuerza > b.fuerza;                         // y con la gente mas fuerte
@@ -701,7 +817,8 @@ window.PVP_MODEL = (function () {
       })),
       // lo que aguantas si él juega su mejor plan, y si lo elige al azar
       peor:  1 - mejor.peor / combos,
-      media: 1 - mejor.suma / (combos * total),
+      media: 1 - mejor.coste / combos,
+      rec:   rec ? { gano: rec.gano, peso: rec.w } : null,
       nG: combos,
       ataques: total,
       suyos: suyos,
@@ -715,6 +832,7 @@ window.PVP_MODEL = (function () {
     evaluar: evaluar,
     resolver: resolver,
     formaciones: formaciones,
+    aguante: aguante,
     patronesTactica: patronesTactica,
     mejoresGuardias: mejoresGuardias
   };

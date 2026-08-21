@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mis rivales — OP-MAPS DATA</title>
+<meta name="description" content="Tu libreta de rivales de OP-MAPS: su tripulación, sus guardias, sus ataques contra ti, y un código para compartirla con tu alianza.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body data-page="rivals" data-title-key="title.rivals">
+
+<div id="site-header"></div>
+
+<main>
+  <div class="wrap">
+
+    <header class="page-head">
+      <h1 data-i18n="nav.rivals">Mis rivales</h1>
+      <p data-i18n-html="riv.lead"></p>
+    </header>
+
+    <!-- compartir: lo primero, que es lo que se viene a hacer con la libreta -->
+    <section class="panel">
+      <h2 data-i18n="riv.share.t">Compartir con tu alianza</h2>
+      <p class="parrafo" data-i18n-html="riv.share.d"></p>
+
+      <div class="compartir">
+        <div>
+          <h5 class="bloque-tit" data-i18n="riv.share.out">Exportar</h5>
+          <div class="add-row chica">
+            <input type="text" id="expOut" readonly aria-label="código">
+            <button class="btn-add" id="expBtn" data-i18n="riv.share.gen">Generar</button>
+          </div>
+          <p class="hint" id="expHint"></p>
+        </div>
+        <div>
+          <h5 class="bloque-tit" data-i18n="riv.share.in">Importar</h5>
+          <div class="add-row chica">
+            <input type="text" id="impIn" autocomplete="off"
+                   data-i18n-attr="placeholder:riv.share.ph; aria-label:riv.share.ph">
+            <button class="btn-add" id="impBtn" data-i18n="riv.share.do">Importar</button>
+          </div>
+          <p class="hint" id="impHint"></p>
+        </div>
+      </div>
+
+      <p class="note" data-i18n-html="riv.share.note"></p>
+    </section>
+
+    <!-- alta y libreta -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2 data-i18n="pvp.riv.t">Rivales</h2>
+        <span class="panel-count" id="rivCount"></span>
+      </div>
+      <div class="add-row">
+        <input type="text" id="rivalAdd" autocomplete="off"
+               data-i18n-attr="placeholder:pvp.riv.ph; aria-label:pvp.riv.ph">
+        <button class="btn-add" id="rivalBtn" data-i18n="pvp.riv.add">Añadir rival</button>
+      </div>
+      <p class="hint" id="rivalHint"></p>
+      <div id="rivalList"></div>
+    </section>
+
+  </div>
+</main>
+
+<div id="site-footer"></div>
+
+<datalist id="db"></datalist>
+
+<script src="assets/js/i18n.js"></script>
+<script src="assets/js/site.js"></script>
+<script src="assets/js/characters.js"></script>
+<script src="assets/js/rules.js"></script>
+<script src="assets/js/rivals-store.js"></script>
+<script src="assets/js/rivals.js"></script>
+</body>
+</html>

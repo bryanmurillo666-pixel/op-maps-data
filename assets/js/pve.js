@@ -1,7 +1,7 @@
 /* ============================================================
    OP-MAPS DATA — página PvE
    ------------------------------------------------------------
-   Los números fijos salen de la guía v5.0; los de "tu situación"
+   Los números fijos salen de la guía v5.1; los de "tu situación"
    se calculan con lo que escribas y con tu tripulación guardada.
    ============================================================ */
 (function () {
@@ -9,7 +9,7 @@
   const R = window.RULES;
   const C = window.CREW;
 
-  /* Las constantes del PvE, de la guía v5.0. Están aquí y no en rules.js
+  /* Las constantes del PvE, de la guía v5.1. Están aquí y no en rules.js
      porque solo las usa esta página; si algún día las necesita otra, se
      mudan. */
   const PVE = {

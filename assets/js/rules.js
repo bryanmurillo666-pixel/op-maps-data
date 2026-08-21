@@ -1,7 +1,7 @@
 /* ============================================================
    OP-MAPS DATA — las reglas del juego, en un solo sitio
    ------------------------------------------------------------
-   Todas las fórmulas salen de la guía del jugador v4.0. Si el juego
+   Todas las fórmulas salen de la guía del jugador v5.1. Si el juego
    cambia un número, se cambia AQUÍ y se corrige en todas las páginas
    a la vez (Data, Mi tripulación, PvP…).
    ============================================================ */
