@@ -1552,3 +1552,17 @@ details.sub-plegable > summary .bloque-tit{
   color:var(--brass);background:var(--hull-2);
   border:0.5px solid var(--line);border-radius:5px;padding:1px 5px;
 }
+
+/* ---- PvP: el interruptor ganar / perder ---- */
+.modo-btns{display:flex;gap:0;margin-bottom:14px;
+  border:0.5px solid var(--line);border-radius:10px;overflow:hidden}
+.modo-btns .modo{
+  flex:1;background:none;border:none;cursor:pointer;padding:9px 12px;
+  font-family:var(--mono);font-size:10.5px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--mist);
+  transition:background .14s ease,color .14s ease;
+}
+.modo-btns .modo:hover{color:var(--parch)}
+.modo-btns .modo.on{background:var(--brass);color:#1a1206}
+/* el de perder se tiñe distinto: no es la opción normal */
+.modo-btns .modo[data-modo="perder"].on{background:var(--blood);color:#fff}

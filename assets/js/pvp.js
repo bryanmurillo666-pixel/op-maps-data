@@ -63,6 +63,16 @@
 
   /* ---------- el plan de ataque ---------- */
 
+  /* Dos objetivos. 'ganar' es lo de siempre. 'perder' busca caer 2-1, que
+     es la derrota más barata: 18 % de casco en vez del 35 % de un 3-0.
+     Sirve cuando quieres perder a propósito — dejarle la victoria a un
+     aliado, por ejemplo — o cuando el rival te supera tanto que intentar
+     ganar te sale más caro que caer bien. */
+  const MODO_KEY = 'opmaps-pvp-modo';
+  let modo = 'ganar';
+  try { if (localStorage.getItem(MODO_KEY) === 'perder') modo = 'perder'; }
+  catch(e){ /* si el navegador lo bloquea, se queda en ganar */ }
+
   let ultimo = null;
 
   /* Para cada posición, contra quién pelea en las formaciones que quedan
@@ -96,13 +106,14 @@
       return `<p class="hint">${esc(t(crew.length ? 'pvp.sim.few' : 'pvp.sim.empty'))}</p>`;
     }
 
-    const res = M.evaluar(crew, r);
+    const res = M.evaluar(crew, r, modo);
     if (!res) return `<p class="hint">${esc(t('pvp.sim.few'))}</p>`;
     if (res.vacio) return `<p class="aviso-cambio"><b>${esc(t('pvp.plan.noDataT'))}</b>
       <span>${esc(t('pvp.plan.noData'))}</span></p>`;
 
     ultimo = { r: r, crew: crew, res: res };
     const exacto = res.completas >= res.nG;
+    const perder = modo === 'perder';
 
     const filas = res.plan.idx.map((k, i) => {
       const c = crew[k], tac = res.plan.tac[i];
@@ -135,9 +146,37 @@
       }
     }
 
-    return `<h3 class="sub-tit">${esc(t('pvp.plan.rate'))}</h3>
-      <p class="gran-prob ${claseProb(res.tasa)}">${num(res.tasa * 100)} %</p>
+    /* En modo perder la cifra grande es otra: cuántas veces caes 2-1, que
+       es lo que se está buscando. El casco medio se enseña en los dos,
+       porque es lo que de verdad decide si el plan compensa. */
+    const m = res.marcador;
+    const grande = perder ? res.tasa21 : res.tasa;
+    const titulo = perder ? 'pvp.plan.rate21' : 'pvp.plan.rate';
+
+    let extra = `<span class="cuenta">${esc(t('pvp.plan.hullAvg'))} ${num(m.casco * 100, 1)} %</span>`;
+    if (perder) {
+      extra = `<span class="cuenta">${esc(t('pvp.plan.alsoWin'))} ${num(res.tasa * 100)} %</span>` + extra;
+    }
+
+    /* Dos avisos que le ahorran a uno la mala decisión: cuando el rival es
+       tan flojo que no puedes perder a voluntad, y cuando perder te sale
+       más barato que intentar ganar. */
+    let nota = '';
+    if (perder) {
+      if (res.tasa21 < 0.5) {
+        nota = `<p class="aviso-cambio"><b>${esc(t('pvp.plan.loseHardT'))}</b>
+          <span>${t('pvp.plan.loseHard')}</span></p>`;
+      } else if (res.tasa < 0.34) {
+        nota = `<p class="aviso-pred"><b>${esc(t('pvp.plan.loseGoodT'))}</b>
+          <span>${t('pvp.plan.loseGood')}</span></p>`;
+      }
+    }
+
+    return `<h3 class="sub-tit">${esc(t(titulo))}</h3>
+      <p class="gran-prob ${perder ? claseProb(grande) : claseProb(res.tasa)}">${num(grande * 100)} %</p>
       <p class="sellos">${base}</p>
+      <p class="sellos">${extra}</p>
+      ${nota}
 
       <h3 class="sub-tit">${esc(t('pvp.plan.line'))}</h3>
       <div class="alineacion">${filas}</div>
@@ -145,7 +184,8 @@
       <button class="btn-calc" id="simBtn" type="button">${esc(t('pvp.plan.sim'))}</button>
       <div id="simOut"></div>
 
-      <p class="note">${t(exacto ? 'pvp.plan.howExact' : 'pvp.plan.howEst')}</p>`;
+      <p class="note">${t(perder ? 'pvp.plan.howLose'
+                                  : (exacto ? 'pvp.plan.howExact' : 'pvp.plan.howEst'))}</p>`;
   }
 
   /* ---------- tus guardias contra él ---------- */
@@ -324,6 +364,23 @@
 
   els.sel.addEventListener('change', repinta);
 
+  /* el interruptor ganar / perder */
+  function pintaModo(){
+    document.querySelectorAll('.modo-btns .modo').forEach(b => {
+      b.classList.toggle('on', b.dataset.modo === modo);
+    });
+  }
+  document.querySelectorAll('.modo-btns .modo').forEach(b => {
+    b.addEventListener('click', () => {
+      if (b.dataset.modo === modo) return;
+      modo = b.dataset.modo;
+      try { localStorage.setItem(MODO_KEY, modo); }
+      catch(e){ /* si el navegador lo bloquea, dura la sesión */ }
+      pintaModo();
+      repinta();
+    });
+  });
+
   els.out.addEventListener('click', e => {
     if (!e.target.closest('#simBtn')) return;
     const salida = document.getElementById('simOut');
@@ -350,6 +407,7 @@
     });
   })();
 
+  pintaModo();
   llenarSelect();
   repinta();
 })();

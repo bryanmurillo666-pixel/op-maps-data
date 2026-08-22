@@ -284,7 +284,8 @@ window.PVP_MODEL = (function () {
   /* crew    : tus personajes disponibles (los caídos ya fuera)
      rival   : el rival tal cual está guardado
      Devuelve null si no hay con qué calcular. */
-  function evaluar(crew, rival){
+  /* modo: 'ganar' (por defecto) o 'perder', que busca caer 2-1. */
+  function evaluar(crew, rival, modo){
     if (!crew || crew.length < 3 || !rival) return null;
 
     const RV = window.RIVALES;
@@ -375,7 +376,20 @@ window.PVP_MODEL = (function () {
       }
     }
 
-    /* --- se prueban todos los planes --- */
+    /* --- se prueban todos los planes ---
+       Dos objetivos posibles. En modo GANAR se busca llevarse el mayor
+       número de guardias. En modo PERDER se busca lo contrario pero con
+       cuidado: ganar EXACTAMENTE un duelo, o sea perder 2-1, que es la
+       derrota más barata que hay (18-25 % de casco en vez del 35 % de un
+       3-0). Sirve para pelear solo por ver sus guardias, que es la única
+       forma que hay de averiguarlas. */
+    const perder = modo === 'perder';
+
+    /* Los bits que sobran del último word no son pares reales, y al negar
+       con ~ se encenderían. Esta máscara los apaga. */
+    const valido = new Uint32Array(words);
+    for (let k = 0; k < pares; k++) valido[k >> 5] |= (1 << (k & 31));
+
     let mejor = null;
     const n = crew.length;
     const tmp = new Uint32Array(words);
@@ -389,34 +403,104 @@ window.PVP_MODEL = (function () {
           const w2 = mask[b][y][1];
           for (let z = 0; z < 3; z++){
             const w3 = mask[c][z][2];
-            let ganadas = 0, duelos = 0;
+            let ganadas = 0, duelos = 0, unaSola = 0;
             for (let k = 0; k < words; k++){
               const p = w1[k], q = w2[k], r = w3[k];
               // al menos dos de las tres posiciones
               tmp[k] = (p & q) | (p & r) | (q & r);
               ganadas += popcount(tmp[k]);
               duelos  += popcount(p) + popcount(q) + popcount(r);
+              // exactamente una: pierdes 2-1
+              const una = (p & ~q & ~r) | (~p & q & ~r) | (~p & ~q & r);
+              unaSola += popcount(una & valido[k]);
             }
-            /* Tercer desempate: la puntuación del trío. Muchos planes
-               empatan en resultado, y sin esto se quedaba con el primero
-               que salía del bucle — por eso aparecía gente floja pudiendo
-               mandar a alguien mejor que hacía exactamente lo mismo. */
+            /* La puntuación del trío. Muchos planes empatan en resultado, y
+               sin esto se quedaba con el primero que salía del bucle — por
+               eso aparecía gente floja pudiendo mandar a alguien mejor que
+               hacía exactamente lo mismo.
+
+               En modo perder es más que un desempate: un 2-1 solo cuenta
+               como AJUSTADO (18 % de casco) si el ganador no te saca 1,25
+               veces en puntos. O sea que hay que puntuar alto y aun así
+               perder dos duelos. */
             const fuerza = puntosDe[a][x] + puntosDe[b][y] + puntosDe[c][z];
-            if (!mejor || ganadas > mejor.ganadas ||
-                (ganadas === mejor.ganadas &&
-                  (duelos > mejor.duelos ||
-                    (duelos === mejor.duelos && fuerza > mejor.fuerza)))){
-              mejor = { ganadas: ganadas, duelos: duelos, fuerza: fuerza,
-                        idx: [a, b, c], tac: [T[x], T[y], T[z]] };
+
+            const clave = perder ? unaSola : ganadas;
+            const suyo  = mejor ? (perder ? mejor.unaSola : mejor.ganadas) : -1;
+
+            /* En modo perder, después del 2-1 manda GANAR MENOS: de nada
+               sirve un plan que cae 2-1 muchas veces si el resto de las
+               veces se lleva el combate. Y solo al final la puntuación,
+               que es lo que hace que ese 2-1 salga ajustado (18 % de
+               casco) en vez de amplio (25 %). */
+            const gana =
+              !mejor || clave > suyo ||
+              (clave === suyo && (perder
+                ? (ganadas < mejor.ganadas ||
+                    (ganadas === mejor.ganadas && fuerza > mejor.fuerza))
+                : (duelos > mejor.duelos ||
+                    (duelos === mejor.duelos && fuerza > mejor.fuerza))));
+
+            if (gana) {
+              mejor = { ganadas: ganadas, duelos: duelos, unaSola: unaSola,
+                        fuerza: fuerza, idx: [a, b, c], tac: [T[x], T[y], T[z]] };
             }
           }
         }
       }
     }}
 
+    /* Con el plan ya elegido, se recorren las formaciones una vez más para
+       saber cómo acaba cada una: el marcador y lo que le cuesta a tu casco.
+       Es barato (unas cientas de vueltas) y es lo que hace falta para poder
+       decir «pierdes 2-1 el 80 % de las veces y te cuesta un 19 %». */
+    let marcador = null;
+    if (mejor) {
+      marcador = { g30:0, g21a:0, g21t:0, p21t:0, p21a:0, p03:0, casco:0 };
+      const miTotal = mejor.fuerza;
+
+      for (let f = 0; f < forms.length; f++) {
+        for (let j = 0; j < nG; j++) {
+          let gano = 0, suTotal = 0;
+          for (let i = 0; i < 3; i++) {
+            const p = forms[f].g[j][i];
+            const m = mejor.idx[i], u = T.indexOf(mejor.tac[i]);
+            if (p.c === CONCEDE) { gano++; continue; }
+            const suPunto = R.score(suyos[p.c], T[p.t]);
+            suTotal += suPunto;
+            if (R.duelWin(puntosDe[m][u], mejor.tac[i], suPunto, T[p.t])) gano++;
+          }
+
+          let coste;
+          if (gano === 3)      { marcador.g30++;  coste = 0.05; }
+          else if (gano === 0) { marcador.p03++;  coste = 0.35; }
+          else if (gano === 2) {
+            // ganas 2-1: amplio si les sacas 1,25 veces en puntos
+            const amplio = suTotal <= 0 || miTotal / suTotal >= 1.25;
+            if (amplio) { marcador.g21a++; coste = 0.10; }
+            else        { marcador.g21t++; coste = 0.12; }
+          } else {
+            // pierdes 2-1: ajustado mientras NO te saquen 1,25 veces
+            const amplio = miTotal <= 0 || suTotal / miTotal >= 1.25;
+            if (amplio) { marcador.p21a++; coste = 0.25; }
+            else        { marcador.p21t++; coste = 0.18; }
+          }
+          marcador.casco += coste;
+        }
+      }
+      marcador.casco /= pares;              // daño medio a tu casco
+      marcador.pierde21 = (marcador.p21t + marcador.p21a) / pares;
+    }
+
     return {
       plan:  mejor,
+      modo:  perder ? 'perder' : 'ganar',
       tasa:  mejor ? mejor.ganadas / pares : 0,
+      // qué parte de las veces sale el 2-1 en tu contra, que es el objetivo
+      // del modo perder
+      tasa21: mejor ? mejor.unaSola / pares : 0,
+      marcador: marcador,
+      pares: pares,
       forms: forms,
       familia: familia,
       suyos: suyos,

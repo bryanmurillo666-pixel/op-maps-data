@@ -21,7 +21,7 @@ listo. Todo es HTML, CSS y JavaScript sin dependencias.
 | `pvp.html` | Tu plan de ataque y qué guardias montar contra cada rival |
 | `rivals.html` | Tu libreta de rivales, con código para compartirla |
 | `tips.html` | Consejos |
-| `guide.html` | La guía del jugador |
+| `guide.html` | Toda la información del juego, en 17 pliegues |
 
 ```
 assets/css/style.css     una sola hoja de estilo para todo el sitio

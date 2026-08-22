@@ -85,7 +85,7 @@ window.GUIA = { v: '5.1', fecha: '2026-08-20' };
       { k: 'gd.n.upkeep',     v: num(3000) + ' / ' + num(5000) },
 
       { g: 'gd.g.rp' },
-      { k: 'gd.n.rp',         v: 'mín(0,9 · 0,3 + INT × 0,001)' , raw: true },
+      { k: 'gd.n.rp',         v: 'mín(0,9 @ 0,3 + INT × 0,001)', raw: true },
       { k: 'gd.n.rpTry',      v: '1' },
       { k: 'gd.n.rpEnd',      v: t('gd.n.rpEndV') },
       { k: 'gd.n.yonko',      v: t('gd.n.yonkoV') },
@@ -96,7 +96,7 @@ window.GUIA = { v: '5.1', fecha: '2026-08-20' };
       { k: 'gd.n.health',     v: '60 + 0,5 × (F+N+I)', raw: true },
       { k: 'gd.n.price',      v: '(F+N+I)² / 10', raw: true },
       { k: 'gd.n.power',      v: 'F × 1,5 + I × 0,5 + N × 0,2', raw: true },
-      { k: 'gd.n.speed',      v: 'mín(60 · 20 + N × 0,04 + 8)', raw: true },
+      { k: 'gd.n.speed',      v: 'mín(60 @ 20 + N × 0,04 + 8)', raw: true },
       { k: 'gd.n.supplies',   v: t('gd.n.suppliesV') },
       { k: 'gd.n.world',      v: t('gd.n.worldV') },
 
@@ -106,17 +106,18 @@ window.GUIA = { v: '5.1', fecha: '2026-08-20' };
     ];
   }
 
-  /* Las fórmulas se escriben con coma decimal en español y con punto en
-     inglés, y con las iniciales de cada idioma. */
+  /* Las fórmulas se escriben una sola vez, en español, con `@` donde va el
+     separador de argumentos. En español el decimal ya es la coma, así que
+     ahí el separador tiene que ser punto y coma o no se entiende
+     `mín(0,9 , 0,3 + ...)`. En inglés se invierte todo y la inicial de
+     Fuerza pasa a ser S, de Strength. */
   function formula(txt){
-    if (isES()) return txt.replace(/·/g, ',').replace(/mín/g, 'mín');
+    if (isES()) return txt.replace(/@/g, ';');
     return txt
       .replace(/mín/g, 'min')
-      .replace(/·/g, ',')
-      .replace(/0,9/g, '0.9').replace(/0,3/g, '0.3').replace(/0,001/g, '0.001')
-      .replace(/0,5/g, '0.5').replace(/1,5/g, '1.5')
-      .replace(/0,04/g, '0.04').replace(/0,2/g, '0.2')
-      .replace(/\bF\b/g, 'S').replace(/\bI\b/g, 'I').replace(/\bN\b/g, 'N');
+      .replace(/@/g, ',')
+      .replace(/(\d),(\d)/g, '$1.$2')
+      .replace(/\bF\b/g, 'S');
   }
 
   function pintaTabla(){

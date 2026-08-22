@@ -5,6 +5,96 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.7.0 — 21 ago 2026
+
+El plan de ataque tiene dos objetivos: **Ganar** y **Perder 2-1**. Idea de un
+amigo del usuario.
+
+### Por qué tiene sentido perder a propósito
+
+Porque no todas las derrotas cuestan lo mismo. Un `0-3` te deja el casco a
+`−35 %`; un `2-1` **ajustado**, a `−18 %`. Así que si la pelea está perdida,
+importa mucho cómo la pierdes.
+
+Y hay una tensión que hace el problema interesante: un `2-1` solo cuenta como
+ajustado si el ganador **no** te saca `1,25` veces en puntos. O sea que hay que
+**puntuar alto y aun así perder dos duelos** — mandar a los peores no vale,
+porque eso da un `2-1` amplio (`−25 %`) o directamente un `0-3`.
+
+### El criterio
+
+1. Maximizar los escenarios en que ganas **exactamente un duelo**.
+2. A igualdad, **ganar lo menos posible**: de nada sirve un plan que cae 2-1
+   muchas veces si el resto se lleva el combate.
+3. Y solo entonces la puntuación, que es lo que hace ajustado ese 2-1.
+
+Reaprovecha las máscaras de bits que ya había: «exactamente uno» sale de
+`(a&~b&~c) | (~a&b&~c) | (~a&~b&c)`, con una máscara extra que apaga los bits
+sobrantes del último word para que el `~` no los encienda.
+
+### Lo que enseña
+
+La cifra grande pasa a ser **cuántas veces caes 2-1**, y al lado el **casco que
+te cuesta de media**, que es lo que decide de verdad si compensa. Se calcula
+recorriendo las formaciones una vez más y clasificando cada escenario por
+marcador (`3-0`, `2-1` amplio, `2-1` ajustado, y sus tres inversos).
+
+Dos avisos automáticos, que son la parte útil:
+
+- **No puedes perder a voluntad**: sale cuando le ganas tanto que ni queriendo
+  caes más de la mitad de las veces.
+- **Aquí perder sale más barato que intentar ganar**: sale cuando te supera lo
+  suficiente como para que el plan de ganar acabe en `0-3` a menudo.
+
+Medido con tres emparejamientos: si eres mucho más fuerte, el plan de perder
+cuesta `14,9 %` de casco contra `12,3 %` el de ganar — o sea que no compensa.
+Si vais parejos, caes 2-1 el `61 %`. Y si eres más débil, el plan de perder
+cuesta `20,6 %` contra `21,4 %` del de ganar: **perder bien sale más barato que
+intentar ganar mal**.
+
+---
+
+## 1.6.0 — 21 ago 2026
+
+La **Guía** deja de ser un esqueleto: ahora tiene toda la información del juego.
+
+### Cómo está montada
+
+Diecisiete pliegues numerados, en **orden de aprender**, no en el orden de la
+guía oficial. Alguien que empieza puede leer de arriba abajo; quien ya juega
+abre solo el que necesita.
+
+`01` Empezar · `02` Tu tripulación · `03` Los roles · `04` El duelo ·
+`05` Navegar · `06` Desembarcar (PvE) · `07` Atacar · `08` Defenderte ·
+`09` Conquistar · `10` IMU · `11` Oro y tienda · `12` El mercado ·
+`13` Poneglifos y el final · `14` Rankings y títulos · `15` Alianzas ·
+`16` Temporadas y tu cuenta · `17` Todos los números.
+
+Botones de **abrir y cerrar todo**, y cada pliegue recuerda cómo lo dejaste.
+
+### La versión, siempre arriba
+
+Un panel fijo con la versión de la guía oficial que sigue el sitio y su fecha.
+Sale de `window.GUIA` en `assets/js/guide.js`: **se toca en un solo sitio** y
+cambia en la página.
+
+### La chuleta se calcula sola
+
+La sección `17` no está escrita a mano. Las fórmulas y constantes salen de
+`rules.js` — el mismo código que usa el sitio para calcular — así que si un día
+cambia una fórmula, la tabla cambia con ella y no puede quedarse desfasada.
+
+Las fórmulas se escriben una sola vez y se adaptan al idioma: en español el
+decimal es coma y el separador de argumentos punto y coma (`mín(0,9 ; 0,3 + …)`),
+y en inglés se invierte y la inicial de Fuerza pasa a ser `S` de Strength.
+
+### Números
+
+`134` claves de texto nuevas por idioma para el contenido, más `42` para la
+chuleta. El diccionario pasa de `438` a `619` claves en cada idioma.
+
+---
+
 ## 1.5.2 — 21 ago 2026
 
 - **La información del PvP vuelve.** En la 1.5.1 quité el desglose y me llevé

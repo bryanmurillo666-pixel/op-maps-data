@@ -5,8 +5,10 @@
 - [ ] **Ordenar las islas en el PvE.** Aparcado a propósito el 19 ago 2026 para
       decidir después con qué criterio: por mar y recorrido, por dificultad de
       la guardia, o alfabético.
-- [ ] **Consejos** (`tips.html`) y **Guía** (`guide.html`) siguen siendo
-      esqueletos.
+- [ ] **Consejos** (`tips.html`) sigue siendo un esqueleto.
+- [ ] **Enlaces desde la Guía** a las páginas que profundizan: los roles a
+      Data Crew, el desembarco al PvE, las guardias al PvP. Pedido por el
+      usuario para cuando revise el contenido.
 - [ ] Cambio en la descripción de Data Crew, aparcado por el usuario.
 
 ## Ideas que salieron del PvP
