@@ -5,6 +5,37 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.7.1 — 22 ago 2026
+
+Arreglo de entrega, no de código: **los archivos ahora llevan versión**.
+
+### Qué pasaba
+
+Tras subir la `1.7.0`, los botones de Ganar / Perder salían con su clave de
+traducción (`pvp.plan.modeWin`) y no respondían.
+
+El código estaba bien y estaba publicado — se comprobó pidiendo los dos
+archivos a la web. Lo que fallaba era la **entrega**: GitHub Pages manda
+`Cache-Control: max-age=600`, así que durante diez minutos el navegador usa lo
+que tiene sin preguntar. Quien tuviera la página abierta se quedó con el **HTML
+nuevo y los `.js` viejos**.
+
+El propio síntoma lo delataba: si `i18n.js` no cargara, el botón habría puesto
+«Ganar», que es el texto de reserva del HTML. Que saliera la clave significa que
+sí se estaba ejecutando un `i18n.js`, pero uno que no la conocía.
+
+### El arreglo
+
+Cada `.js`, `.css` y el icono llevan ahora la versión pegada
+(`assets/js/i18n.js?v=1.7.0`) en las ocho páginas. Al cambiar el número el
+navegador lo trata como otro archivo y lo pide entero, así que un cambio nunca
+puede llegar a medias.
+
+El procedimiento para subirlo en cada publicación está en
+[README.md](README.md), con la orden hecha.
+
+---
+
 ## 1.7.0 — 21 ago 2026
 
 El plan de ataque tiene dos objetivos: **Ganar** y **Perder 2-1**. Idea de un
