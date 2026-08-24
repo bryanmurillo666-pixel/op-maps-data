@@ -5,6 +5,258 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.9.0 — 24 ago 2026
+
+**Mi alianza: la libreta de rivales deja de ser tuya sola.** Hasta 10 personas
+comparten lo que van averiguando. Una guardia cuesta una pelea de descubrir;
+entre diez, se descubre diez veces más rápido.
+
+### Cómo está montado
+
+Firebase Realtime Database, hablado con `fetch` a pelo: sin SDK, sin CDN y sin
+nada que compilar. El sitio sigue siendo el mismo HTML+JS y sigue en GitHub
+Pages; lo único que se mueve es dónde viven los rivales.
+
+La idea que lo hace sencillo es que **cada uno escribe solo en su propio hueco**:
+
+```
+alianzas/{codigo}/miembros/{miId}    <- aquí escribo yo, y solo yo
+alianzas/{codigo}/miembros/{otro}    <- de aquí solo leo
+```
+
+Como nadie escribe donde escribe otro, no hay conflictos que resolver: ni
+bloqueos, ni transacciones, ni «quién llegó antes». *Actualizar rivales* son
+tres pasos: subo la mía, me bajo las de todos, las junto aquí.
+
+### La regla de fusión
+
+Lo pedido era «en caso de duplicados, la versión más reciente de cambios».
+Aplicado al rival entero eso **pierde información**: si tú sabes su guardia 1 y
+un compañero sabe la 2, el que guarde después borra lo del otro — justo lo
+contrario de lo que se busca.
+
+Así que se aplica la misma regla, pero **pieza a pieza**:
+
+| Dato | Qué pasa al juntar |
+|---|---|
+| Su tripulación | Se unen las dos listas. El estado, del más reciente. |
+| Cada puesto de cada guardia | Si uno lo sabe y el otro no, se copia. Si los dos lo saben y **difieren**, gana el más reciente. |
+| Sus ataques | Se juntan sin repetir, los recientes delante. |
+
+Nunca se pierde algo que alguien averiguó, y la fecha decide solo cuando hay
+contradicción de verdad.
+
+Para esto cada rival lleva ahora un `ts` con la fecha de su último cambio, que
+se refresca en cada edición y **viaja dentro del código compartido**. Los
+códigos viejos, sin `ts`, se leen igual (entran con fecha `0`, así que ceden
+ante cualquier versión fechada).
+
+### Lo que también cambia sin ser de la alianza
+
+**Importar ya no sustituye, complementa.** El código de texto de *Mis rivales*
+usa la misma fusión, así que compartir a mano dejó de pisar lo que sabías.
+
+### Detalles que salieron probando
+
+- Firebase **se come los arrays vacíos**: un `rivales:[]` desaparece del JSON.
+  Por eso la libreta viaja como el código de texto que ya existía (`OPMR1:…`,
+  unos 160 caracteres por rival) y no como estructura anidada.
+- Después de fusionar se **vuelve a subir**. Así lo que te cuenta uno le llega
+  al resto sin que tengáis que coincidir: la información circula sola.
+- Tu propia fila del listado se corrige a mano tras ese segundo envío, porque la
+  que vino del servidor es de **antes** de juntar nada.
+- En inglés el «hace» iba vacío y salía « 4 min» en vez de «4 min ago». Las
+  cadenas de tiempo pasan a plantilla (`hace {n} {u}` / `{n} {u} ago`).
+
+### Seguridad, dicha claramente
+
+Sin cuentas ni contraseñas, **el código de la alianza es la única llave**. Se
+compensa con lo que se puede: 10 caracteres al azar de un alfabeto sin `O/0` ni
+`I/1/L`, y unas reglas que **no dejan listar qué alianzas existen** — solo leer
+una si ya sabes su código, y escribir únicamente dentro de un hueco de miembro.
+Comprobado contra el servidor: leer la raíz da `401`, listar `/alianzas` da
+`401`, y un código corto se rechaza.
+
+Adivinar deja de ser viable. Filtrar el código en el chat equivocado, no.
+
+### Consecuencia que conviene saber
+
+Como nunca se borra nada, si **quitas un rival** de tu libreta y luego
+actualizas, vuelve si algún compañero lo tiene. Para quitarlo de verdad hay que
+quitarlo todos. Está avisado en la Guía.
+
+### Lo demás
+
+- Pestaña nueva entre *Mis rivales* y *PvE*; tarjeta `04` en la portada, y el
+  resto corre hasta `08`.
+- Sección `18` de la Guía: qué se comparte, qué no sale nunca de tu navegador,
+  cómo funciona la fusión y el aviso de arriba.
+- `54` cadenas nuevas por idioma. Paridad ES/EN comprobada: `715` claves cada
+  uno.
+
+### Comprobaciones
+
+- `24/24` en el banco de fusión: complementar en los dos sentidos, la fecha
+  mandando solo en contradicción, un rival nuevo entrando entero, ataques sin
+  duplicar, el `ts` sobreviviendo al viaje y los códigos sin caracteres
+  ambiguos.
+- `16/16` contra el servidor real, con tres miembros de verdad: UNO sube su
+  guardia 1, DOS entra con su guardia 2 y acaba con las dos, y TRES entra sin
+  nada y recibe todo. Funciona también abriendo el archivo suelto (`file://`).
+
+---
+
+## 1.8.1 — 22 ago 2026
+
+**Los desplegables de un puesto se leen.** Elegir quién va en una guardia era
+incómodo: el nombre iba sin marco, a 12 px y apretado entre el número de
+posición y la táctica, con los tres puestos en fila. Un nombre largo como
+«San Ethanbaron V. Nusjuro» no cabía.
+
+Ahora cada puesto apila sus dos desplegables, y los dos tienen el mismo aspecto
+que el de elegir isla del PvE: marco, fondo, flecha y `13 px`. La táctica se
+queda algo más discreta debajo, que es lo secundario del puesto.
+
+Vale para los tres formularios a la vez —las guardias del rival, las tuyas y el
+de sus ataques— porque el estilo se apunta al elemento (`.puesto select`) y no a
+las seis clases que usa el JS para distinguirlos.
+
+---
+
+## 1.8.0 — 22 ago 2026
+
+La teoría se muda a la Guía. Las pestañas se quedan con la herramienta y una
+explicación corta.
+
+### Lo que se ha movido
+
+De **PvE** salen los cinco paneles de texto: si ganas, si pierdes, si te hundes,
+si no queda nadie en pie y cómo sacarle más. De **PvP** salen los seis de
+consulta: cómo se puntúa un duelo, lo que cuesta cada duelo, lo que cuesta
+perder, la tabla de casco, tus guardias y cuándo puedes atacar.
+
+Antes de quitarlos se comprobó qué cubría ya la Guía, y había cosas que **no**.
+Se han añadido en vez de perderse:
+
+- El `10 %` del oro que se lleva el ganador de un abordaje, y el `20 %` más un
+  poneglifo si te hunde.
+- Las **condiciones para atacar**: ninguno de los dos aturdido, él sin
+  protección de novato, tú con al menos uno en pie, y sumergido solo contra
+  sumergido.
+- Que **hundirse cura del todo** — casco lleno y todos a tope, tumbados
+  incluidos. En PvE, además, el oro que pierdes **se quema**: no lo cobra nadie.
+
+### Sección nueva: «Cómo calcula este sitio»
+
+La `17` de la Guía. Ya no son reglas del juego sino cómo saca sus números la
+página, que es lo que hacía falta para poder recortar las notas largas de PvP y
+PvE sin dejarlas huérfanas. Dice cuándo el número es **exacto** y cuándo es una
+**estimación**, cómo se construyen las formaciones plausibles, qué criterio
+siguen las guardias recomendadas, cómo pesa la predicción del último ataque, y
+—esto importa— **qué no se calcula**: el `+10 %` de casco por puesto vacío y la
+vida real de cada uno.
+
+### En las pestañas
+
+Cada una conserva una entradilla de dos líneas y una nota al pie que lleva a la
+Guía. Las notas de método que salían bajo cada cálculo pasan de cinco líneas a
+una.
+
+De paso se corrigieron dos descripciones `<meta>` que seguían diciendo que el
+PvE era «50 % de victoria».
+
+---
+
+## 1.7.4 — 22 ago 2026
+
+Las dos incógnitas de la auditoría, resueltas por el usuario.
+
+### El «2-1 amplio» cuenta los críticos
+
+Faltaba saber si «las tres puntuaciones del ganador» son las de base o las del
+duelo ya resuelto. Son las **del duelo ya resuelto**: con el contador aplicado.
+Tiene sentido — si el crítico es lo que decide quién gana, es lo que debe contar
+para medir por cuánto.
+
+Cambiado en `pvp-model.js` (el marcador de cada escenario) y en la simulación
+del abordaje. No es un detalle sin efecto: el contador multiplica al ganador, así
+que **más 2-1 cruzan el umbral de `1,25×` y pasan de ajustado (`18 %`) a amplio
+(`25 %`)**. En una prueba, de `144` derrotas 2-1 ajustadas se pasó a `96`
+ajustadas y `48` amplias.
+
+Consecuencia sobre el consejo de la `1.7.0`: cuando eres más débil, perder a
+propósito sigue saliendo más barato que intentar ganar, pero la ventaja baja de
+`0,8` a `0,3` puntos de casco.
+
+### El PvE ya estaba bien
+
+Las tácticas de los tres enemigos salen al azar **sin relación entre ellas**, y
+mantienen su orden. Era exactamente lo que suponía el cálculo, así que no hubo
+que tocar nada — solo dejarlo escrito en `pve.js` para que no vuelva a
+levantarse la duda.
+
+---
+
+## 1.7.3 — 22 ago 2026
+
+Auditoría de la lógica del PvP y del PvE. Un fallo real encontrado y
+corregido; el resto, comprobado.
+
+### El fallo: la comparación de guardias era injusta
+
+En «Tus guardias contra él», si solo tenías **dos** de tus tres guardias
+apuntadas, `aguante()` dividía entre 2 y `mejoresGuardias()` entre 3. O sea que
+se comparaban **tus dos mejores contra tres recomendadas**, y el número te
+salía regalado: la guardia que falta es justo la que no contaba.
+
+Ahora la comparación solo se hace con las tres puestas. Si faltan, se dice
+cuántas y no se enseña ningún número.
+
+### Comprobado y correcto
+
+- **El empate va al defensor.** `duelWin` usa `>` estricto: atacando hay que
+  superar, defendiendo basta con igualar.
+- **La fórmula de «2 de 3»** del PvE es la correcta.
+- **La regla de repetición** entre guardias se cumple sola por construcción, y
+  se verificó para tripulaciones de 3, 4 y 5.
+- **El daño por duelo** (`34 %` / `8 %` / `×0,6` contrarrestando) y el casco por
+  marcador coinciden con la guía.
+- **Las dos rutas de cálculo defensivo** (`aguante` y `mejoresGuardias`) dan el
+  mismo número sobre las mismas guardias.
+
+### Tres cosas que no son fallos pero conviene tener presentes
+
+Están anotadas en [PENDIENTES.md](PENDIENTES.md):
+
+1. **El `+10 %` de casco por puesto vacío** está escrito en la página pero no se
+   calcula. Hoy no cambia ningún número, porque el sitio siempre da por hecho
+   que sales con tres.
+2. **El «2-1 amplio» usa la puntuación con afinidad pero sin contador.** La guía
+   dice «las tres puntuaciones del ganador» sin aclarar si incluyen los
+   multiplicadores. Solo mueve algún 2-1 entre el `18 %` y el `25 %`.
+3. **El PvE da por independientes las tres tácticas de la isla.** La guía no lo
+   dice. Si la isla siguiera un patrón, las probabilidades cambiarían.
+
+---
+
+## 1.7.2 — 22 ago 2026
+
+Retoques de presentación en las dos alineaciones.
+
+- En el **plan de ataque del PvP**, la táctica recomendada pasa a ir **pegada al
+  nombre** del personaje, con el rol debajo. Antes se iba al centro de la fila y
+  costaba relacionarla con quién la juega.
+- La **alineación del PvE** se iguala a esa misma forma: táctica en pastilla de
+  color al lado del nombre, rol y desgaste medio debajo, y a la derecha una
+  ficha con el enemigo que le toca y cuántas de sus tres tácticas le gana
+  (`Stussy 2/3`), con el mismo código de color que el PvP — verde si le ganas
+  las tres, dorado si unas sí y otras no, rojo si ninguna.
+
+De paso el PvE gana algo que no tenía: **el rol de cada uno**, que en el PvP sí
+se veía.
+
+---
+
 ## 1.7.1 — 22 ago 2026
 
 Arreglo de entrega, no de código: **los archivos ahora llevan versión**.

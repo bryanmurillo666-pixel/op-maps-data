@@ -1,15 +1,27 @@
 # Versiones que sigue el sitio
 
-Estado a **21 de agosto de 2026**.
+Estado a **24 de agosto de 2026**.
 
 | Fuente | Versión | Fecha | Estado |
 |---|---|---|---|
-| Sitio OP-MAPS DATA | `1.7.1` | 22 ago 2026 | sin publicar |
+| Sitio OP-MAPS DATA | `1.9.0` | 24 ago 2026 | sin publicar |
 | Guía del jugador | `5.1` | 20 ago 2026 | ✅ aplicada |
 | Changelog del juego | `v0.44.0` | 18 ago 2026 | ✅ leído |
 | Álbum del juego (ES/EN) | export | 16 ago 2026 | ✅ 226 personajes verificados |
 | Islas | `islands.js` | 19 ago 2026 | ✅ 156 islas (el export `Island.html` se quedó corto y se apartó) |
 | Tienda | export | 16 ago 2026 | ✅ 14 objetos |
+
+## Servicios de los que depende
+
+| Servicio | Para qué | Plan | Notas |
+|---|---|---|---|
+| GitHub Pages | Servir el sitio | gratis | Todo el HTML, CSS y JS. |
+| Firebase Realtime Database | Compartir rivales en *Mi alianza* | gratis (Spark) | `op-maps-data-default-rtdb`. Se habla con `fetch`, sin SDK. Diez personas y unos kilobytes no rozan el límite. No se pausa por inactividad. |
+
+Las reglas de la base están puestas para que **no se puedan listar las
+alianzas**: solo se lee una si ya sabes su código, y solo se escribe dentro de
+`alianzas/{codigo}/miembros/{miembro}`.
+
 
 ## Historial de guías
 

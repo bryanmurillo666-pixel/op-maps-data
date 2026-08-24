@@ -74,6 +74,11 @@
      no hace falta simular: para cada posición se cuenta a cuántas de sus
      tres tácticas le ganas, y de ahí sale la probabilidad exacta de
      llevarse 2 de los 3 duelos.
+
+     CONFIRMADO por el usuario (22 ago 2026): las tácticas de los tres
+     salen al azar SIN relación entre ellas, y los enemigos mantienen
+     su orden. O sea que los tres duelos son independientes, que es
+     justo lo que supone la fórmula de aquí abajo.
      ============================================================ */
 
   /* Cuántas de las 3 tácticas del enemigo gana este personaje con esta
@@ -212,19 +217,27 @@
     const ali = mejorAlineacion(crew, enemigos);
     ultimaAlineacion = { crew: crew, enemigos: enemigos, ali: ali };
 
+    /* Misma forma que el plan de ataque del PvP: la táctica como pastilla
+       de color al lado del nombre, el rol debajo, y a la derecha contra
+       quién peleas con cuántas de sus tres tácticas le ganas. */
+    const seg = x => x === 'Assault' ? 'f' : (x === 'Manoeuvre' ? 'v' : 'i');
+
     const filas = ali.idx.map((k, i) => {
       const c = crew[k], puesto = ali.puestos[i];
       const daño = danoMedio(c, puesto.tac, enemigos[i]);
+      const clase = puesto.gana === 3 ? 'vs-gano'
+                  : (puesto.gana ? 'vs-mix' : 'vs-perdio');
       return `<div class="linea">
         <span class="pos">${i + 1}</span>
         <span class="quien">
-          <b>${esc(nameOf(c))}</b>
-          <i>${esc(t('tac.' + puesto.tac))} · ${num(R.score(c, puesto.tac))}
-             · −${num(daño, 1)} ${esc(t('pve.isla.dmg'))}</i>
+          <span class="quien-top">
+            <b>${esc(nameOf(c))}</b>
+            <span class="tac-pill tac-${seg(puesto.tac)}">${esc(t('tac.' + puesto.tac))} · ${num(R.score(c, puesto.tac))}</span>
+          </span>
+          <i>${esc(t('rn.' + c.r))} · −${num(daño, 1)} ${esc(t('pve.isla.dmg'))}</i>
         </span>
-        <span class="puntos">
-          <b class="${puesto.gana === 3 ? 'win-hi' : (puesto.gana ? 'win-mid' : 'win-lo')}">${puesto.gana} / 3</b>
-          <i>${esc(t('pve.isla.beats'))} ${esc(nameOf(enemigos[i]))}</i>
+        <span class="contras">
+          <span class="vs ${clase}">${esc(nameOf(enemigos[i]))} ${puesto.gana}/3</span>
         </span>
       </div>`;
     }).join('');
@@ -239,7 +252,7 @@
       <div id="simOut"></div>
 
       <p class="note">${t('pve.isla.how')}</p>
-      <p class="note">${t('pve.isla.dmgNote')}</p>`;
+`;
   }
 
   /* ============================================================

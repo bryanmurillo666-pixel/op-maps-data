@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi alianza — OP-MAPS DATA</title>
+<meta name="description" content="Comparte rivales con hasta diez compañeros de OP-MAPS: cada uno sube lo que averigua y un botón junta todas las libretas sin perder nada.">
+<link rel="icon" href="assets/favicon.svg?v=1.9.0" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css?v=1.9.0">
+</head>
+<body data-page="alianza" data-title-key="title.alianza">
+
+<div id="site-header"></div>
+
+<main>
+  <div class="wrap">
+
+    <header class="page-head">
+      <h1 data-i18n="nav.alianza">Mi alianza</h1>
+      <p data-i18n-html="ali.lead"></p>
+    </header>
+
+    <!-- todavía no estás en ninguna -->
+    <section class="panel" id="pFuera" hidden>
+      <h2 data-i18n="ali.out.t">Entrar en una alianza</h2>
+      <p class="parrafo" data-i18n-html="ali.out.d"></p>
+
+      <label class="campo campo-ancho ali-apodo">
+        <span data-i18n="ali.apodo">Tu nombre en la alianza</span>
+        <input type="text" id="apodoNuevo" maxlength="24" autocomplete="off"
+               data-i18n-attr="placeholder:ali.apodo.ph">
+      </label>
+
+      <div class="compartir">
+        <div>
+          <h5 class="bloque-tit" data-i18n="ali.crear.t">Crear una nueva</h5>
+          <p class="note ali-d" data-i18n="ali.crear.d"></p>
+          <button class="btn-add" id="crearBtn" data-i18n="ali.crear.do">Crear alianza</button>
+        </div>
+        <div>
+          <h5 class="bloque-tit" data-i18n="ali.unir.t">Unirte con un código</h5>
+          <p class="note ali-d" data-i18n="ali.unir.d"></p>
+          <div class="add-row chica">
+            <input type="text" id="unirIn" autocomplete="off" spellcheck="false"
+                   data-i18n-attr="placeholder:ali.unir.ph; aria-label:ali.unir.ph">
+            <button class="btn-add" id="unirBtn" data-i18n="ali.unir.do">Unirme</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="hint" id="fueraHint"></p>
+      <p class="note" data-i18n-html="ali.out.note"></p>
+    </section>
+
+    <!-- ya estás dentro -->
+    <section class="panel" id="pDentro" hidden>
+      <div class="panel-head">
+        <h2 data-i18n="ali.in.t">Tu alianza</h2>
+        <span class="panel-count" id="aliCount"></span>
+      </div>
+
+      <div class="ali-cod">
+        <span class="ali-cod-lab" data-i18n="ali.codigo">Código</span>
+        <code id="aliCod"></code>
+        <button class="btn-mini" id="copiarBtn" data-i18n="ali.copiar">Copiar</button>
+      </div>
+      <p class="note" data-i18n-html="ali.codigo.note"></p>
+
+      <div class="ali-sync">
+        <button class="btn-calc" id="syncBtn" data-i18n="ali.sync.do">Actualizar rivales</button>
+        <p class="hint" id="syncHint"></p>
+      </div>
+      <div id="syncResumen"></div>
+
+      <h5 class="bloque-tit" data-i18n="ali.miembros">Miembros</h5>
+      <div id="aliMiembros"></div>
+
+      <div class="ali-pie">
+        <label class="campo campo-ancho">
+          <span data-i18n="ali.apodo">Tu nombre en la alianza</span>
+          <div class="add-row chica">
+            <input type="text" id="apodoIn" maxlength="24" autocomplete="off">
+            <button class="btn-add" id="apodoBtn" data-i18n="ali.apodo.do">Guardar</button>
+          </div>
+        </label>
+        <button class="btn-x ali-salir" id="salirBtn" data-i18n="ali.salir">Salir de la alianza</button>
+      </div>
+    </section>
+
+    <p class="note ver-guia" data-i18n-html="site.verGuia"></p>
+  </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="assets/js/i18n.js?v=1.9.0"></script>
+<script src="assets/js/site.js?v=1.9.0"></script>
+<script src="assets/js/characters.js?v=1.9.0"></script>
+<script src="assets/js/rules.js?v=1.9.0"></script>
+<script src="assets/js/rivals-store.js?v=1.9.0"></script>
+<script src="assets/js/alliance-store.js?v=1.9.0"></script>
+<script src="assets/js/alliance.js?v=1.9.0"></script>
+</body>
+</html>

@@ -457,18 +457,31 @@ window.PVP_MODEL = (function () {
     let marcador = null;
     if (mejor) {
       marcador = { g30:0, g21a:0, g21t:0, p21t:0, p21a:0, p03:0, casco:0 };
-      const miTotal = mejor.fuerza;
 
       for (let f = 0; f < forms.length; f++) {
         for (let j = 0; j < nG; j++) {
-          let gano = 0, suTotal = 0;
+          let gano = 0, miTotal = 0, suTotal = 0;
           for (let i = 0; i < 3; i++) {
             const p = forms[f].g[j][i];
-            const m = mejor.idx[i], u = T.indexOf(mejor.tac[i]);
-            if (p.c === CONCEDE) { gano++; continue; }
-            const suPunto = R.score(suyos[p.c], T[p.t]);
+            const miTac = mejor.tac[i];
+            let miPunto = puntosDe[mejor.idx[i]][T.indexOf(miTac)];
+
+            if (p.c === CONCEDE) { gano++; miTotal += miPunto; continue; }
+
+            const suTac = T[p.t];
+            let suPunto = R.score(suyos[p.c], suTac);
+
+            /* Las puntuaciones que cuentan para el marcador son las del
+               duelo YA resuelto, o sea con el contador aplicado: quien
+               contrarresta pelea con su puntuación multiplicada. Es lo
+               mismo que decide quién gana el duelo, así que comparar
+               aquí es comparar lo que de verdad pasó. */
+            if (R.beats(miTac, suTac))      miPunto *= R.COUNTER;
+            else if (R.beats(suTac, miTac)) suPunto *= R.COUNTER;
+
+            miTotal += miPunto;
             suTotal += suPunto;
-            if (R.duelWin(puntosDe[m][u], mejor.tac[i], suPunto, T[p.t])) gano++;
+            if (miPunto > suPunto) gano++;   // el empate se lo lleva el otro
           }
 
           let coste;

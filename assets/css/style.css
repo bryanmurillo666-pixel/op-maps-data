@@ -1231,23 +1231,40 @@ input[type=search]:focus,.toolbar select:focus{outline:2px solid var(--brass);ou
 }
 .puestos{display:grid;gap:6px;grid-template-columns:repeat(3,1fr)}
 .puesto{
-  display:flex;align-items:center;gap:5px;
-  background:var(--sea);border:0.5px solid var(--line);
-  border-radius:8px;padding:6px 7px;
+  display:flex;flex-direction:column;gap:6px;
+  background:var(--hull-2);border:0.5px solid var(--line);
+  border-radius:10px;padding:9px 10px;
 }
-.puesto .pos{flex:0 0 auto;font-family:var(--mono);font-size:10px;color:var(--mist)}
-/* Los tres formularios de puesto comparten aspecto: las guardias del
-   rival (p-), tus guardias (g-) y el formulario de sus ataques (a-). */
-.puesto .p-n, .puesto .g-n, .puesto .a-n{
-  flex:1;min-width:0;background:none;border:none;
-  color:var(--parch);font-size:12px;padding:2px 0;
+.puesto .pos{
+  font-family:var(--mono);font-size:9px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--mist);
 }
-.puesto .p-n:focus, .puesto .g-n:focus, .puesto .a-n:focus{outline:none}
-.puesto .p-n.err, .puesto .g-n.err, .puesto .a-n.err{color:var(--blood)}
+/* Los desplegables de un puesto se ven como el de elegir isla del PvE:
+   con su marco, su fondo y su flecha. Antes iban sin borde y a 12 px,
+   apretados de tres en fila, y no se leían. Se apuntan por elemento y no
+   por clase para que valgan los seis: las guardias del rival (p-), las
+   tuyas (g-) y el formulario de sus ataques (a-). */
+.puesto select{
+  width:100%;
+  background:var(--sea);border:0.5px solid var(--line-str);
+  border-radius:9px;color:var(--parch);cursor:pointer;
+  font-family:var(--mono);font-size:13px;padding:9px 28px 9px 10px;
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none' stroke='%23D4A253' stroke-width='1.4'><path d='M1 1l4 4 4-4'/></svg>");
+  background-repeat:no-repeat;background-position:right 10px center;
+}
+/* la táctica es lo secundario del puesto: se queda algo más discreta */
 .puesto .p-t, .puesto .g-t, .puesto .a-t{
-  flex:0 0 auto;background:var(--hull-2);
-  border:0.5px solid var(--line);border-radius:6px;
-  color:var(--mist);font-family:var(--mono);font-size:9.5px;padding:3px 4px;
+  font-size:11px;padding:7px 26px 7px 10px;color:var(--mist);
+  border-color:var(--line);
+}
+.puesto .p-n.err, .puesto .g-n.err, .puesto .a-n.err{
+  color:var(--blood);border-color:rgba(193,80,75,.55);
+}
+/* la puntuación al lado, en tus guardias */
+.puesto .g-pts{
+  font-family:var(--mono);font-size:10px;color:var(--mist);text-align:right;
+}
 }
 /* en móvil los tres puestos no caben de lado: uno por fila */
 @media (max-width:640px){
@@ -1566,3 +1583,86 @@ details.sub-plegable > summary .bloque-tit{
 .modo-btns .modo.on{background:var(--brass);color:#1a1206}
 /* el de perder se tiñe distinto: no es la opción normal */
 .modo-btns .modo[data-modo="perder"].on{background:var(--blood);color:#fff}
+
+/* La táctica va pegada al nombre, y el rol debajo. Se usa igual en el plan
+   de ataque del PvP y en la alineación del PvE. */
+.linea .quien-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.linea .quien-top b{display:inline}
+
+/* el pie que manda a la Guía desde cada pestaña */
+.ver-guia{text-align:center;margin-top:18px;padding-top:14px;border-top:0.5px solid var(--line)}
+
+/* ============================================================
+   Mi alianza
+   ============================================================ */
+
+.ali-apodo{margin:14px 0 4px;max-width:340px}
+/* la descripcion de cada puerta: a la izquierda, y con la misma altura
+   en las dos columnas para que los botones queden en linea */
+.ali-d{text-align:left;margin:6px 0 11px;min-height:34px}
+
+/* el código, que es lo que se copia y se reparte */
+.ali-cod{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  background:var(--hull-2);border:0.5px solid var(--line-str);
+  border-radius:11px;padding:11px 13px;margin-top:4px;
+}
+.ali-cod-lab{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--mist);
+}
+.ali-cod .btn-mini{width:auto;flex:0 0 auto}
+.ali-cod code{
+  font-family:var(--mono);font-size:19px;font-weight:700;
+  letter-spacing:.16em;color:var(--brass);
+  word-break:break-all;flex:1;min-width:0;
+}
+
+/* el botón grande de juntar libretas */
+.ali-sync{margin-top:18px}
+.ali-sync .btn-calc{width:100%}
+.ali-sync .hint{margin-top:8px}
+
+/* quién más hay dentro */
+.ali-m{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 11px;border-radius:10px;
+  border:0.5px solid var(--line);background:var(--hull-2);
+  margin-bottom:6px;
+}
+.ali-m.yo{border-color:var(--line-str)}
+.ali-m-n{
+  flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--parch);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.ali-m-n i{font-style:normal;font-size:11px;color:var(--brass);font-weight:400}
+.ali-m-r{font-family:var(--mono);font-size:11.5px;color:var(--foam);white-space:nowrap}
+.ali-m-t{font-family:var(--mono);font-size:10.5px;color:var(--mist);white-space:nowrap}
+.ali-m-x{flex:0 0 auto}
+@media (max-width:520px){
+  .ali-m{flex-wrap:wrap;gap:6px 10px}
+  .ali-m-n{flex:1 0 100%}
+}
+
+/* qué ha cambiado en tu libreta al actualizar */
+.ali-res{
+  margin-top:12px;padding:11px 13px;border-radius:11px;
+  border:0.5px solid var(--line-str);background:rgba(88,180,166,.07);
+}
+.ali-res.vacio{
+  border-color:var(--line);background:var(--hull-2);
+  color:var(--mist);font-size:12.5px;
+}
+.ali-res-tit{font-size:13px;color:var(--parch)}
+.ali-res-tit b{font-family:var(--mono);color:var(--foam)}
+.ali-res-l{margin:7px 0 0;padding-left:17px;color:var(--mist);font-size:12.5px;line-height:1.75}
+.ali-res-l b{font-family:var(--mono);color:var(--brass)}
+
+/* el pie: tu nombre a un lado, salirte al otro */
+.ali-pie{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:14px;flex-wrap:wrap;
+  margin-top:20px;padding-top:15px;border-top:0.5px solid var(--line);
+}
+.ali-pie .campo{max-width:340px}
+.ali-salir{padding:7px 14px;font-size:9.5px}

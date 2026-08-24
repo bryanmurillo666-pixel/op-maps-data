@@ -43,14 +43,14 @@ y entonces salen cosas como botones que enseñan su clave de traducción en vez
 del texto, o que no responden.
 
 Para evitarlo, cada `.js`, `.css` y el icono llevan la versión pegada:
-`assets/js/i18n.js?v=1.7.0`. Al cambiar el número, el navegador lo trata como
+`assets/js/i18n.js?v=1.8.1`. Al cambiar el número, el navegador lo trata como
 un archivo distinto y lo pide entero.
 
 **Al publicar una versión nueva hay que subir ese número.** Desde la carpeta del
 proyecto:
 
 ```bash
-VIEJA=1.7.0; NUEVA=1.8.0
+VIEJA=1.8.1; NUEVA=1.9.0
 sed -i "s/?v=$VIEJA/?v=$NUEVA/g" index.html data.html crew.html rivals.html \
   pve.html pvp.html tips.html guide.html
 ```

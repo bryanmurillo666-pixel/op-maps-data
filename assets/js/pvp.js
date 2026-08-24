@@ -27,6 +27,7 @@
     VIDA_GANAR: 0.08,
     CONTRA:     0.6,
     AMPLIO:     1.25,
+    CONTRA_PUNTOS: 1.75,   // el contador tambien multiplica lo que cuenta para el marcador
     CASCO: {
       tres:   { pierde: 0.35, gana: 0.05 },
       amplio: { pierde: 0.25, gana: 0.10 },
@@ -126,10 +127,12 @@
       return `<div class="linea">
         <span class="pos">${i + 1}</span>
         <span class="quien">
-          <b>${esc(nameOf(c))}</b>
+          <span class="quien-top">
+            <b>${esc(nameOf(c))}</b>
+            <span class="tac-pill tac-${seg(tac)}">${esc(t('tac.' + tac))} · ${num(R.score(c, tac))}</span>
+          </span>
           <i>${esc(t('rn.' + c.r))}</i>
         </span>
-        <span class="tac-pill tac-${seg(tac)}">${esc(t('tac.' + tac))} · ${num(R.score(c, tac))}</span>
         <span class="contras">${contra}</span>
       </div>`;
     }).join('');
@@ -222,18 +225,28 @@
 
     /* Las que tienes puestas ahora mismo, si las has apuntado en Mi
        tripulación. Solo cuentan las que estén completas. */
-    const puestas = MG.todas().slice(0, MG.nGuardias())
+    const nGmias = MG.nGuardias();
+    const puestas = MG.todas().slice(0, nGmias)
       .filter(g => g.every(Boolean))
       .map(g => g.map(p => ({ c: porNombre(p.n), t: p.t })))
       .filter(g => g.every(p => p.c));
-    const ahora = puestas.length ? M.aguante(puestas, r) : null;
+
+    /* La comparación solo vale si tienes las TRES puestas. Con dos estaríamos
+       midiendo tus dos mejores contra tres recomendadas, y el número te
+       saldría regalado: la guardia que te falta es justo la que no cuenta. */
+    const completas = puestas.length >= nGmias;
+    const ahora = completas ? M.aguante(puestas, r) : null;
 
     /* La comparación es lo primero que quieres ver: si lo que tienes
        puesto ya aguanta lo mismo, no hay nada que tocar. */
     let comparacion;
     if (!ahora) {
-      comparacion = `<p class="aviso-cambio"><b>${esc(t('pvp.def.sinTuyas'))}</b>
-        <span>${t('pvp.def.sinTuyasD')}</span></p>`;
+      const titulo = puestas.length ? 'pvp.def.faltanT' : 'pvp.def.sinTuyas';
+      const texto  = puestas.length
+        ? t('pvp.def.faltan').replace('{n}', nGmias - puestas.length)
+        : t('pvp.def.sinTuyasD');
+      comparacion = `<p class="aviso-cambio"><b>${esc(t(titulo))}</b>
+        <span>${texto}</span></p>`;
     } else {
       const delta = res.media - ahora.media;
       const clase = delta > 0.005 ? 'win-hi' : (delta < -0.005 ? 'win-lo' : 'win-mid');
@@ -297,10 +310,19 @@
     const gi = Math.floor(Math.random() * res.nG);
     const duelos = M.resolver(crew, res.plan, f.g[gi], res.suyos);
 
+    /* Para el marcador cuentan las puntuaciones del duelo ya resuelto, o
+       sea con el contador aplicado: quien contrarresta pelea con la suya
+       multiplicada. Es lo mismo que decide quién gana el duelo. */
     let miosPts = 0, suyosPts = 0;
     duelos.forEach(d => {
-      miosPts  += d.punto;
-      suyosPts += d.concede ? 0 : R.score(d.suyo, d.suTac);
+      let mio = d.punto;
+      let suyo = d.concede ? 0 : R.score(d.suyo, d.suTac);
+      if (!d.concede) {
+        if (R.beats(d.tac, d.suTac))      mio  *= PVP.CONTRA_PUNTOS;
+        else if (R.beats(d.suTac, d.tac)) suyo *= PVP.CONTRA_PUNTOS;
+      }
+      miosPts  += mio;
+      suyosPts += suyo;
       d.dmg = d.concede ? 0 : dano(d.mio, d.tac, d.suTac, d.gano);
     });
 
