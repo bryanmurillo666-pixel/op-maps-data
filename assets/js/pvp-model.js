@@ -75,6 +75,16 @@ window.PVP_MODEL = (function () {
 
   /* Desplazamiento lógico (>>>) y no aritmético: los valores vienen de un
      Uint32Array y con >> el bit alto se interpretaría como signo. */
+  /* Compara dos planes por varias cifras en orden: la primera que difiera
+     decide. Sustituye a una torre de ternarios que ya no cabía. */
+  function mejorQue(a, b){
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] > b[i]) return true;
+      if (a[i] < b[i]) return false;
+    }
+    return false;
+  }
+
   function popcount(x){
     x = x - ((x >>> 1) & 0x55555555);
     x = (x & 0x33333333) + ((x >>> 2) & 0x33333333);
@@ -243,17 +253,27 @@ window.PVP_MODEL = (function () {
   /* ---------- lo que has averiguado ---------- */
 
   /* Traduce las guardias apuntadas a la misma forma que las plausibles.
-     Un puesto cuyo personaje esté CAÍDO se marca como desconocido: en su
-     lugar entrará una reserva que no sabes cuál es. */
-  function observado(rival, idx, caidos){
+
+     Cuando un defensor está CAÍDO entra una reserva, y ahí la guía pone
+     tres detalles que importan:
+
+       - la reserva pelea con la táctica de SU hueco, no la del caído
+       - una reserva que esté caída ella misma se la saltan
+       - cuando el banquillo se acaba, el puesto se queda vacío y concede
+
+     El banquillo ya llega resuelto. Si no has apuntado ninguna reserva el
+     puesto se queda en desconocido: que tú no la hayas visto no significa
+     que no la tenga. */
+  function observado(rival, idx, caidos, banquillo){
     const out = [];
     for (let j = 0; j < rival.g.length; j++) {
       const fila = [];
+      let usadas = 0;                    // reservas gastadas EN ESTA guardia
       for (let i = 0; i < 3; i++) {
         const p = rival.g[j][i];
         if (!p) { fila.push(null); continue; }
         if (p.n === window.RIVALES.VACIO) { fila.push({ c: CONCEDE, t: 0 }); continue; }
-        if (caidos[p.n]) { fila.push(null); continue; }   // entra una reserva
+        if (caidos[p.n]) { fila.push(banquillo[usadas++] || null); continue; }
         const c = idx[p.n];
         fila.push(c === undefined ? null : { c: c, t: T.indexOf(p.t) });
       }
@@ -284,7 +304,7 @@ window.PVP_MODEL = (function () {
   /* crew    : tus personajes disponibles (los caídos ya fuera)
      rival   : el rival tal cual está guardado
      Devuelve null si no hay con qué calcular. */
-  /* modo: 'ganar' (por defecto) o 'perder', que busca caer 2-1. */
+  /* modo: 'g30' | 'g21' | 'p12' | 'p03', el marcador que buscas. */
   function evaluar(crew, rival, modo){
     if (!crew || crew.length < 3 || !rival) return null;
 
@@ -296,12 +316,22 @@ window.PVP_MODEL = (function () {
     const caidos = {};
     rival.r.forEach(m => { if (m.e === RV.CAIDO) caidos[m.n] = true; });
 
+    /* Quien está en el banquillo NO puede defender —lo dice la guía—, así
+       que sale del reparto de guardias. El orden es a propósito: primero
+       los que sí pueden defender y detrás el banquillo, para que los
+       índices del reparto y los de `suyos` coincidan y no haya que
+       traducir de unos a otros. */
+    const enBanco = {};
+    (rival.res || []).forEach(p => { if (p && p.n !== RV.VACIO) enBanco[p.n] = true; });
+
     const nombres = [];
     const mete = n => {
       if (n && n !== RV.VACIO && !caidos[n] && nombres.indexOf(n) === -1) nombres.push(n);
     };
-    rival.r.forEach(m => mete(m.n));
-    rival.g.forEach(g => g.forEach(p => { if (p) mete(p.n); }));
+    rival.r.forEach(m => { if (!enBanco[m.n]) mete(m.n); });
+    rival.g.forEach(g => g.forEach(p => { if (p && !enBanco[p.n]) mete(p.n); }));
+    const nPool = nombres.length;
+    (rival.res || []).forEach(p => { if (p) mete(p.n); });
 
     const suyos = nombres.map(n => DB.find(c => c.n === n)).filter(Boolean);
 
@@ -309,10 +339,21 @@ window.PVP_MODEL = (function () {
     const idx = {};
     suyos.forEach((c, i) => { idx[c.n] = i; });
 
-    const obs   = observado(rival, idx, caidos);
+    /* El banquillo, ya resuelto: sin apuntar deja el puesto en desconocido,
+       marcado como vacío concede, y una reserva caída desaparece de la fila
+       porque se la saltan. */
+    const banquillo = (rival.res || []).map(p => {
+      if (!p) return null;
+      if (p.n === RV.VACIO) return { c: CONCEDE, t: 0 };
+      if (caidos[p.n]) return undefined;
+      const c = idx[p.n];
+      return c === undefined ? null : { c: c, t: T.indexOf(p.t) };
+    }).filter(x => x !== undefined);
+
+    const obs   = observado(rival, idx, caidos, banquillo);
     const nApun = apuntados(obs);
 
-    let forms = formaciones(suyos, nG, obs);
+    let forms = formaciones(suyos.slice(0, nPool), nG, obs);
     let familia = null;
 
     if (!forms.length) {
@@ -377,13 +418,24 @@ window.PVP_MODEL = (function () {
     }
 
     /* --- se prueban todos los planes ---
-       Dos objetivos posibles. En modo GANAR se busca llevarse el mayor
-       número de guardias. En modo PERDER se busca lo contrario pero con
-       cuidado: ganar EXACTAMENTE un duelo, o sea perder 2-1, que es la
-       derrota más barata que hay (18-25 % de casco en vez del 35 % de un
-       3-0). Sirve para pelear solo por ver sus guardias, que es la única
-       forma que hay de averiguarlas. */
-    const perder = modo === 'perder';
+       Cuatro objetivos, y no son "ganar o perder": son cuatro marcadores
+       concretos, cada uno con su precio y su daño (la tabla está en
+       rules.js, sacada de la guía v5.1):
+
+         g30  ganas 3-0    le haces 35 % y te cuesta  5 %
+         g21  ganas 2-1    le haces 25/18 % y te cuesta 10/12 %
+         p12  pierdes 1-2  le haces 12/10 % y te cuesta 18/25 %
+         p03  pierdes 0-3  le haces  5 % y te cuesta 35 %
+
+       Los dos de perder existen porque perder tiene usos: el 1-2 es la
+       derrota más barata que hay —sirve para pelear solo por verle las
+       guardias, que es la única forma de averiguarlas—, y el 0-3 es el que
+       menos daño le hace a él, o sea la forma de regalarle una victoria
+       sin estropearle el casco.
+
+       Lo que NO se puede hacer perdiendo es hundirlo: el casco del ganador
+       se desgasta pero nunca se destruye. */
+    const quiereGanar = (modo === 'g30' || modo === 'g21');
 
     /* Los bits que sobran del último word no son pares reales, y al negar
        con ~ se encenderían. Esta máscara los apaga. */
@@ -392,7 +444,6 @@ window.PVP_MODEL = (function () {
 
     let mejor = null;
     const n = crew.length;
-    const tmp = new Uint32Array(words);
 
     for (let a = 0; a < n; a++)
     for (let b = 0; b < n; b++){ if (b === a) continue;
@@ -403,47 +454,51 @@ window.PVP_MODEL = (function () {
           const w2 = mask[b][y][1];
           for (let z = 0; z < 3; z++){
             const w3 = mask[c][z][2];
-            let ganadas = 0, duelos = 0, unaSola = 0;
+
+            // en cuántos pares (formación, guardia) acaba en cada marcador
+            let c3 = 0, c2 = 0, c1 = 0, c0 = 0, duelos = 0;
             for (let k = 0; k < words; k++){
-              const p = w1[k], q = w2[k], r = w3[k];
-              // al menos dos de las tres posiciones
-              tmp[k] = (p & q) | (p & r) | (q & r);
-              ganadas += popcount(tmp[k]);
-              duelos  += popcount(p) + popcount(q) + popcount(r);
-              // exactamente una: pierdes 2-1
-              const una = (p & ~q & ~r) | (~p & q & ~r) | (~p & ~q & r);
-              unaSola += popcount(una & valido[k]);
+              const v = valido[k];
+              const p = w1[k] & v, q = w2[k] & v, r = w3[k] & v;
+              const tres = p & q & r;
+              const dos  = ((p & q) | (p & r) | (q & r)) & ~tres;
+              const una  = (p & ~q & ~r) | (~p & q & ~r) | (~p & ~q & r);
+              const cero = ~p & ~q & ~r;
+              c3 += popcount(tres);
+              c2 += popcount(dos);
+              c1 += popcount(una & v);
+              c0 += popcount(cero & v);
+              duelos += popcount(p) + popcount(q) + popcount(r);
             }
+            const ganadas = c3 + c2;
+
             /* La puntuación del trío. Muchos planes empatan en resultado, y
                sin esto se quedaba con el primero que salía del bucle — por
                eso aparecía gente floja pudiendo mandar a alguien mejor que
                hacía exactamente lo mismo.
 
-               En modo perder es más que un desempate: un 2-1 solo cuenta
-               como AJUSTADO (18 % de casco) si el ganador no te saca 1,25
-               veces en puntos. O sea que hay que puntuar alto y aun así
-               perder dos duelos. */
+               Perdiendo es más que un desempate: un 2-1 solo cuenta como
+               AJUSTADO —18 % de casco en vez de 25 %, y encima 12 % de daño
+               en vez de 10 %— si el ganador no te saca 1,25 veces en
+               puntos. O sea que hay que puntuar alto y aun así perder dos
+               duelos. */
             const fuerza = puntosDe[a][x] + puntosDe[b][y] + puntosDe[c][z];
 
-            const clave = perder ? unaSola : ganadas;
-            const suyo  = mejor ? (perder ? mejor.unaSola : mejor.ganadas) : -1;
+            /* Cuatro cifras por orden, y la primera que difiera decide: el
+               marcador que buscas; que el combate acabe del lado que
+               quieres y no al revés por accidente; cuántos duelos caen de
+               tu parte; y la puntuación al final. */
+            const puntua = [
+              modo === 'g30' ? c3 : modo === 'g21' ? c2 : modo === 'p12' ? c1 : c0,
+              quiereGanar ? ganadas : -ganadas,
+              quiereGanar ? duelos  : -duelos,
+              fuerza
+            ];
 
-            /* En modo perder, después del 2-1 manda GANAR MENOS: de nada
-               sirve un plan que cae 2-1 muchas veces si el resto de las
-               veces se lleva el combate. Y solo al final la puntuación,
-               que es lo que hace que ese 2-1 salga ajustado (18 % de
-               casco) en vez de amplio (25 %). */
-            const gana =
-              !mejor || clave > suyo ||
-              (clave === suyo && (perder
-                ? (ganadas < mejor.ganadas ||
-                    (ganadas === mejor.ganadas && fuerza > mejor.fuerza))
-                : (duelos > mejor.duelos ||
-                    (duelos === mejor.duelos && fuerza > mejor.fuerza))));
-
-            if (gana) {
-              mejor = { ganadas: ganadas, duelos: duelos, unaSola: unaSola,
-                        fuerza: fuerza, idx: [a, b, c], tac: [T[x], T[y], T[z]] };
+            if (!mejor || mejorQue(puntua, mejor.puntua)) {
+              mejor = { puntua: puntua, ganadas: ganadas, duelos: duelos,
+                        c3: c3, c2: c2, c1: c1, c0: c0, fuerza: fuerza,
+                        idx: [a, b, c], tac: [T[x], T[y], T[z]] };
             }
           }
         }
@@ -456,7 +511,21 @@ window.PVP_MODEL = (function () {
        decir «pierdes 2-1 el 80 % de las veces y te cuesta un 19 %». */
     let marcador = null;
     if (mejor) {
-      marcador = { g30:0, g21a:0, g21t:0, p21t:0, p21a:0, p03:0, casco:0 };
+      marcador = { g30:0, g21a:0, g21t:0, p21t:0, p21a:0, p03:0,
+                   casco:0, suCasco:0 };
+
+      /* El daño al rival, pero SOLO en las veces que sale cada marcador.
+         Sin esto habría que enseñar la media de todo, y una media que
+         mezcla el 3-0 que buscas con el 1-2 que sale el resto de las
+         veces no describe ninguno de los dos: puesta debajo de "Ganar
+         3-0" se lee como el daño de un 3-0 y no lo es.
+
+         En el 3-0 y en el 0-3 sale un número fijo. En los 2-1 sigue
+         siendo una media, pero solo entre amplio y ajustado, que es
+         justo lo que uno quiere saber. */
+      const cubo = { g30:{n:0,s:0}, g21:{n:0,s:0}, p12:{n:0,s:0}, p03:{n:0,s:0} };
+      const grupoDe = { g30:'g30', g21a:'g21', g21t:'g21',
+                        p21t:'p12', p21a:'p12', p03:'p03' };
 
       for (let f = 0; f < forms.length; f++) {
         for (let j = 0; j < nG; j++) {
@@ -484,34 +553,54 @@ window.PVP_MODEL = (function () {
             if (miPunto > suPunto) gano++;   // el empate se lo lleva el otro
           }
 
-          let coste;
-          if (gano === 3)      { marcador.g30++;  coste = 0.05; }
-          else if (gano === 0) { marcador.p03++;  coste = 0.35; }
-          else if (gano === 2) {
-            // ganas 2-1: amplio si les sacas 1,25 veces en puntos
-            const amplio = suTotal <= 0 || miTotal / suTotal >= 1.25;
-            if (amplio) { marcador.g21a++; coste = 0.10; }
-            else        { marcador.g21t++; coste = 0.12; }
-          } else {
-            // pierdes 2-1: ajustado mientras NO te saquen 1,25 veces
-            const amplio = miTotal <= 0 || suTotal / miTotal >= 1.25;
-            if (amplio) { marcador.p21a++; coste = 0.25; }
-            else        { marcador.p21t++; coste = 0.18; }
-          }
-          marcador.casco += coste;
+          /* Qué marcador ha salido. El 2-1 se parte en amplio y ajustado
+             porque cuestan distinto y hacen distinto daño, y con el mismo
+             criterio en los dos sentidos: es amplio cuando el ganador saca
+             1,25 veces los puntos del perdedor. */
+          let cual;
+          if (gano === 3)      cual = 'g30';
+          else if (gano === 0) cual = 'p03';
+          else if (gano === 2) cual = (suTotal <= 0 || miTotal / suTotal >= R.AMPLIO) ? 'g21a' : 'g21t';
+          else                 cual = (miTotal <= 0 || suTotal / miTotal >= R.AMPLIO) ? 'p21a' : 'p21t';
+
+          marcador[cual]++;
+          marcador.casco   += R.CASCO[cual].yo;
+          marcador.suCasco += R.CASCO[cual].el;
+
+          const grupo = cubo[grupoDe[cual]];
+          grupo.n++;
+          grupo.s += R.CASCO[cual].el;
         }
       }
-      marcador.casco /= pares;              // daño medio a tu casco
+      marcador.casco   /= pares;            // daño medio a tu casco
+      marcador.suCasco /= pares;            // ...y al suyo
+      marcador.danoMio  = marcador.casco   * R.HULL;
+      marcador.danoSuyo = marcador.suCasco * R.HULL;
+
+      /* Si un marcador no sale nunca, su daño es hipotético: se usa el de
+         la tabla, con la variante ajustada para los 2-1 por ser la que más
+         se da. La probabilidad que se enseña al lado será 0 %, así que el
+         número no engaña a nadie. */
+      const suelto = { g30: R.CASCO.g30.el,  g21: R.CASCO.g21t.el,
+                       p12: R.CASCO.p21t.el, p03: R.CASCO.p03.el };
+      marcador.suDe = {};
+      Object.keys(cubo).forEach(k => {
+        marcador.suDe[k] = (cubo[k].n ? cubo[k].s / cubo[k].n : suelto[k]) * R.HULL;
+      });
       marcador.pierde21 = (marcador.p21t + marcador.p21a) / pares;
     }
 
     return {
       plan:  mejor,
-      modo:  perder ? 'perder' : 'ganar',
+      modo:  modo,
       tasa:  mejor ? mejor.ganadas / pares : 0,
-      // qué parte de las veces sale el 2-1 en tu contra, que es el objetivo
-      // del modo perder
-      tasa21: mejor ? mejor.unaSola / pares : 0,
+      // qué parte de las veces sale cada marcador con este plan: es lo que
+      // deja comparar los cuatro objetivos entre sí
+      tasas: mejor ? {
+        g30: mejor.c3 / pares, g21: mejor.c2 / pares,
+        p12: mejor.c1 / pares, p03: mejor.c0 / pares
+      } : null,
+      tasa21: mejor ? mejor.c1 / pares : 0,
       marcador: marcador,
       pares: pares,
       forms: forms,

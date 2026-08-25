@@ -147,11 +147,45 @@ window.RULES = (function () {
 
   function hasPassiveRole(role){ return PASSIVE_ROLES.indexOf(role) !== -1; }
 
+  /* ---------- lo que cuesta un combate ----------
+     Guía v5.1: el daño al casco depende SOLO del marcador, y es una parte
+     del casco MÁXIMO (1500), no del que te quede. O sea cantidades fijas
+     que no se van achicando según pierdes.
+
+     Un 2-1 es «amplio» cuando el ganador suma al menos 1,25 veces los
+     puntos del perdedor; si no, es «ajustado».
+
+     Cada fila lleva las dos caras del mismo combate, porque para decidir
+     un plan hace falta saber lo que te cuesta a ti Y lo que le haces a él.
+
+     Y la regla que lo cambia todo: el casco del ganador se desgasta pero
+     NUNCA se destruye. En un combate solo puede hundirse un barco, y nunca
+     el del que gana. Por eso perder a propósito jamás hunde a nadie. */
+  const AMPLIO = 1.25;
+
+  const CASCO = {
+    g30:  { yo: 0.05, el: 0.35 },   // ganas 3-0
+    g21a: { yo: 0.10, el: 0.25 },   // ganas 2-1 amplio
+    g21t: { yo: 0.12, el: 0.18 },   // ganas 2-1 ajustado
+    p21t: { yo: 0.18, el: 0.12 },   // pierdes 2-1 ajustado
+    p21a: { yo: 0.25, el: 0.10 },   // pierdes 2-1 amplio
+    p03:  { yo: 0.35, el: 0.05 }    // pierdes 0-3
+  };
+
+  // Cada puesto que dejas vacío suma esto a TU casco, no al suyo.
+  const VACIO_EXTRA = 0.10;
+
+  // El Kit de Reparación de Emergencia salta a este casco o por debajo.
+  const KIT_EMERGENCIA = 450;
+  const KIT_REPARA     = 600;
+
+
   // Un personaje lee poneglifos por rol (1) o por sangre Kozuki (2).
   function isReader(c){ return c.rd > 0; }
 
   return {
     COUNTER, AFFINITY, HULL, MAX_CREW,
+    CASCO, AMPLIO, VACIO_EXTRA, KIT_EMERGENCIA, KIT_REPARA,
     TACTICS, BEATS, ROLE_FOR, USEFUL_ROLES, PASSIVE_ROLES,
     total, power, health, price, speedShare, searchShare,
     score, scores, bestTactic, hasAffinity,

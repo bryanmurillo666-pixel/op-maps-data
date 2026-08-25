@@ -5,6 +5,174 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.9.1 — 25 ago 2026
+
+**Los cuatro marcadores, el daño al rival y el banquillo.** El PvP tenía dos
+botones —ganar o caer 2-1— y eso se quedaba corto: un 3v3 solo puede acabar de
+cuatro maneras, y cada una cuesta y hace un daño distinto.
+
+### Cuatro objetivos en vez de dos
+
+| Marcador | Le haces | Te cuesta |
+|---|---|---|
+| Ganas 3-0 | `525` | `75` |
+| Ganas 2-1 | `375` amplio · `270` ajustado | `150` · `180` |
+| Pierdes 1-2 | `180` ajustado · `150` amplio | `270` · `375` |
+| Pierdes 0-3 | `75` | `525` |
+
+El modelo calcula los cuatro con el plan ya elegido —hacen falta para poder
+elegirlo—, pero en pantalla solo sale el que has pedido: se probó a enseñar los
+cuatro en barras y **cargaba la vista sin decidir nada**, así que fuera.
+
+Los dos de perder no son un capricho. El **1-2** es la derrota más barata que
+hay, que es lo que sirve para pelear solo por verle las guardias. El **0-3** es
+justo el contrario: el que menos daño le hace a él, o sea la forma de regalarle
+una victoria a un compañero sin estropearle el casco.
+
+### El daño al rival, que faltaba
+
+Dos cifras y se acabó: **cada cuánto sale el marcador** que has pedido, y
+**`Casco del rival −525`** justo debajo. Nada más.
+
+Y es el daño **de ese marcador**, no la media de todo. La diferencia no es
+menor: en una partida real salía `−410`, que era `2/3 × 525 + 1/3 × 180` —
+mezclaba el 3-0 que buscabas con el 1-2 que caía el resto de las veces, y
+puesto debajo de un botón que dice «Ganar 3-0» se leía como el daño de un 3-0
+sin serlo. Ahora un 3-0 dice `525` siempre, y el `67 %` de al lado ya cuenta
+cada cuánto pasa. En los 2-1 sigue siendo una media, pero **solo entre amplio y
+ajustado**, que es justo lo que uno quiere saber.
+
+Solo el suyo. **Tu propio casco se calcula igual** —el modelo lo necesita para
+elegir el plan— pero no se enseña: al decidir un ataque lo que se mira es lo que
+le haces a él. Lo mismo en **Simular el abordaje**, que enseñaba el tuyo y una
+suma de vida que no decidía nada.
+
+De paso desaparece una duplicación fea: la tabla del casco estaba en `pvp.js` y
+en `rules.js` a la vez, y la simulación usaba su propia copia con otras claves
+(`tres` / `amplio` / `ajust`). Ahora hay **una sola tabla**, y la simulación
+saca de ahí el daño con la misma clave que el modelo.
+
+### «Exacto» no quiere decir «seguro»
+
+Un caso que confundía, y con razón: el sello decía **Exacto** y al lado un
+`67 %`. Parecían contradecirse.
+
+No lo son. *Exacto* quiere decir que el número **no se estima** —conoces sus
+tres guardias, no hay nada que adivinar—, pero el servidor sigue **sorteando
+cuál de las tres te sale**. Ese 67 % es `2/3`: contra dos de sus guardias sacas
+el marcador que has pedido, contra la tercera no.
+
+Así que ahora lo dice: **`2/3 de sus guardias dan ese marcador`**, justo al lado
+del sello. El número ya no hay que deducirlo.
+
+La tabla del casco se sube de `pvp.js` a `rules.js`, con las **dos caras** de
+cada marcador, porque ahora la necesita también el modelo. De paso quedan ahí el
+`1,25×` que parte un 2-1 en amplio o ajustado, el `+10 %` por puesto vacío y el
+umbral del Kit de Reparación de Emergencia (`450`, repara `600`).
+
+### La regla que responde a la pregunta
+
+De la guía v5.1, y no estaba en ningún sitio del sitio:
+
+> El casco del **ganador se desgasta pero nunca se destruye**. En un combate solo
+> puede hundirse un barco, y nunca el del que gana.
+
+O sea que **perdiendo a propósito no se hunde a nadie**, por muy bajo que le
+dejes el casco. Está donde tiene que estar: punto `11` de la sección PvP de la
+**Guía**, con la consecuencia útil —como el tope de daño en un combate es el
+`35 %` de un 3-0 (`525`), solo se hunde a quien esté ya **a 525 o menos**—. En
+el PvP no sale como aviso: es una regla del juego que se aprende una vez, no
+algo que haya que repetir en cada cálculo.
+
+### Menos avisos
+
+Las cajas de consejo del PvP se van casi todas. Estorbaban más de lo que
+decidían: la de «perdiendo no lo hundes», la de «aquí perder sale más barato», y
+en el panel de guardias la predicción de su próximo ataque y la de «una sola
+jugada suya te tumba las tres». Los mensajes que quedaban en caja y siguen
+haciendo falta —las guardias que te faltan por poner, y contra qué se está
+midiendo cuando no hay rival elegido— pasan a ser **una línea de texto**.
+
+Sobrevive uno solo en caja: cuando pides perder y **no puedes**, porque es lo
+único que impide conseguir lo que has pedido.
+
+Con eso se quedan sin uso **21 claves** de texto por idioma, que se retiran.
+
+### El banquillo del rival
+
+Faltaba entero. Cada rival tiene ahora **dos huecos de reserva**, con los mismos
+tres estados que un puesto de guardia (sin averiguar / vacío / alguien), y el
+modelo los usa de verdad. Las tres reglas de la guía, que no son las que uno
+supone:
+
+- una reserva entra por un defensor **Caído** — quien esté a 1 de vida mantiene
+  su puesto
+- pelea con la táctica de **su propio hueco**, no con la del caído
+- una reserva que esté caída **se la saltan**, y cuando el banquillo se acaba el
+  puesto se queda **vacío y concede**
+
+Antes un defensor caído dejaba el puesto en «desconocido» y ahí se acababa.
+Ahora, si has apuntado su banquillo, el puesto sale exacto; si el banquillo se
+agota, sale como duelo regalado; y si no has apuntado nada, se queda en
+desconocido como siempre — que tú no la hayas visto no significa que no la
+tenga.
+
+Quien esté en el banquillo **sale del reparto de guardias plausibles**, porque
+la guía dice que una reserva no puede estar además defendiendo. Para no tener
+que traducir índices, `suyos` se ordena a propósito: primero los que pueden
+defender, y el banquillo detrás.
+
+La pantalla avisa de las dos cosas que el juego no permite —la misma persona en
+los dos huecos, o una reserva que además defiende— pero **no bloquea**: esto es
+lo que tú viste, y si choca es que algo se apuntó mal.
+
+### Guardias recomendadas sin rival elegido
+
+Antes, sin rival, la pestaña no decía nada. Ahora mide contra el **techo**: los
+once personajes de mayor puntuación del juego, con las guardias sin apuntar. No
+es nadie real y la pantalla lo dice; es el peor caso razonable. Lo que aguante
+contra eso aguanta contra cualquiera. Tarda `143 ms`.
+
+### Por dentro
+
+- El bucle de búsqueda cuenta ahora los cuatro marcadores por separado con
+  máscaras de bits (`p&q&r`, exactamente dos, exactamente una, ninguna) y elige
+  por **cuatro cifras en orden** en vez de por una torre de ternarios que ya no
+  cabía: el marcador que pides, que el combate acabe del lado que quieres, los
+  duelos, y la puntuación al final. Esa última es la que decide si el 2-1 sale
+  amplio o ajustado.
+- El `ts` de un rival y su banquillo **viajan dentro del código compartido**, y
+  el banquillo se fusiona hueco a hueco con la misma regla que las guardias.
+  Los códigos viejos se siguen leyendo.
+- El modo guardado del navegador se traduce solo: quien tuviera `perder` pasa a
+  `1-2`.
+
+### Comprobaciones
+
+`22/22` en el banco nuevo, y lo que más tranquiliza son dos invariantes:
+
+- las cuatro probabilidades **suman exactamente 1** en los cuatro modos, que es
+  lo que prueba que los marcadores son una partición y no se cuela ni se pierde
+  ningún par
+- pedir un marcador da **el mejor valor de ese marcador** de los cuatro planes
+  posibles, comprobado uno contra otro
+
+Y el daño sale clavado de la tabla: ganando 3-0 siempre, `5 %` / `35 %` y
+`75` / `525`; perdiendo 0-3 siempre, al revés. Las reservas entran por el caído
+con su propia táctica, el banquillo agotado concede, y sin apuntar nada el
+puesto sigue estimándose.
+
+`18` cadenas nuevas por idioma (`734` cada uno) y las nueve páginas sin claves
+crudas.
+
+### Además
+
+El menú pasa a **Mi tripulación → Mi alianza → Mis rivales**, y las tarjetas de
+la portada con él. De paso se arregla la numeración de los comentarios del HTML,
+que se había quedado descuadrada al meter la alianza.
+
+---
+
 ## 1.9.0 — 24 ago 2026
 
 **Mi alianza: la libreta de rivales deja de ser tuya sola.** Hasta 10 personas

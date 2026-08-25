@@ -11,6 +11,11 @@
      g  sus tres GUARDIAS. Esto NO se ve: solo se averigua peleando
         o con informes de combate que alguien comparta.
 
+     res  sus dos RESERVAS. Tampoco se ven. Una reserva entra por un
+        defensor que esté CAÍDO, y pelea con la táctica de SU hueco, no
+        con la del caído. Una reserva caída se la saltan, y cuando el
+        banquillo se acaba el puesto se queda vacío y concede.
+
    Siempre son tres guardias (dos si la tripulación tiene justo dos
    personajes), y un puesto puede estar en tres estados:
 
@@ -26,6 +31,7 @@ window.RIVALES = (function () {
   const KEY      = 'opmaps-rivales';
   const GUARDIAS = 3;
   const PUESTOS  = 3;
+  const RESERVAS = 2;   // el banquillo: la guía deja hasta dos
   const VACIO    = '-';
 
   /* Las cuatro bandas de salud que enseña el juego, más 'ok' como
@@ -82,11 +88,18 @@ window.RIVALES = (function () {
       return p.some(Boolean) ? { p: p, w: at.w ? 1 : 0 } : null;
     }).filter(Boolean).slice(0, 10);
 
+    // el banquillo: mismos tres estados que un puesto de guardia
+    const res = [];
+    for (let i = 0; i < RESERVAS; i++) {
+      res.push(Array.isArray(r.res) ? limpiaPuesto(r.res[i]) : null);
+    }
+
     return {
       id: String(r.id || ('r' + Date.now() + Math.random().toString(36).slice(2, 7))),
       n:  String(r.n || '').slice(0, 40),
       r:  rr.slice(0, window.RULES.MAX_CREW),
       g:  g,
+      res: res,
       a:  a,
       ts: Number(r.ts) || 0
     };
@@ -129,7 +142,7 @@ window.RIVALES = (function () {
     if (lista.some(r => r.n.toLowerCase() === n.toLowerCase())) return null;
     const r = {
       id: 'r' + Date.now() + Math.random().toString(36).slice(2, 7),
-      n: n, r: [], a: [], ts: ahora(),
+      n: n, r: [], a: [], ts: ahora(), res: [null, null],
       g: [guardiaVacia(), guardiaVacia(), guardiaVacia()]
     };
     lista.push(r);
@@ -187,6 +200,19 @@ window.RIVALES = (function () {
     if (!r || !r.g[gi] || pos < 0 || pos >= PUESTOS) return;
     const n = String(nombre || '').trim();
     r.g[gi][pos] = n ? limpiaPuesto({ n: n, t: tactica }) : null;
+    toca(r);
+    guardar();
+  }
+
+  /* Pone una reserva. Con nombre vacío se borra y vuelve a "sin averiguar".
+     No se valida que no repita ni que no esté defendiendo: esto es lo que
+     TÚ has visto, y si lo has visto mal el aviso va en la pantalla, no
+     tirando el dato. */
+  function setReserva(id, i, nombre, tactica){
+    const r = porId(id);
+    if (!r || i < 0 || i >= RESERVAS) return;
+    const n = String(nombre || '').trim();
+    r.res[i] = n ? limpiaPuesto({ n: n, t: tactica }) : null;
     toca(r);
     guardar();
   }
@@ -285,7 +311,8 @@ window.RIVALES = (function () {
       r.r.map(m => [album(m.n), ESTADOS.indexOf(m.e)]).filter(x => x[0]),
       r.g.map(g => g.map(codPuesto)),
       r.a.map(at => [at.p.map(codPuesto), at.w]),
-      r.ts || 0
+      r.ts || 0,
+      r.res.map(codPuesto)
     ]);
     return CABECERA + b64(JSON.stringify(datos));
   }
@@ -322,6 +349,15 @@ window.RIVALES = (function () {
       }
     }
 
+    // su banquillo, hueco a hueco, con la misma regla que las guardias
+    for (let i = 0; i < RESERVAS; i++) {
+      const a = mio.res[i], b = suyo.res[i];
+      if (!b) continue;
+      if (!a) { mio.res[i] = b; cambio = true; continue; }
+      if (a.n === b.n && a.t === b.t) continue;
+      if (mandaSuyo) { mio.res[i] = b; cambio = true; }
+    }
+
     // sus ataques: se juntan sin repetir, los más recientes delante
     const firma = at => JSON.stringify([at.p.map(codPuesto), at.w]);
     const tengo = {};
@@ -353,7 +389,8 @@ window.RIVALES = (function () {
         p: (Array.isArray(at[0]) ? at[0] : []).map(dePuesto),
         w: at[1] ? 1 : 0
       })),
-      ts: d[4] || 0
+      ts: d[4] || 0,
+      res: (Array.isArray(d[5]) ? d[5] : []).map(dePuesto)
     });
   }
 
@@ -391,6 +428,7 @@ window.RIVALES = (function () {
   return {
     GUARDIAS: GUARDIAS,
     PUESTOS:  PUESTOS,
+    RESERVAS: RESERVAS,
     VACIO:    VACIO,
     ESTADOS:  ESTADOS,
     CAIDO:    CAIDO,
@@ -405,6 +443,7 @@ window.RIVALES = (function () {
     setEstado:  setEstado,
     setPuesto:  setPuesto,
     vaciarGuardia: vaciarGuardia,
+    setReserva:  setReserva,
     addAtaque:  addAtaque,
     delAtaque:  delAtaque,
     ultimoAtaque: ultimoAtaque,

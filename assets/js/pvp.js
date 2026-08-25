@@ -19,20 +19,15 @@
   const MG = window.MIS_GUARDIAS;
   const M  = window.PVP_MODEL;
 
-  /* Lo que cuesta un combate, de la guía v5.1. El casco depende del
-     marcador; un 2-1 es "amplio" si el ganador suma al menos 1,25 veces
-     los puntos del perdedor. */
+  /* Lo que cuesta un combate en VIDA de los personajes. El daño al casco
+     ya no está aquí: vive en rules.js (R.CASCO, R.AMPLIO), que es de donde
+     lo lee también el modelo. Tener dos copias de la misma tabla era
+     pedirlas a gritos que se separasen. */
   const PVP = {
     VIDA:       0.34,
     VIDA_GANAR: 0.08,
     CONTRA:     0.6,
-    AMPLIO:     1.25,
-    CONTRA_PUNTOS: 1.75,   // el contador tambien multiplica lo que cuenta para el marcador
-    CASCO: {
-      tres:   { pierde: 0.35, gana: 0.05 },
-      amplio: { pierde: 0.25, gana: 0.10 },
-      ajust:  { pierde: 0.18, gana: 0.12 }
-    }
+    CONTRA_PUNTOS: 1.75    // el contador también multiplica lo que cuenta para el marcador
   };
 
   const els = {
@@ -64,15 +59,26 @@
 
   /* ---------- el plan de ataque ---------- */
 
-  /* Dos objetivos. 'ganar' es lo de siempre. 'perder' busca caer 2-1, que
-     es la derrota más barata: 18 % de casco en vez del 35 % de un 3-0.
-     Sirve cuando quieres perder a propósito — dejarle la victoria a un
-     aliado, por ejemplo — o cuando el rival te supera tanto que intentar
-     ganar te sale más caro que caer bien. */
+  /* Los cuatro marcadores que puede tener un 3v3, que son objetivos de
+     verdad distintos porque cada uno cuesta y hace un daño distinto:
+
+       g30  ganas 3-0    le haces 525 y te cuesta  75  — lo mejor que hay
+       g21  ganas 2-1    le haces 375/270 y te cuesta 150/180
+       p12  pierdes 1-2  le haces 180/150 y te cuesta 270/375 — la derrota barata
+       p03  pierdes 0-3  le haces  75 y te cuesta 525 — la más cara para ti,
+                         pero la más suave para él
+
+     Elegir uno no esconde los otros: se enseñan los cuatro con el plan ya
+     elegido, que es lo que deja comparar de un vistazo. */
+  const MODOS = ['g30', 'g21', 'p12', 'p03'];
   const MODO_KEY = 'opmaps-pvp-modo';
-  let modo = 'ganar';
-  try { if (localStorage.getItem(MODO_KEY) === 'perder') modo = 'perder'; }
-  catch(e){ /* si el navegador lo bloquea, se queda en ganar */ }
+
+  let modo = 'g30';
+  try {
+    const g = localStorage.getItem(MODO_KEY);
+    if (MODOS.indexOf(g) !== -1) modo = g;
+    else if (g === 'perder') modo = 'p12';   // el modo viejo, traducido
+  } catch(e){ /* si el navegador lo bloquea, se queda en g30 */ }
 
   let ultimo = null;
 
@@ -114,7 +120,8 @@
 
     ultimo = { r: r, crew: crew, res: res };
     const exacto = res.completas >= res.nG;
-    const perder = modo === 'perder';
+    const grande = res.tasas[modo];
+    const quiereGanar = (modo === 'g30' || modo === 'g21');
 
     const filas = res.plan.idx.map((k, i) => {
       const c = crew[k], tac = res.plan.tac[i];
@@ -137,9 +144,14 @@
       </div>`;
     }).join('');
 
+    /* Con las tres guardias conocidas el número es exacto, pero eso NO
+       quiere decir que el resultado esté asegurado: el servidor sigue
+       sorteando cuál de sus tres te sale. Así que se dice en cuántas de
+       ellas sale lo que has pedido, que es de donde viene el 67 %. */
     let base;
     if (exacto) {
-      base = `<span class="sello exacto">${esc(t('pvp.plan.exact'))}</span>`;
+      base = `<span class="sello exacto">${esc(t('pvp.plan.exact'))}</span>
+        <span class="hint">${Math.round(grande * res.nG)}/${res.nG} ${esc(t('pvp.plan.ofGuards'))}</span>`;
     } else {
       const fam = res.familia ? ` · ${esc(t('pvp.plan.fam.' + res.familia))}` : '';
       base = `<span class="sello estimado">${esc(t('pvp.plan.est'))}</span>
@@ -149,36 +161,27 @@
       }
     }
 
-    /* En modo perder la cifra grande es otra: cuántas veces caes 2-1, que
-       es lo que se está buscando. El casco medio se enseña en los dos,
-       porque es lo que de verdad decide si el plan compensa. */
+    /* Dos cifras y ya: cada cuánto sale el marcador que has pedido, y lo
+       que le cuesta a ÉL *cuando sale ese marcador* — no la media de todo,
+       que mezclaría el 3-0 que buscas con el 1-2 que cae el resto de las
+       veces y no describiría ninguno de los dos.
+
+       Tu propio casco y los otros tres marcadores se siguen calculando —el
+       modelo los necesita para elegir el plan— pero no se enseñan. */
     const m = res.marcador;
-    const grande = perder ? res.tasa21 : res.tasa;
-    const titulo = perder ? 'pvp.plan.rate21' : 'pvp.plan.rate';
 
-    let extra = `<span class="cuenta">${esc(t('pvp.plan.hullAvg'))} ${num(m.casco * 100, 1)} %</span>`;
-    if (perder) {
-      extra = `<span class="cuenta">${esc(t('pvp.plan.alsoWin'))} ${num(res.tasa * 100)} %</span>` + extra;
-    }
-
-    /* Dos avisos que le ahorran a uno la mala decisión: cuando el rival es
-       tan flojo que no puedes perder a voluntad, y cuando perder te sale
-       más barato que intentar ganar. */
+    /* Si has pedido perder y resulta que no puedes, conviene saberlo: es
+       lo único que impide conseguir lo que has pedido. */
     let nota = '';
-    if (perder) {
-      if (res.tasa21 < 0.5) {
-        nota = `<p class="aviso-cambio"><b>${esc(t('pvp.plan.loseHardT'))}</b>
-          <span>${t('pvp.plan.loseHard')}</span></p>`;
-      } else if (res.tasa < 0.34) {
-        nota = `<p class="aviso-pred"><b>${esc(t('pvp.plan.loseGoodT'))}</b>
-          <span>${t('pvp.plan.loseGood')}</span></p>`;
-      }
+    if (!quiereGanar && grande < 0.5) {
+      nota = `<p class="aviso-cambio"><b>${esc(t('pvp.plan.loseHardT'))}</b>
+        <span>${t('pvp.plan.loseHard')}</span></p>`;
     }
 
-    return `<h3 class="sub-tit">${esc(t(titulo))}</h3>
-      <p class="gran-prob ${perder ? claseProb(grande) : claseProb(res.tasa)}">${num(grande * 100)} %</p>
+    return `<h3 class="sub-tit">${esc(t('pvp.mk.' + modo))}</h3>
+      <p class="gran-prob ${claseProb(quiereGanar ? grande : 1 - grande)}">${num(grande * 100)} %</p>
       <p class="sellos">${base}</p>
-      <p class="sellos">${extra}</p>
+      <p class="sellos"><span class="cuenta">${esc(t('pvp.plan.hullTheirs'))} −${num(m.suDe[modo])}</span></p>
       ${nota}
 
       <h3 class="sub-tit">${esc(t('pvp.plan.line'))}</h3>
@@ -187,8 +190,8 @@
       <button class="btn-calc" id="simBtn" type="button">${esc(t('pvp.plan.sim'))}</button>
       <div id="simOut"></div>
 
-      <p class="note">${t(perder ? 'pvp.plan.howLose'
-                                  : (exacto ? 'pvp.plan.howExact' : 'pvp.plan.howEst'))}</p>`;
+      <p class="note">${t(!quiereGanar ? 'pvp.plan.howLose'
+                                       : (exacto ? 'pvp.plan.howExact' : 'pvp.plan.howEst'))}</p>`;
   }
 
   /* ---------- tus guardias contra él ---------- */
@@ -208,9 +211,29 @@
     </div>`;
   }
 
+  /* Cuando no has elegido rival hay que medir contra ALGO, y lo honesto es
+     medir contra el techo: los personajes de mayor puntuación del juego,
+     con sus guardias sin apuntar. No es nadie real y no pretende serlo —
+     es el peor caso razonable. Unas guardias que aguanten contra esto
+     aguantan contra cualquiera que te vayas a encontrar. */
+  let refCache = null;
+  function rivalReferencia(){
+    if (refCache) return refCache;
+    const fuerza = c => Math.max.apply(null, R.TACTICS.map(x => R.score(c, x)));
+    const mejores = DB.slice().sort((a, b) => fuerza(b) - fuerza(a)).slice(0, R.MAX_CREW);
+    refCache = {
+      id: '', n: '', a: [], ts: 0,
+      r: mejores.map(c => ({ n: c.n, e: 'ok' })),
+      g: [[null,null,null], [null,null,null], [null,null,null]],
+      res: [null, null]
+    };
+    return refCache;
+  }
+
   function defensaHTML(){
-    const r = RV.porId(els.sel.value);
-    if (!r) return `<p class="hint">${esc(t('pvp.def.pick'))}</p>`;
+    const elegido  = RV.porId(els.sel.value);
+    const generico = !elegido;
+    const r = elegido || rivalReferencia();
 
     const crew = mios();
     if (crew.length < 3) {
@@ -219,8 +242,7 @@
 
     const res = M.mejoresGuardias(crew, r);
     if (!res || res.vacio) {
-      return `<p class="aviso-cambio"><b>${esc(t('pvp.plan.noDataT'))}</b>
-        <span>${esc(t('pvp.def.none'))}</span></p>`;
+      return `<p class="hint">${esc(t('pvp.def.none'))}</p>`;
     }
 
     /* Las que tienes puestas ahora mismo, si las has apuntado en Mi
@@ -241,12 +263,9 @@
        puesto ya aguanta lo mismo, no hay nada que tocar. */
     let comparacion;
     if (!ahora) {
-      const titulo = puestas.length ? 'pvp.def.faltanT' : 'pvp.def.sinTuyas';
-      const texto  = puestas.length
+      comparacion = `<p class="hint">${puestas.length
         ? t('pvp.def.faltan').replace('{n}', nGmias - puestas.length)
-        : t('pvp.def.sinTuyasD');
-      comparacion = `<p class="aviso-cambio"><b>${esc(t(titulo))}</b>
-        <span>${texto}</span></p>`;
+        : t('pvp.def.sinTuyasD')}</p>`;
     } else {
       const delta = res.media - ahora.media;
       const clase = delta > 0.005 ? 'win-hi' : (delta < -0.005 ? 'win-lo' : 'win-mid');
@@ -268,25 +287,18 @@
                             : (delta < -0.005 ? 'pvp.def.peora' : 'pvp.def.igual')))}</p>`;
     }
 
-    // qué dice la predicción, si has apuntado algún ataque suyo
-    const pred = res.rec
-      ? `<p class="aviso-pred"><b>${esc(t('pvp.def.predT'))}</b>
-         <span>${t(res.rec.gano ? 'pvp.def.predWon' : 'pvp.def.predLost')}</span></p>`
-      : `<p class="hint">${t('pvp.def.predNone')}</p>`;
-
     const guardias = res.guardias.map((g, gi) =>
       guardiaHTML(g.puestos, t('pvp.riv.guard') + ' ' + (gi + 1),
         `<span class="hint">${esc(t('pvp.def.falls'))} ${num(g.cae)} / ${num(res.ataques)}</span>`)
     ).join('');
 
-    const aviso = res.peor === 0
-      ? `<p class="aviso-cambio"><b>${esc(t('pvp.def.warnT'))}</b>
-         <span>${esc(t('pvp.def.warn'))}</span></p>`
-      : '';
+    /* Lo único que sobrevive de los avisos: contra qué se está midiendo.
+       Sin esto el número parece de un rival concreto y no lo es, así que
+       quitarlo no simplificaría, mentiría. Va como línea, no como caja. */
+    const cabecera = generico ? `<p class="note">${t('pvp.def.refD')}</p>` : '';
 
-    return `${comparacion}
-      ${pred}
-      ${aviso}
+    return `${cabecera}
+      ${comparacion}
       <h3 class="sub-tit">${esc(t('pvp.def.reco'))}</h3>
       <div class="def-guardias">${guardias}</div>
       <p class="note">${t('pvp.def.how')}</p>`;
@@ -329,16 +341,18 @@
     const ganados = duelos.filter(d => d.gano).length;
     const gana = ganados >= 2;
 
-    let tipo;
-    if (ganados === 3 || ganados === 0) tipo = 'tres';
-    else {
+    /* Qué marcador ha salido, con la misma clave que usa rules.js: así el
+       daño sale de la única tabla que hay y no de una copia local. */
+    let cual, etiqueta;
+    if (ganados === 3 || ganados === 0) {
+      cual = ganados === 3 ? 'g30' : 'p03';
+      etiqueta = ganados === 3 ? '3-0' : '0-3';
+    } else {
       const alto = gana ? miosPts : suyosPts, bajo = gana ? suyosPts : miosPts;
-      tipo = (bajo <= 0 || alto / bajo >= PVP.AMPLIO) ? 'amplio' : 'ajust';
+      const amplio = bajo <= 0 || alto / bajo >= R.AMPLIO;
+      cual = (gana ? 'g21' : 'p21') + (amplio ? 'a' : 't');
+      etiqueta = t(amplio ? 'pvp.hull.wide' : 'pvp.hull.tight');
     }
-    const casco = PVP.CASCO[tipo];
-    const miCasco = gana ? casco.gana : casco.pierde;
-    const etiqueta = tipo === 'tres' ? (ganados === 3 ? '3-0' : '0-3')
-                   : t(tipo === 'amplio' ? 'pvp.hull.wide' : 'pvp.hull.tight');
 
     const filas = duelos.map((d, i) => `<div class="duelo ${d.gano ? 'gano' : 'perdio'}">
       <span class="pos">${i + 1}</span>
@@ -353,7 +367,6 @@
       </span>
     </div>`).join('');
 
-    const vidaTot = duelos.reduce((s, d) => s + d.dmg, 0);
     const cabecera = res.completas >= res.nG
       ? `${esc(t('pvp.plan.rolled'))} <b>${esc(t('pvp.riv.guard'))} ${gi + 1}</b>`
       : `${esc(t('pvp.plan.rolledEst'))} <b>${esc(t('pvp.riv.guard'))} ${gi + 1}</b>`;
@@ -364,8 +377,7 @@
         ${ganados}-${3 - ganados} · ${esc(t(gana ? 'pvp.plan.win' : 'pvp.plan.lose'))}
       </p>
       <div class="duelos">${filas}</div>
-      <p class="botin ${gana ? 'gana' : 'pierde'}">${esc(t('pvp.plan.hull'))}: −${num(miCasco * 100)} % · ${esc(etiqueta)}</p>
-      <p class="botin neutro">−${num(vidaTot, 1)} ${esc(t('pve.sim.health'))}</p>
+      <p class="botin ${gana ? 'gana' : 'pierde'}">${esc(t('pvp.plan.hullTheirs'))} −${num(R.CASCO[cual].el * R.HULL)} · ${esc(etiqueta)}</p>
     </div>`;
   }
 
@@ -386,7 +398,7 @@
 
   els.sel.addEventListener('change', repinta);
 
-  /* el interruptor ganar / perder */
+  /* los cuatro marcadores */
   function pintaModo(){
     document.querySelectorAll('.modo-btns .modo').forEach(b => {
       b.classList.toggle('on', b.dataset.modo === modo);

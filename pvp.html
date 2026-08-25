@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PvP — OP-MAPS DATA</title>
 <meta name="description" content="El PvP de OP-MAPS: tu plan de ataque contra las guardias de un rival, y qué tres guardias montar tú para aguantar lo que te mande.">
-<link rel="icon" href="assets/favicon.svg?v=1.9.0" type="image/svg+xml">
+<link rel="icon" href="assets/favicon.svg?v=1.9.1" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/style.css?v=1.9.0">
+<link rel="stylesheet" href="assets/css/style.css?v=1.9.1">
 </head>
 <body data-page="pvp" data-title-key="title.pvp">
 
@@ -37,10 +37,14 @@
       <summary><h2 data-i18n="pvp.plan.t">Tu plan de ataque</h2></summary>
       <div class="plegable-body">
         <div class="modo-btns" role="group" data-i18n-attr="aria-label:pvp.plan.mode">
-          <button type="button" class="modo on" data-modo="ganar"
-                  data-i18n="pvp.plan.modeWin">Ganar</button>
-          <button type="button" class="modo" data-modo="perder"
-                  data-i18n="pvp.plan.modeLose">Perder 2-1</button>
+          <button type="button" class="modo on" data-modo="g30"
+                  data-i18n="pvp.mk.g30">Ganar 3-0</button>
+          <button type="button" class="modo" data-modo="g21"
+                  data-i18n="pvp.mk.g21">Ganar 2-1</button>
+          <button type="button" class="modo" data-modo="p12"
+                  data-i18n="pvp.mk.p12">Perder 1-2</button>
+          <button type="button" class="modo" data-modo="p03"
+                  data-i18n="pvp.mk.p03">Perder 0-3</button>
         </div>
         <div id="resultado"></div>
       </div>
@@ -64,14 +68,14 @@
 
 <datalist id="db"></datalist>
 
-<script src="assets/js/i18n.js?v=1.9.0"></script>
-<script src="assets/js/site.js?v=1.9.0"></script>
-<script src="assets/js/characters.js?v=1.9.0"></script>
-<script src="assets/js/rules.js?v=1.9.0"></script>
-<script src="assets/js/crew-store.js?v=1.9.0"></script>
-<script src="assets/js/guards-store.js?v=1.9.0"></script>
-<script src="assets/js/rivals-store.js?v=1.9.0"></script>
-<script src="assets/js/pvp-model.js?v=1.9.0"></script>
-<script src="assets/js/pvp.js?v=1.9.0"></script>
+<script src="assets/js/i18n.js?v=1.9.1"></script>
+<script src="assets/js/site.js?v=1.9.1"></script>
+<script src="assets/js/characters.js?v=1.9.1"></script>
+<script src="assets/js/rules.js?v=1.9.1"></script>
+<script src="assets/js/crew-store.js?v=1.9.1"></script>
+<script src="assets/js/guards-store.js?v=1.9.1"></script>
+<script src="assets/js/rivals-store.js?v=1.9.1"></script>
+<script src="assets/js/pvp-model.js?v=1.9.1"></script>
+<script src="assets/js/pvp.js?v=1.9.1"></script>
 </body>
 </html>

@@ -106,6 +106,44 @@
     </div>`;
   }
 
+  /* Los dos avisos que la guía convierte en imposibles: la misma persona
+     no puede ocupar los dos huecos, y una reserva no puede estar además
+     defendiendo. No se bloquea la entrada —esto es lo que TÚ viste— pero
+     si choca, es que algo se apuntó mal. */
+  function avisoReservas(r){
+    const real = p => p && p.n !== RV.VACIO;
+    const a = r.res[0], b = r.res[1];
+    if (real(a) && real(b) && a.n === b.n) {
+      return `<span class="cuenta mal">${esc(t('riv.res.dupe'))}</span>`;
+    }
+    const defiende = {};
+    r.g.forEach(g => g.forEach(p => { if (p && p.n !== RV.VACIO) defiende[p.n] = true; }));
+    if ([a, b].some(p => real(p) && defiende[p.n])) {
+      return `<span class="cuenta mal">${esc(t('riv.res.clash'))}</span>`;
+    }
+    return '';
+  }
+
+  /* El banquillo se rellena igual que una guardia, pero sus huecos no
+     llevan número de posición: una reserva entra por quien caiga, no por
+     un puesto fijo. */
+  function reservasHTML(r){
+    const huecos = r.res.map((p, i) => `<div class="puesto" data-p="${i}">
+      <span class="pos res">R${i + 1}</span>
+      <select class="rs-n" aria-label="${esc(t('riv.res.slot'))} ${i + 1}">${opcionesQuien(r, p ? p.n : '')}</select>
+      <select class="rs-t" aria-label="${esc(t('pvp.riv.tac'))}">${opcionesTactica(p ? p.t : R.TACTICS[0])}</select>
+    </div>`).join('');
+
+    return `<div class="guardia banquillo">
+      <div class="guardia-cab">
+        <h5>${esc(t('riv.res.t'))}</h5>
+        ${avisoReservas(r)}
+      </div>
+      <div class="puestos">${huecos}</div>
+      <p class="note">${t('riv.res.d')}</p>
+    </div>`;
+  }
+
   /* Un ataque suyo ya apuntado. El primero de la lista es el que manda en
      la predicción, así que se marca. */
   function ataqueHTML(at, i){
@@ -152,12 +190,14 @@
       : `<p class="hint">${esc(t('riv.atk.needCrew'))}</p>`;
 
     const hechas = r.g.slice(0, nG).filter(g => g.every(p => p)).length;
+    const nRes   = r.res.filter(Boolean).length;
 
     return `<details class="rival-card" data-id="${esc(r.id)}"${abierto ? ' open' : ''}>
       <summary>
         <b class="rival-n">${esc(r.n)}</b>
         <span class="cuenta${lleno ? ' full' : ''}">${r.r.length}/${tope}</span>
         <span class="cuenta">${hechas}/${nG} ${esc(t('pvp.riv.gShort'))}</span>
+        ${nRes ? `<span class="cuenta">${nRes}/${RV.RESERVAS} ${esc(t('riv.res.short'))}</span>` : ''}
         ${r.a.length ? `<span class="cuenta">${r.a.length} ${esc(t('riv.atk.short'))}</span>` : ''}
       </summary>
       <div class="plegable-body">
@@ -187,6 +227,7 @@
 
         <h5 class="bloque-tit">${esc(t('pvp.riv.guards'))}</h5>
         ${guardias}
+        ${reservasHTML(r)}
 
         <h5 class="bloque-tit">${esc(t('riv.atk.t'))}</h5>
         <p class="note">${t('riv.atk.d')}</p>
@@ -331,6 +372,17 @@
 
     const puesto = e.target.closest('.puesto');
     if (!puesto) return;
+
+    /* El banquillo lleva también la clase .guardia, así que se mira antes:
+       si no, caería en la rama de las guardias con un data-g inexistente. */
+    if (puesto.closest('.banquillo')) {
+      RV.setReserva(id, Number(puesto.dataset.p),
+        puesto.querySelector('.rs-n').value,
+        puesto.querySelector('.rs-t').value);
+      render();
+      return;
+    }
+
     const gi  = Number(puesto.closest('.guardia').dataset.g);
     const pos = Number(puesto.dataset.p);
     RV.setPuesto(id, gi, pos,
