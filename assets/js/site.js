@@ -15,9 +15,9 @@
   const PAGES = [
     { id:'home',  href:'index.html', key:'nav.home'  },
     { id:'data',  href:'data.html',  key:'nav.data'  },
-    { id:'crew',  href:'crew.html',  key:'nav.crew'  },
-    { id:'alianza',href:'alianza.html',key:'nav.alianza'},
-    { id:'rivals',href:'rivals.html',key:'nav.rivals'},
+    { id:'crew',  href:'crew.html',  key:'nav.crew',   corto:'nav.crew.s'   },
+    { id:'alianza',href:'alianza.html',key:'nav.alianza',corto:'nav.alianza.s'},
+    { id:'rivals',href:'rivals.html',key:'nav.rivals', corto:'nav.rivals.s' },
     { id:'pve',   href:'pve.html',   key:'nav.pve'   },
     { id:'pvp',   href:'pvp.html',   key:'nav.pvp'   },
     { id:'tips',  href:'tips.html',  key:'nav.tips'  },
@@ -30,9 +30,20 @@
   // El texto ya se pinta traducido para que no se vea la clave ni un parpadeo.
   const label = key => (window.I18N ? window.I18N.t(key) : key);
 
-  const links = PAGES.map(p =>
-    `<a href="${p.href}"${p.id === current ? ' class="on" aria-current="page"' : ''} data-i18n="${p.key}">${label(p.key)}</a>`
-  ).join('');
+  /* Tres pestañas llevan además una forma corta —"Tripulación" en vez de
+     "Mi tripulación"— que es la que se ve en el móvil. Sin ella el menú se
+     iba a tres filas y la cabecera pegajosa se comía el 19 % de la
+     pantalla; con ella caben en dos. El CSS decide cuál se enseña. */
+  const links = PAGES.map(p => {
+    const clase = p.id === current ? ' class="on" aria-current="page"' : '';
+    if (!p.corto) {
+      return `<a href="${p.href}"${clase} data-i18n="${p.key}">${label(p.key)}</a>`;
+    }
+    return `<a href="${p.href}"${clase}>` +
+      `<span class="nav-larga" data-i18n="${p.key}">${label(p.key)}</span>` +
+      `<span class="nav-corta" data-i18n="${p.corto}">${label(p.corto)}</span>` +
+      `</a>`;
+  }).join('');
 
   const header = `
     <div class="hdr-top">

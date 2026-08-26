@@ -5,6 +5,63 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.9.2 — 25 ago 2026
+
+**El sitio en el móvil.** Repaso completo de lo que no encajaba en una
+pantalla estrecha.
+
+Repasado a `390`, `360` y `320 px` en las nueve páginas, midiendo con el
+navegador en vez de a ojo: desbordamiento horizontal, texto cortado dentro de su
+caja y botones más pequeños que un dedo.
+
+**El fallo de fondo era una llave de más.** En `style.css` había un `}` suelto
+justo delante de esta regla:
+
+```css
+/* en móvil los tres puestos no caben de lado: uno por fila */
+@media (max-width:640px){
+  .puestos{grid-template-columns:1fr}
+}
+```
+
+Chrome, al encontrarse una llave de cierre donde no toca, se traga también la
+regla siguiente. O sea que **esa media query no ha funcionado nunca**: los tres
+puestos de cada guardia seguían en fila y sacaban el PvP `76 px` fuera de la
+pantalla. Quitada la llave, la regla vuelve a la vida.
+
+**Rejillas que se estiraban por encima de su contenedor.** Un `1fr` es en
+realidad `minmax(auto,1fr)`, y ese `auto` deja que el hijo más ancho estire la
+columna. Peor todavía: cuatro pilas verticales (`.def-guardias`, `.rivales`,
+`.suyos`, `.ataques`) eran rejillas **sin columnas declaradas**, así que la pista
+se dimensionaba a `max-content` — y `max-content` nunca parte una línea. Todas
+pasan a `minmax(0,1fr)`.
+
+**El menú, de tira que se desliza a menú entero.** Con nueve pestañas, en un
+móvil sólo cabían tres y el resto quedaba escondido detrás de un degradado que
+ve muy poca gente. Ahora envuelve. Para que quepa en **dos filas y no tres**,
+tres pestañas tienen forma corta —*Tripulación*, *Alianza*, *Rivales*— y el CSS
+elige cuál se ve. La cabecera pegajosa baja de `161 px` (el 19 % de la pantalla)
+a `126 px` (el 15 %).
+
+**Lo demás:**
+
+- El plan de ataque dejaba el nombre en `78 px` partido en dos líneas porque las
+  pastillas de «contra quién pelea» se llevaban dos tercios del ancho. Pasan a su
+  propia fila.
+- Los cuatro marcadores del PvP, en dos filas de dos.
+- Cabeceras de bloque que envuelven: el título de una guardia y su «cae ante
+  420/1620» no caben juntos, y el resumen de un rival lleva el nombre más cuatro
+  contadores.
+- Nada por debajo de `34 px` de alto donde haya que tocar. El peor era el botón
+  de quitar un tripulante, de `21×21`.
+- `12 px` de margen lateral en vez de `16`. Suena a nada, pero con rejillas de
+  tres esos `8 px` deciden si algo cabe.
+
+**Resultado**: `0` desbordamientos, `0` textos cortados y `0` botones pequeños en
+las nueve páginas, a los tres anchos. El escritorio queda igual que estaba.
+
+---
+
 ## 1.9.1 — 25 ago 2026
 
 **Los cuatro marcadores, el daño al rival y el banquillo.** El PvP tenía dos
@@ -149,7 +206,7 @@ contra eso aguanta contra cualquiera. Tarda `143 ms`.
 
 ### Comprobaciones
 
-`22/22` en el banco nuevo, y lo que más tranquiliza son dos invariantes:
+`27/27` en el banco nuevo, y lo que más tranquiliza son dos invariantes:
 
 - las cuatro probabilidades **suman exactamente 1** en los cuatro modos, que es
   lo que prueba que los marcadores son una partición y no se cuela ni se pierde

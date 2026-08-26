@@ -34,6 +34,9 @@
       'nav.tips':  'Consejos',
       'nav.guide': 'Guía',
       'nav.aria':  'Secciones del sitio',
+      'nav.crew.s':    'Tripulación',
+      'nav.alianza.s': 'Alianza',
+      'nav.rivals.s':  'Rivales',
 
       /* portada */
       'hero.eyebrow': 'Compendio no oficial',
@@ -865,6 +868,9 @@
       'nav.tips':  'Tips',
       'nav.guide': 'Guide',
       'nav.aria':  'Site sections',
+      'nav.crew.s':    'My crew',
+      'nav.alianza.s': 'Alliance',
+      'nav.rivals.s':  'Rivals',
 
       'hero.eyebrow': 'Unofficial compendium',
       'hero.sub':     'Everything about the game in one place: your crew, PvP combat, PvE, the data of all 226 characters and the full player guide.',
