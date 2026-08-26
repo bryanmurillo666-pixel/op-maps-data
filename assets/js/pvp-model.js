@@ -60,6 +60,7 @@ window.PVP_MODEL = (function () {
   const T  = R.TACTICS;
 
   const CONCEDE = -1;   // puesto sin nadie: ese duelo lo ganas sin pelear
+  const RESERVAS = 2;  // el banquillo que deja el juego, en ataque y en defensa
 
   /* ---------- utilidades ---------- */
 
@@ -996,11 +997,69 @@ window.PVP_MODEL = (function () {
     }
     if (!mejor) return { vacio: true };
 
+    /* ---------- el banquillo ----------
+       Las tres guardias no son toda la defensa: el juego deja además dos
+       reservas, y entran por cualquiera que esté CAÍDO cuando empiece el
+       combate. Recomendarlas es parte del trabajo.
+
+       Dos reglas de la guía las acotan: una reserva NO puede estar además
+       defendiendo, y la misma persona no puede ocupar los dos huecos. Así
+       que se elige entre los que no han entrado en ninguna guardia.
+
+       Como no se sabe qué puesto quedará vacío ni contra quién, se mide lo
+       único que se puede medir: contra todo lo que él es capaz de mandar,
+       en cualquiera de los tres puestos, qué parte de esos duelos gana.
+       Defendiendo el empate es tuyo, igual que en las guardias. */
+    const veces = suyos.map(() => [0, 0, 0]);
+    let concedidos = 0, puestosTotales = 0;
+    for (let k = 0; k < ataques.length; k++) {
+      const at = ataques[k];
+      for (let i = 0; i < 3; i++) {
+        puestosTotales++;
+        if (at.c[i] === CONCEDE) concedidos++;
+        else veces[at.c[i]][at.t[i]]++;
+      }
+    }
+
+    const enGuardia = {};
+    mejor.trio.forEach(x => x.d.c.forEach(i => { enGuardia[mios[i].n] = true; }));
+
+    const notas = [];
+    crew.forEach(c => {
+      if (enGuardia[c.n]) return;
+      for (let u = 0; u < 3; u++) {
+        const miPunto = R.score(c, T[u]);
+        let ganados = concedidos;
+        for (let s = 0; s < suyos.length; s++) {
+          for (let v = 0; v < 3; v++) {
+            if (!veces[s][v]) continue;
+            if (!R.duelWin(R.score(suyos[s], T[v]), T[v], miPunto, T[u])) {
+              ganados += veces[s][v];
+            }
+          }
+        }
+        notas.push({ c: c, t: T[u], pts: miPunto,
+                     tasa: puestosTotales ? ganados / puestosTotales : 0 });
+      }
+    });
+    notas.sort((a, b) => (b.tasa - a.tasa) || (b.pts - a.pts));
+
+    const banquillo = [];
+    const yaEsta = {};
+    for (let i = 0; i < notas.length && banquillo.length < RESERVAS; i++) {
+      if (yaEsta[notas[i].c.n]) continue;   // uno no cubre dos huecos
+      yaEsta[notas[i].c.n] = true;
+      banquillo.push(notas[i]);
+    }
+
     return {
       guardias: mejor.trio.map(x => ({
         puestos: [0, 1, 2].map(i => ({ c: mios[x.d.c[i]], t: T[x.d.t[i]] })),
         cae: x.n
       })),
+      reservas: banquillo,
+      // cuántos te quedaban libres, para poder decir por qué son menos de dos
+      libres: crew.filter(c => !enGuardia[c.n]).length,
       // lo que aguantas si él juega su mejor plan, y si lo elige al azar
       peor:  1 - mejor.peor / combos,
       media: 1 - mejor.coste / combos,

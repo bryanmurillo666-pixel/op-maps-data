@@ -1195,7 +1195,7 @@ input[type=search]:focus,.toolbar select:focus{outline:2px solid var(--brass);ou
   background:var(--hull-2);border:0.5px solid var(--line);
   border-radius:12px;padding:12px;
 }
-.rival-top{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.rival-top{display:flex;gap:8px;align-items:flex-end;margin-bottom:10px}
 .rival-nom{
   flex:1;min-width:0;
   background:var(--sea);border:0.5px solid var(--line);border-radius:8px;
@@ -1776,4 +1776,76 @@ details.sub-plegable > summary .bloque-tit{
   .nav-corta{display:inline}
   .nav-strip{gap:4px}
   .nav-strip a{padding:6px 8px}
+}
+
+/* El banquillo recomendado: un bloque más de la lista, detrás de la
+   guardia 3. Sus huecos miden lo mismo que un puesto de guardia —de ahí el
+   (100% - 12px)/3, que son las tres columnas menos los dos huecos de 6px—
+   y se centran, porque son dos y no tres. */
+.puestos.reservas-2{
+  grid-template-columns:repeat(2, calc((100% - 12px) / 3));
+  justify-content:center;
+}
+.puestos.reservas-1{
+  grid-template-columns:calc((100% - 12px) / 3);
+  justify-content:center;
+}
+@media (max-width:640px){
+  /* en móvil los puestos ya van uno por fila: el banquillo, igual */
+  .puestos.reservas-1,
+  .puestos.reservas-2{grid-template-columns:minmax(0,1fr)}
+}
+
+/* ============================================================
+   Buscar y filtrar la libreta
+   ============================================================ */
+
+/* Aparece sólo cuando la libreta ya pesa: con cuatro rivales ocuparía
+   sitio sin resolver nada. */
+.riv-filtros{display:flex;gap:8px;margin:10px 0 12px}
+.riv-filtros input[type="search"]{
+  flex:1;min-width:0;
+  background:var(--sea);border:0.5px solid var(--line);border-radius:9px;
+  color:var(--parch);font-family:var(--mono);font-size:13px;padding:9px 11px;
+}
+.riv-filtros input[type="search"]::placeholder{color:#5c7080}
+.riv-filtros input[type="search"]:focus{
+  outline:2px solid var(--brass);outline-offset:-1px;border-color:transparent;
+}
+.riv-filtros select{
+  flex:0 0 auto;max-width:46%;
+  background:var(--sea);border:0.5px solid var(--line-str);border-radius:9px;
+  color:var(--parch);font-family:var(--mono);font-size:12px;cursor:pointer;
+  padding:9px 28px 9px 10px;
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none' stroke='%23D4A253' stroke-width='1.4'><path d='M1 1l4 4 4-4'/></svg>");
+  background-repeat:no-repeat;background-position:right 10px center;
+}
+
+/* la etiqueta de alianza: en la ficha, un campo corto; en el resumen, una
+   pastilla que se distingue de los contadores */
+/* El campo lleva rótulo: un recuadro suelto que pone "TAG" no dice nada. */
+.rival-tag-campo{flex:0 0 62px;width:62px;display:flex;flex-direction:column;gap:3px}
+.rival-tag-campo > span{
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--mist);
+}
+.rival-tag{
+  width:100%;text-align:center;text-transform:uppercase;
+  background:var(--sea);border:0.5px solid var(--line);border-radius:8px;
+  padding:8px 4px;color:var(--brass);
+  font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.12em;
+}
+.rival-tag::placeholder{color:#5c7080;letter-spacing:.08em}
+.tag-pill{
+  flex:0 0 auto;font-family:var(--mono);font-size:9.5px;font-weight:700;
+  letter-spacing:.12em;color:#1a1206;background:var(--brass-dim);
+  border-radius:999px;padding:2px 7px;
+}
+
+@media (max-width:640px){
+  .riv-filtros{flex-wrap:wrap}
+  .riv-filtros select{max-width:none;flex:1 1 100%;min-height:38px}
+  .riv-filtros input[type="search"]{flex:1 1 100%;min-height:38px}
+  .rival-tag{min-height:38px}
 }

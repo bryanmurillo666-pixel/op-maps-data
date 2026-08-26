@@ -5,6 +5,203 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.9.5 — 25 ago 2026
+
+**Dos arreglos de lo de ayer, y los dos por lo mismo: esconder un control no lo
+simplifica, lo rompe.**
+
+### El filtro que parecía roto
+
+El desplegable de alianzas se escondía mientras no hubiera ninguna etiqueta
+puesta, «por no meter un control inútil». El resultado fue que el filtro
+parecía no funcionar: no estaba. Y de paso desaparecía el único sitio donde se
+intuye que las etiquetas existen.
+
+Ahora **está siempre**, con «Todas las alianzas» dentro, y la línea de ayuda de
+debajo explica cómo llenarlo. El código no tenía ningún fallo — es la segunda
+vez seguida que el problema es de mostrar, no de calcular.
+
+### El PvP, como el PvE
+
+En vez de un desplegable agrupado, **dos encadenados**: alianza y luego rival,
+igual que el mar y la isla del PvE.
+
+```
+ALIANZA          CONTRA QUIÉN
+[Todas ▾]        [— elige un rival — ▾]
+```
+
+Elegir una alianza deja el segundo sólo con los suyos. Con «Todas» el segundo
+sigue saliendo **agrupado por etiqueta**, que no cuesta nada y ahorra el primer
+paso cuando ya sabes a quién buscas. El de alianza sólo sale si hay alguna
+etiqueta puesta: ahí sí sobra, porque no habría nada que elegir.
+
+Hay además una opción **«Sin alianza»** para los que no has etiquetado, que si
+no quedaban inalcanzables al filtrar.
+
+### Un byte que no se veía
+
+Al escribir la constante que marca «sin alianza» se coló un **byte nulo** en
+`pvp.js`. El fichero seguía pareciendo normal en el editor, pero `grep` ya lo
+trataba como binario. Cambiada por `'sin-alianza'`, que además no puede chocar
+con ninguna etiqueta real: son tres caracteres de `[A-Z0-9]`.
+
+### Comprobaciones
+
+`8/8` sobre la página: que salga el desplegable de alianzas, que traiga las tres
+etiquetas más los sueltos, que con «Todas» salgan los diez agrupados, que elegir
+`PAL` deje tres y deje de agrupar, que «Sin alianza» deje los tres sin etiquetar
+y que volver a «Todas» los devuelva.
+
+---
+
+## 1.9.4 — 25 ago 2026
+
+**Buscar, etiquetar y ordenar la libreta.** Una lista de rivales sólo crece, y
+llegaba un punto en que encontrar a alguien era rebuscar.
+
+### Tres cosas, en orden de lo que cuestan
+
+**Buscador por nombre.** Funciona desde el rival número uno y no hay que
+escribir nada de antemano. Sin distinguir mayúsculas ni acentos.
+
+**Etiqueta de alianza.** Tres caracteres por rival. No es una etiqueta
+inventada: es **dato del juego** —una alianza se crea con una etiqueta de 3
+letras, tipo `PAL`, y se ve en pantalla—, así que no hay nada que decidir. Se
+normaliza al entrar (mayúsculas, sin símbolos, tres caracteres) para que no
+convivan `PAL`, `pal` y `Pal `. Sale como pastilla en la ficha del rival.
+
+**Filtro por etiqueta.** Un desplegable construido con las etiquetas que **de
+verdad estás usando**, no un campo de texto: así no hay `PAL` y `PLA`
+conviviendo por un dedo torcido. Buscador y filtro se combinan.
+
+Buscador y filtro **aparecen a partir del quinto rival**. Con cuatro ocupan
+sitio y no resuelven nada.
+
+### El PvP: un desplegable, no dos
+
+La idea era encadenar dos selectores —primero la alianza, luego el jugador—,
+pero eso son dos toques y te obliga a acordarte de en qué alianza está cada uno.
+El desplegable de HTML ya sabe agrupar solo:
+
+```
+CONTRA QUIÉN
+  ── D7 ───────────   Enel · Buggy
+  ── PAL ──────────   Barbanegra · Kaido · Big Mom
+  ── RKS ──────────   Shanks · Doflamingo
+  ── Sin alianza ──   Crocodile · Mihawk · Arlong
+```
+
+Ves la alianza **y** eliges al jugador en el mismo gesto, y escribiendo vas
+directo al nombre. Si nadie tiene etiqueta no se agrupa nada, para no meter
+ruido por meterlo.
+
+### El orden
+
+La libreta sale por **lo último que tocaste, primero**. La fecha ya se guardaba
+desde la `1.9.0` —se puso para resolver los duplicados al fusionar— así que no
+hizo falta nada nuevo.
+
+Con un matiz que sí hizo falta: el orden **se congela mientras editas**. La
+libreta se repinta entera en cada cambio, y si además se recolocara, la ficha
+que estás tocando saltaría al principio y perderías el sitio. Se refresca al
+cargar y cuando la lista cambia de tamaño: al añadir, al borrar y al importar.
+
+### Y por la alianza
+
+La etiqueta **viaja en el código compartido** y se fusiona con la regla de
+siempre, con un matiz que la hace más útil: si tú no la tienes y un compañero
+sí, **te la quedas aunque tu ficha sea más reciente**. Etiquetar a alguien una
+vez lo etiqueta para los diez. Sólo cuando los dos tenéis etiqueta y no
+coinciden decide la fecha.
+
+### Además
+
+Las reservas recomendadas pierden el porcentaje. El modelo lo sigue calculando
+—es lo que las ordena— pero enseñarlo no cambiaba ninguna decisión: no hay entre
+quién elegir, son los dos únicos que te sobran.
+
+### Y una lección: funcionaba, pero no se entendía
+
+Primer intento: el campo de la etiqueta era un recuadro de `62 px` con
+`TAG` de marcador de posición, metido al lado del nombre. Todo correcto por
+dentro —el dato se guardaba, se compartía y agrupaba— y aun así **no se usó**:
+no se entendía qué era ni para qué servía, y sin etiquetas ni el filtro ni el
+PvP enseñaban nada distinto. Una función que no se descubre es una función que
+no existe.
+
+Tres arreglos, ninguno de lógica:
+
+- El campo lleva **rótulo visible** (`ALIANZA`) en vez de un marcador de
+  posición suelto.
+- Y una **lista de las etiquetas que ya usas**: la segunda vez que apuntas a
+  alguien de `PAL` lo eliges en vez de teclearlo. Ya no es un recuadro vacío
+  sin nada donde elegir.
+- Debajo del buscador, una línea que explica **qué es la etiqueta y dónde se
+  pone**, que aparece justo cuando hace falta: ya tienes libreta de sobra pero
+  todavía no has etiquetado a nadie. En cuanto etiquetas al primero,
+  desaparece.
+
+De paso, un fallo de CSS de manual: el campo salía el doble de alto porque
+llevaba `flex:0 0 62px` **dentro de un contenedor en columna**, donde
+`flex-basis` es la altura y no el ancho. El ancho se sube al envoltorio.
+
+### Comprobaciones
+
+`11/11` en la libreta
+ (la etiqueta se normaliza, viaja en el código, se fusiona
+en los tres casos, y la lista sale por fecha) y `23/23` sobre la página de
+verdad: buscar, filtrar, combinar los dos, el caso sin resultados, limpiar, el
+contador, las etiquetas que ofrece el filtro, y el recorrido entero de etiquetar
+a alguien —escribirla, verla en mayúsculas, la pastilla, el desplegable que
+aparece, la sugerencia que queda y la ayuda que se retira.
+
+---
+
+## 1.9.3 — 25 ago 2026
+
+**Las guardias recomendadas ahora incluyen el banquillo.** Faltaba la mitad de
+la defensa: el juego deja tres guardias **y dos reservas**, y sólo se
+recomendaban las tres.
+
+Una reserva entra por cualquiera de tus defensores que esté **Caído** al empezar
+el combate, y pelea con la táctica de **su propio hueco**. Dos reglas de la guía
+acotan quién puede ser: no puede estar además defendiendo, y la misma persona no
+puede ocupar los dos huecos. Así que se eligen entre los que **no** han entrado
+en ninguna de las tres guardias.
+
+El criterio es el único que se puede medir cuando no sabes qué puesto quedará
+vacío ni contra quién: **contra todo lo que él es capaz de mandar, en cualquiera
+de los tres puestos, qué parte de esos duelos gana**. Defendiendo el empate es
+tuyo, igual que en las guardias. El modelo calcula ese porcentaje y es lo que las ordena, pero no se enseña: no cambia ninguna decisión, porque no hay entre quién elegir — son los dos únicos que te sobran.
+
+Van como **un bloque más de la lista**, justo detrás de la guardia 3 y con la
+misma pinta: son parte de la misma alineación, no un apartado aparte. Como son
+dos y no tres, sus huecos miden lo mismo que un puesto de guardia y se centran.
+
+```
+GUARDIA 3
+ [1 Monkey D. Dragon  Emb.] [2 Gol D. Roger  Asalto] [3 Rocks D. Xebec  Asalto]
+
+RESERVAS
+              [R1 Benn Beckman  Emboscada] [R2 Bartholomew Kuma  Asalto]
+```
+
+La cuenta se hace sobre la distribución marginal de sus ataques —cuántas veces
+aparece cada (personaje, táctica) suyo sumando los tres puestos— en vez de
+recorrer las mil y pico alineaciones por candidato. Sale el mismo número y
+cuesta una fracción.
+
+Sale con menos de dos, o con ninguna, cuando no te sobra gente: con **tres**
+tripulantes no hay banquillo y con **cuatro** sólo hay uno. La pantalla lo dice,
+y avisa de lo que eso significa — un puesto sin cubrir **concede el duelo**.
+
+`7` comprobaciones nuevas (`34/34` en el banco): que salgan dos, que ninguna
+esté además defendiendo, que no se repita la persona, que vengan ordenadas, y
+los dos casos de tripulación corta.
+
+---
+
 ## 1.9.2 — 25 ago 2026
 
 **El sitio en el móvil.** Repaso completo de lo que no encajaba en una

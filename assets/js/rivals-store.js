@@ -23,6 +23,11 @@
      {n:'-', t:...}  el rival lo tiene vacío, así que concede
      {n:'Zoro', t:'Assault'}
 
+     tag  la ETIQUETA de 3 letras de su alianza (`PAL`, `RKS`...). Es dato
+        del juego, no algo que te inventes: una alianza se crea con una, y
+        se ve en pantalla. Sirve para agrupar y filtrar cuando la libreta
+        crece, y viaja por la alianza como todo lo demás.
+
    Vive en el navegador (localStorage): es tuyo y no se sube a ningún
    sitio.
    ============================================================ */
@@ -51,6 +56,11 @@ window.RIVALES = (function () {
     if (window.RULES.TACTICS.indexOf(p.t) === -1) return null;
     return { n: p.n, t: p.t };
   }
+
+  /* La etiqueta de alianza: 3 caracteres, mayúsculas, sin nada raro. Se
+     normaliza al entrar para que no convivan `PAL`, `pal` y `Pal `. */
+  const limpiaTag = t =>
+    String(t || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
 
   function limpiaMiembro(m){
     if (!m || typeof m !== 'object') return null;
@@ -97,6 +107,7 @@ window.RIVALES = (function () {
     return {
       id: String(r.id || ('r' + Date.now() + Math.random().toString(36).slice(2, 7))),
       n:  String(r.n || '').slice(0, 40),
+      tag: limpiaTag(r.tag),
       r:  rr.slice(0, window.RULES.MAX_CREW),
       g:  g,
       res: res,
@@ -142,7 +153,7 @@ window.RIVALES = (function () {
     if (lista.some(r => r.n.toLowerCase() === n.toLowerCase())) return null;
     const r = {
       id: 'r' + Date.now() + Math.random().toString(36).slice(2, 7),
-      n: n, r: [], a: [], ts: ahora(), res: [null, null],
+      n: n, tag: '', r: [], a: [], ts: ahora(), res: [null, null],
       g: [guardiaVacia(), guardiaVacia(), guardiaVacia()]
     };
     lista.push(r);
@@ -161,6 +172,23 @@ window.RIVALES = (function () {
     r.n = String(nombre || '').trim().slice(0, 40);
     toca(r);
     guardar();
+  }
+
+  function setTag(id, tag){
+    const r = porId(id);
+    if (!r) return '';
+    r.tag = limpiaTag(tag);
+    toca(r);
+    guardar();
+    return r.tag;
+  }
+
+  /* Las etiquetas que de verdad estás usando, para poder ofrecerlas en una
+     lista en vez de dejar escribirlas a mano en el filtro. */
+  function tags(){
+    const vistas = {};
+    lista.forEach(r => { if (r.tag) vistas[r.tag] = true; });
+    return Object.keys(vistas).sort();
   }
 
   /* ---------- su tripulación ---------- */
@@ -312,7 +340,8 @@ window.RIVALES = (function () {
       r.g.map(g => g.map(codPuesto)),
       r.a.map(at => [at.p.map(codPuesto), at.w]),
       r.ts || 0,
-      r.res.map(codPuesto)
+      r.res.map(codPuesto),
+      r.tag || ''
     ]);
     return CABECERA + b64(JSON.stringify(datos));
   }
@@ -347,6 +376,12 @@ window.RIVALES = (function () {
         if (a.n === b.n && a.t === b.t) continue;               // coinciden, nada que hacer
         if (mandaSuyo) { mio.g[i][j] = b; cambio = true; }      // se contradicen: manda la fecha
       }
+    }
+
+    // su etiqueta: si tú no la tienes y él sí, te la quedas
+    if (suyo.tag && suyo.tag !== mio.tag && (!mio.tag || mandaSuyo)) {
+      mio.tag = suyo.tag;
+      cambio = true;
     }
 
     // su banquillo, hueco a hueco, con la misma regla que las guardias
@@ -390,7 +425,8 @@ window.RIVALES = (function () {
         w: at[1] ? 1 : 0
       })),
       ts: d[4] || 0,
-      res: (Array.isArray(d[5]) ? d[5] : []).map(dePuesto)
+      res: (Array.isArray(d[5]) ? d[5] : []).map(dePuesto),
+      tag: d[6] || ''
     });
   }
 
@@ -432,12 +468,16 @@ window.RIVALES = (function () {
     VACIO:    VACIO,
     ESTADOS:  ESTADOS,
     CAIDO:    CAIDO,
-    lista:     () => lista.slice(),
+    /* Sale ordenada por lo último que se tocó. Con la libreta llena, lo que
+       acabas de averiguar es lo que quieres tener delante. */
+    lista:     () => lista.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)),
     porId:     porId,
     nGuardias: nGuardias,
     añadir:    añadir,
     borrar:    borrar,
     renombrar: renombrar,
+    setTag:    setTag,
+    tags:      tags,
     addMiembro: addMiembro,
     delMiembro: delMiembro,
     setEstado:  setEstado,

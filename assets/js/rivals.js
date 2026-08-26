@@ -26,7 +26,12 @@
     impIn:    document.getElementById('impIn'),
     impBtn:   document.getElementById('impBtn'),
     impHint:  document.getElementById('impHint'),
-    datalist: document.getElementById('db')
+    datalist: document.getElementById('db'),
+    filtros:  document.getElementById('rivFiltros'),
+    buscar:   document.getElementById('rivBuscar'),
+    tag:      document.getElementById('rivTag'),
+    tagAyuda: document.getElementById('rivTagAyuda'),
+    tagsLista:document.getElementById('tagsUsados')
   };
 
   /* ---------- utilidades ---------- */
@@ -195,6 +200,7 @@
     return `<details class="rival-card" data-id="${esc(r.id)}"${abierto ? ' open' : ''}>
       <summary>
         <b class="rival-n">${esc(r.n)}</b>
+        ${r.tag ? `<span class="tag-pill">${esc(r.tag)}</span>` : ''}
         <span class="cuenta${lleno ? ' full' : ''}">${r.r.length}/${tope}</span>
         <span class="cuenta">${hechas}/${nG} ${esc(t('pvp.riv.gShort'))}</span>
         ${nRes ? `<span class="cuenta">${nRes}/${RV.RESERVAS} ${esc(t('riv.res.short'))}</span>` : ''}
@@ -204,6 +210,13 @@
         <div class="rival-top">
           <input class="rival-nom" value="${esc(r.n)}" maxlength="40"
                  aria-label="${esc(t('pvp.riv.name'))}">
+          <label class="rival-tag-campo">
+            <span>${esc(t('riv.tag'))}</span>
+            <input class="rival-tag" value="${esc(r.tag)}" maxlength="3"
+                   list="tagsUsados" autocomplete="off" spellcheck="false"
+                   placeholder="${esc(t('riv.tag.ph'))}"
+                   aria-label="${esc(t('riv.tag'))}">
+          </label>
           <button type="button" class="btn-x rival-del">${esc(t('pvp.riv.del'))}</button>
         </div>
 
@@ -250,18 +263,91 @@
     return set;
   }
 
+  /* El orden es "lo último que tocaste, primero", pero se congela mientras
+     editas: la libreta se repinta entera en cada cambio, y si además se
+     recolocara, la ficha que estás tocando saltaría al principio y
+     perderías el sitio. Se refresca al cargar y cuando la lista cambia de
+     tamaño: al añadir, al borrar y al importar. */
+  let orden = [];
+  const congelaOrden = () => { orden = RV.lista().map(r => r.id); };
+
+  function enOrden(){
+    const sitio = {};
+    orden.forEach((id, i) => { sitio[id] = i; });
+    // RV.lista() ya viene por fecha, así que los que no estaban (recién
+    // importados) conservan ese orden entre ellos y salen delante
+    return RV.lista().sort((a, b) => {
+      const ia = sitio[a.id], ib = sitio[b.id];
+      if (ia === undefined && ib === undefined) return 0;
+      if (ia === undefined) return -1;
+      if (ib === undefined) return 1;
+      return ia - ib;
+    });
+  }
+
+  /* Lo que se ve: por nombre y por etiqueta de alianza. */
+  function filtrados(){
+    const texto = fold(els.buscar ? els.buscar.value.trim() : '');
+    const tag   = els.tag ? els.tag.value : '';
+    return enOrden().filter(r =>
+      (!tag   || r.tag === tag) &&
+      (!texto || fold(r.n).indexOf(texto) !== -1)
+    );
+  }
+
+  /* El filtro sólo aparece cuando estorba no tenerlo. Con cuatro rivales
+     ocupa sitio y no resuelve nada. */
+  const DESDE = 5;
+
+  function pintaFiltros(total){
+    if (!els.filtros) return;
+    const usadas = RV.tags();
+
+    /* Las que ya usas se ofrecen al escribir la de otro rival: así la
+       segunda vez que apuntas a alguien de PAL lo eliges en vez de
+       teclearlo, y no acabas con PAL y PLA conviviendo. */
+    if (els.tagsLista) {
+      els.tagsLista.innerHTML = usadas.map(x => `<option value="${esc(x)}"></option>`).join('');
+    }
+
+    els.filtros.hidden = total < DESDE;
+    /* La ayuda sale justo cuando hace falta: ya tienes libreta de sobra
+       pero todavía no has etiquetado a nadie, así que el desplegable está
+       vacío y no se entiende para qué es. */
+    if (els.tagAyuda) els.tagAyuda.hidden = els.filtros.hidden || usadas.length > 0;
+    if (els.filtros.hidden) return;
+
+    const antes = els.tag.value;
+    els.tag.innerHTML = `<option value="">${esc(t('riv.tag.todas'))}</option>` +
+      usadas.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('');
+    els.tag.value = antes;
+    if (els.tag.selectedIndex === -1) els.tag.value = '';
+
+    /* Antes se escondía cuando no había ninguna etiqueta, por no meter un
+       control inútil. Salió mal: un filtro que no se ve parece un filtro
+       roto, y encima quitaba el único sitio donde se intuye que las
+       etiquetas existen. Se queda siempre, y la línea de ayuda de debajo
+       explica cómo llenarlo. */
+    els.tag.hidden = false;
+  }
+
   function listaHTML(previos){
-    const rs = RV.lista();
-    if (!rs.length) return `<p class="hint">${esc(t('pvp.riv.none'))}</p>`;
+    const total = RV.lista().length;
+    if (!total) return `<p class="hint">${esc(t('pvp.riv.none'))}</p>`;
+    const rs = filtrados();
+    if (!rs.length) return `<p class="hint">${esc(t('riv.filtro.nada'))}</p>`;
     return `<div class="rivales">${rs.map(r => rivalHTML(r, previos)).join("")}</div>`;
   }
 
   function render(abrir){
     const previos = abiertos();
     if (abrir) previos[abrir] = true;
+    const total = RV.lista().length;
+    pintaFiltros(total);
     els.lista.innerHTML = listaHTML(previos);
-    const n = RV.lista().length;
-    els.count.textContent = n ? n : '';
+    const vistos = filtrados().length;
+    els.count.textContent = !total ? ''
+      : (vistos === total ? total : vistos + ' / ' + total);
   }
 
   function rellenarDatalist(){
@@ -285,6 +371,7 @@
     const id = RV.añadir(els.input.value);
     if (!id) { aviso('pvp.riv.bad'); return; }
     els.input.value = '';
+    congelaOrden();
     render(id);
     els.input.focus();
   }
@@ -297,7 +384,7 @@
     if (!card) return;
     const id = card.dataset.id;
 
-    if (e.target.closest('.rival-del')) { RV.borrar(id); render(); return; }
+    if (e.target.closest('.rival-del')) { RV.borrar(id); congelaOrden(); render(); return; }
 
     if (e.target.closest('.suyo-btn')) {
       const campo = card.querySelector('.suyo-add');
@@ -360,6 +447,12 @@
       return;
     }
 
+    if (e.target.classList.contains('rival-tag')) {
+      e.target.value = RV.setTag(id, e.target.value);
+      render();   // la lista de etiquetas del filtro puede haber cambiado
+      return;
+    }
+
     if (e.target.classList.contains('suyo-e')) {
       const fila = e.target.closest('.suyo');
       RV.setEstado(id, fila.dataset.quien, e.target.value);
@@ -416,11 +509,23 @@
     els.impHint.textContent = t('riv.share.ok')
       .replace('{n}', res.nuevos).replace('{a}', res.actualizados);
     els.impIn.value = '';
+    congelaOrden();
     render();
   });
+
+  /* ---------- buscar y filtrar ---------- */
+
+  if (els.buscar) {
+    els.buscar.addEventListener('input', () => { render(); });
+    els.buscar.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { els.buscar.value = ''; render(); }
+    });
+  }
+  if (els.tag) els.tag.addEventListener('change', () => { render(); });
 
   document.addEventListener('langchange', () => { rellenarDatalist(); render(); });
 
   rellenarDatalist();
+  congelaOrden();
   render();
 })();

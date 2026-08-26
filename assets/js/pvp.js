@@ -32,6 +32,8 @@
 
   const els = {
     sel: document.getElementById('planRival'),
+    ali: document.getElementById('planAlianza'),
+    campoAli: document.getElementById('campoAlianza'),
     out: document.getElementById('resultado'),
     def: document.getElementById('defensa')
   };
@@ -297,11 +299,43 @@
        quitarlo no simplificaría, mentiría. Va como línea, no como caja. */
     const cabecera = generico ? `<p class="note">${t('pvp.def.refD')}</p>` : '';
 
+    /* El banquillo va como un bloque más de la lista, justo detrás de la
+       guardia 3 y con la misma pinta: es parte de la misma alineación, no
+       un apartado aparte. Como son dos y no tres, sus huecos se centran
+       con el ancho de un puesto de guardia.
+
+       No llevan porcentaje: el modelo lo calcula —es lo que las ordena de
+       mejor a peor— pero enseñarlo no cambiaba ninguna decisión, porque no
+       hay entre quién elegir: son los dos únicos que te sobran. */
+    let banquillo, avisoBanco = '';
+    if (res.reservas && res.reservas.length) {
+      const huecos = res.reservas.map((r, i) => `
+        <div class="puesto-fijo">
+          <span class="pos res">R${i + 1}</span>
+          <b>${esc(nameOf(r.c))}</b>
+          <span class="tac-pill tac-${seg(r.t)}">${esc(t('tac.' + r.t))}</span>
+        </div>`).join('');
+      banquillo = `<div class="guardia">
+        <div class="guardia-cab"><h5>${esc(t('pvp.def.res'))}</h5></div>
+        <div class="puestos reservas-${res.reservas.length}">${huecos}</div>
+      </div>`;
+      if (res.reservas.length < 2) {
+        avisoBanco = `<p class="hint">${t('pvp.def.res.una')}</p>`;
+      }
+    } else {
+      banquillo = `<div class="guardia">
+        <div class="guardia-cab"><h5>${esc(t('pvp.def.res'))}</h5></div>
+        <p class="hint">${t('pvp.def.res.none')}</p>
+      </div>`;
+    }
+
     return `${cabecera}
       ${comparacion}
       <h3 class="sub-tit">${esc(t('pvp.def.reco'))}</h3>
-      <div class="def-guardias">${guardias}</div>
-      <p class="note">${t('pvp.def.how')}</p>`;
+      <div class="def-guardias">${guardias}${banquillo}</div>
+      ${avisoBanco}
+      <p class="note">${t('pvp.def.how')}</p>
+      <p class="note">${t('pvp.def.res.d')}</p>`;
   }
 
   /* ---------- simular un abordaje ---------- */
@@ -383,10 +417,61 @@
 
   /* ---------- montaje ---------- */
 
+  /* Dos desplegables encadenados, como el mar y la isla del PvE: eliges la
+     alianza y el segundo se queda sólo con los suyos. El de alianza sólo
+     sale si hay alguna etiqueta puesta — sin ellas no hay nada que elegir y
+     sería un control muerto.
+
+     Con "todas" elegido, el segundo sigue saliendo agrupado por etiqueta,
+     que no cuesta nada y ahorra el primer paso cuando ya sabes a quién
+     buscas. */
+  const opcion = r => `<option value="${esc(r.id)}">${esc(r.n)}</option>`;
+
+  const SIN_TAG = 'sin-alianza';   // una etiqueta real es de 3 caracteres [A-Z0-9], asi que no choca
+
+  function llenarAlianzas(){
+    if (!els.ali || !els.campoAli) return;
+    const tags = RV.tags();
+    els.campoAli.hidden = !tags.length;
+    if (!tags.length) { els.ali.value = ''; return; }
+
+    const haySueltos = RV.lista().some(r => !r.tag);
+    const antes = els.ali.value;
+    els.ali.innerHTML =
+      `<option value="">${esc(t('pvp.plan.aliAll'))}</option>` +
+      tags.map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join('') +
+      (haySueltos ? `<option value="${SIN_TAG}">${esc(t('pvp.plan.sinTag'))}</option>` : '');
+    els.ali.value = antes;
+    if (els.ali.selectedIndex === -1) els.ali.value = '';
+  }
+
   function llenarSelect(){
     const antes = els.sel.value;
-    els.sel.innerHTML = `<option value="">${esc(t('pvp.plan.none'))}</option>` +
-      RV.lista().map(r => `<option value="${esc(r.id)}">${esc(r.n)}</option>`).join('');
+    const filtro = els.ali ? els.ali.value : '';
+
+    const suyos = RV.lista().filter(r =>
+      !filtro || (filtro === SIN_TAG ? !r.tag : r.tag === filtro)
+    );
+
+    let html = `<option value="">${esc(t('pvp.plan.none'))}</option>`;
+    if (filtro) {
+      html += suyos.map(opcion).join('');
+    } else {
+      const grupos = {};
+      suyos.forEach(r => { const k = r.tag || ''; (grupos[k] = grupos[k] || []).push(r); });
+      const tags = Object.keys(grupos).filter(k => k).sort();
+      tags.forEach(k => {
+        html += `<optgroup label="${esc(k)}">${grupos[k].map(opcion).join('')}</optgroup>`;
+      });
+      if (grupos['']) {
+        const sueltos = grupos[''].map(opcion).join('');
+        html += tags.length
+          ? `<optgroup label="${esc(t('pvp.plan.sinTag'))}">${sueltos}</optgroup>`
+          : sueltos;
+      }
+    }
+
+    els.sel.innerHTML = html;
     els.sel.value = antes;
     if (els.sel.selectedIndex === -1) els.sel.value = '';
   }
@@ -397,6 +482,13 @@
   }
 
   els.sel.addEventListener('change', repinta);
+
+  /* Cambiar de alianza rehace la lista de rivales. Si el que tenías elegido
+     ya no está en ella, el segundo desplegable vuelve a "elige un rival" y
+     los paneles se vacían solos. */
+  if (els.ali) {
+    els.ali.addEventListener('change', () => { llenarSelect(); repinta(); });
+  }
 
   /* los cuatro marcadores */
   function pintaModo(){
@@ -421,7 +513,7 @@
     if (salida) salida.innerHTML = simularHTML();
   });
 
-  document.addEventListener('langchange', () => { llenarSelect(); repinta(); });
+  document.addEventListener('langchange', () => { llenarAlianzas(); llenarSelect(); repinta(); });
 
   /* Los desgloses vuelven como los dejaste. */
   const ABRE_KEY = 'opmaps-pvp-abre';
@@ -442,6 +534,7 @@
   })();
 
   pintaModo();
+  llenarAlianzas();
   llenarSelect();
   repinta();
 })();
