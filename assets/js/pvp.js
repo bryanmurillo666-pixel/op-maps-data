@@ -84,6 +84,16 @@
 
   let ultimo = null;
 
+  /* Cuál de las tres defensas se está mirando. Se recuerda, como el modo
+     del plan de ataque. */
+  const DEF_KEY = 'opmaps-pvp-def';
+  const DEFENSAS = ['equilibrada', 'mono', 'una'];
+  let defOpcion = 'equilibrada';
+  try {
+    const g = localStorage.getItem(DEF_KEY);
+    if (DEFENSAS.indexOf(g) !== -1) defOpcion = g;
+  } catch(e){ /* si el navegador lo bloquea, se queda en la equilibrada */ }
+
   /* Para cada posición, contra quién pelea en las formaciones que quedan
      en pie y cuántas veces gana. */
   function rivalesDePosicion(res, mio, tac, i){
@@ -255,6 +265,12 @@
       .map(g => g.map(p => ({ c: porNombre(p.n), t: p.t })))
       .filter(g => g.every(p => p.c));
 
+    /* De las tres defensas, la que estés mirando. La equilibrada es la de
+       siempre; las otras dos están afinadas contra un patrón de ataque
+       concreto y pagan por ello contra los demás. */
+    const ops = res.opciones || [];
+    const op  = ops.find(o => o.clave === defOpcion) || ops[0] || res;
+
     /* La comparación solo vale si tienes las TRES puestas. Con dos estaríamos
        midiendo tus dos mejores contra tres recomendadas, y el número te
        saldría regalado: la guardia que te falta es justo la que no cuenta. */
@@ -269,7 +285,7 @@
         ? t('pvp.def.faltan').replace('{n}', nGmias - puestas.length)
         : t('pvp.def.sinTuyasD')}</p>`;
     } else {
-      const delta = res.media - ahora.media;
+      const delta = op.media - ahora.media;
       const clase = delta > 0.005 ? 'win-hi' : (delta < -0.005 ? 'win-lo' : 'win-mid');
       const signo = delta > 0 ? '+' : '';
       comparacion = `<div class="compara">
@@ -281,15 +297,15 @@
         <div class="compara-flecha ${clase}">${signo}${num(delta * 100, 1)}</div>
         <div class="compara-caja">
           <span>${esc(t('pvp.def.reco'))}</span>
-          <b class="${claseProb(res.media)}">${num(res.media * 100)} %</b>
-          <em>${num(res.peor * 100)} % ${esc(t('pvp.def.worstShort'))}</em>
+          <b class="${claseProb(op.media)}">${num(op.media * 100)} %</b>
+          <em>${num(op.peor * 100)} % ${esc(t('pvp.def.worstShort'))}</em>
         </div>
       </div>
       <p class="hint">${esc(t(delta > 0.005 ? 'pvp.def.mejora'
                             : (delta < -0.005 ? 'pvp.def.peora' : 'pvp.def.igual')))}</p>`;
     }
 
-    const guardias = res.guardias.map((g, gi) =>
+    const guardias = op.guardias.map((g, gi) =>
       guardiaHTML(g.puestos, t('pvp.riv.guard') + ' ' + (gi + 1),
         `<span class="hint">${esc(t('pvp.def.falls'))} ${num(g.cae)} / ${num(res.ataques)}</span>`)
     ).join('');
@@ -308,8 +324,8 @@
        mejor a peor— pero enseñarlo no cambiaba ninguna decisión, porque no
        hay entre quién elegir: son los dos únicos que te sobran. */
     let banquillo, avisoBanco = '';
-    if (res.reservas && res.reservas.length) {
-      const huecos = res.reservas.map((r, i) => `
+    if (op.reservas && op.reservas.length) {
+      const huecos = op.reservas.map((r, i) => `
         <div class="puesto-fijo">
           <span class="pos res">R${i + 1}</span>
           <b>${esc(nameOf(r.c))}</b>
@@ -317,9 +333,9 @@
         </div>`).join('');
       banquillo = `<div class="guardia">
         <div class="guardia-cab"><h5>${esc(t('pvp.def.res'))}</h5></div>
-        <div class="puestos reservas-${res.reservas.length}">${huecos}</div>
+        <div class="puestos reservas-${op.reservas.length}">${huecos}</div>
       </div>`;
-      if (res.reservas.length < 2) {
+      if (op.reservas.length < 2) {
         avisoBanco = `<p class="hint">${t('pvp.def.res.una')}</p>`;
       }
     } else {
@@ -329,9 +345,48 @@
       </div>`;
     }
 
+    /* Los tres patrones con los que se ataca de verdad, y cómo aguanta cada
+       defensa contra cada uno. Es la tabla la que decide, no yo: afinar
+       contra mono puede darte veinte puntos o ninguno según con quién
+       juegues, y eso sólo se ve mirándolo. */
+    let eleccion = '';
+    if (ops.length > 1) {
+      const botones = ops.map(o =>
+        `<button type="button" class="modo${o.clave === op.clave ? ' on' : ''}" ` +
+        `data-def="${esc(o.clave)}">${esc(t('pvp.def.fam.' + o.clave))}</button>`
+      ).join('');
+
+      const cols = res.familias || ['mono', 'dos', 'una'];
+      const mejorDe = {};
+      cols.forEach(f => {
+        mejorDe[f] = Math.max.apply(null, ops.map(o => o.contra[f]));
+      });
+
+      const filas = ops.map(o => `<tr${o.clave === op.clave ? ' class="on"' : ''}>
+        <th>${esc(t('pvp.def.fam.' + o.clave))}</th>
+        ${cols.map(f => `<td${o.contra[f] >= mejorDe[f] - 1e-9 ? ' class="top"' : ''}>${
+          num(o.contra[f] * 100)} %</td>`).join('')}
+      </tr>`).join('');
+
+      /* Si la que miras sale igual que la equilibrada, se dice: dos filas
+         idénticas en la tabla parecen un fallo y son un resultado. */
+      const misma = op.igualBase
+        ? `<p class="hint">${esc(t('pvp.def.fam.igual'))}</p>` : '';
+
+      eleccion = `<div class="modo-btns def-btns" role="group">${botones}</div>
+        <table class="fam-tabla">
+          <thead><tr><th></th>${cols.map(f =>
+            `<th>${esc(t('pvp.def.fam.c.' + f))}</th>`).join('')}</tr></thead>
+          <tbody>${filas}</tbody>
+        </table>
+        ${misma}
+        <p class="note">${t('pvp.def.fam.d')}</p>`;
+    }
+
     return `${cabecera}
       ${comparacion}
       <h3 class="sub-tit">${esc(t('pvp.def.reco'))}</h3>
+      ${eleccion}
       <div class="def-guardias">${guardias}${banquillo}</div>
       ${avisoBanco}
       <p class="note">${t('pvp.def.how')}</p>
@@ -415,6 +470,151 @@
     </div>`;
   }
 
+  /* ---------- cuántos ataques para hundirlo ----------
+     Aritmética pura: no depende del rival elegido ni de tu tripulación,
+     sólo del casco que le quede y de si lleva kit. Da por hecho que
+     consigues el marcador que haga falta — arriba tienes cada cuánto te
+     sale de verdad. */
+  const NOMBRE_GOLPE = {
+    g30:  () => t('pvp.mk.g30'),
+    g21a: () => t('pvp.mk.g21') + ' · ' + t('pvp.hundir.amplio'),
+    g21t: () => t('pvp.mk.g21') + ' · ' + t('pvp.hundir.ajust'),
+    p21t: () => t('pvp.mk.p12') + ' · ' + t('pvp.hundir.ajust'),
+    p21a: () => t('pvp.mk.p12') + ' · ' + t('pvp.hundir.amplio'),
+    p03:  () => t('pvp.mk.p03')
+  };
+
+  /* "3 h 15 min". Nunca en minutos sueltos a partir de la hora: lo que se
+     quiere ver es si esto es una tarde o un rato. */
+  function reloj(min){
+    const h = Math.floor(min / 60), m = Math.round(min % 60);
+    if (!h) return m + ' min';
+    return h + ' h' + (m ? ' ' + m + ' min' : '');
+  }
+
+  const valor = (id, cae) => {
+    const e = document.getElementById(id);
+    return e ? e.value : cae;
+  };
+
+  /* Lo que antes se elegía a mano y ahora se mira solo.
+
+     Un Comandante TUYO te da dos abordajes por turno. Un Músico SUYO le
+     parte el aturdimiento por la mitad, y es el suyo el que manda: no
+     puedes atacar a una tripulación aturdida, así que su aturdimiento es
+     tu tiempo de espera. */
+  const tengoRol = rol => mios().some(c => c.r === rol);
+
+  function suMusico(){
+    const r = RV.porId(els.sel.value);
+    if (!r || !r.r || !r.r.length) return false;   // sin rival elegido, lo caro
+    return r.r.some(m => {
+      if (m.e === RV.CAIDO) return false;          // caído no cuenta
+      const c = porNombre(m.n);
+      return c && c.r === 'Musician';
+    });
+  }
+
+  /* Con qué desgastas. Perdiendo no hay nada que suponer: perder se puede
+     siempre. Ganando sí, y ahí estaba el engaño de la primera versión —
+     elegía el 3-0 en todos los abordajes, que es el mejor caso posible.
+
+     Un 3-0 se consigue cuando le conoces las TRES guardias; si no, sabes
+     que ganas pero no con qué marcador, y contar con el 3-0 es contar con
+     que suene la flauta seis veces seguidas. Así que sin la libreta
+     completa el desgaste ganando se queda en 2-1. */
+  function conoceGuardias(){
+    const r = RV.porId(els.sel.value);
+    if (!r) return false;
+    const nG = RV.nGuardias(r);
+    return r.g.slice(0, nG).filter(g => g.every(p => p)).length >= nG;
+  }
+
+  function marcadoresDesgaste(){
+    if (valor('hundirDesg', 'perder') === 'perder') return ['p21t', 'p21a', 'p03'];
+    return conoceGuardias() ? ['g30', 'g21a', 'g21t'] : ['g21a', 'g21t'];
+  }
+
+  function hundirHTML(){
+    const caja = document.getElementById('hundirCasco');
+    if (!caja) return '';
+    const chk = document.getElementById('hundirKit');
+
+    const casco = Math.max(1, Math.min(R.HULL, Math.round(Number(caja.value) || R.HULL)));
+    const conComandante = tengoRol('Commander');
+    const conMusico     = suMusico();
+
+    const r = M.comoHundirlo(casco, chk && chk.checked, {
+      porTurno:       conComandante ? 2 : 1,
+      suAturdimiento: conMusico ? 45 : 90,
+      desgaste:       marcadoresDesgaste(),
+      remate:         valor('hundirRemate', 'g30')
+    });
+
+    /* Se dice qué se ha detectado: si no, salen números y no se sabe de
+       dónde. */
+    const auto = document.getElementById('hundirAuto');
+    if (auto) {
+      const trozos = [
+        t(conComandante ? 'pvp.hundir.autoCmd2' : 'pvp.hundir.autoCmd1'),
+        t(conMusico ? 'pvp.hundir.autoMus45' : 'pvp.hundir.autoMus90')
+      ];
+      if (valor('hundirDesg', 'perder') === 'ganar' && !conoceGuardias()) {
+        trozos.push(t('pvp.hundir.sin30'));
+      }
+      auto.innerHTML = trozos.map(esc).join(' · ');
+    }
+
+    if (!r.ok) return `<p class="hint err">${esc(t('pvp.hundir.no'))}</p>`;
+
+    let h = r.inicio;
+    const filas = r.pasos.map((p, i) => {
+      const desde = h;
+      h = p.queda;
+      const gana = p.k.charAt(0) === 'g';
+      return `<div class="hun-fila${p.queda === 0 ? ' final' : ''}">
+        <span class="hun-n">${i + 1}</span>
+        <span class="hun-q ${gana ? 'gana' : 'pierde'}">${esc(NOMBRE_GOLPE[p.k]())}</span>
+        <span class="hun-d">&minus;${num(p.d)}</span>
+        <span class="hun-h">${num(desde)} &rarr; ${p.queda === 0
+          ? `<b>${esc(t('pvp.hundir.hundido'))}</b>` : num(p.queda)}</span>
+        ${p.kit ? `<span class="hun-kit">${esc(t('pvp.hundir.salta'))}</span>` : ''}
+      </div>`;
+    }).join('');
+
+    const n = r.pasos.length;
+
+    /* Las tres cifras que deciden si el plan compensa, y la del tiempo la
+       primera: contar ataques engaña, porque cada derrota son 90 minutos
+       aturdido en los que no haces nada. */
+    const resumen = `<div class="hun-total">
+      <div class="hun-caja">
+        <span>${esc(t('pvp.hundir.tiempo'))}</span>
+        <b>${esc(reloj(r.minutos))}</b>
+        <em>${num(r.turnos, 1)} ${esc(t('pvp.hundir.turnos'))}</em>
+      </div>
+      <div class="hun-caja">
+        <span>${esc(t('pvp.hundir.ataques'))}</span>
+        <b>${n}</b>
+        <em>${r.derrotas} ${esc(t('pvp.hundir.derrotas'))}</em>
+      </div>
+      <div class="hun-caja">
+        <span>${esc(t('pvp.hundir.tuCasco'))}</span>
+        <b class="${r.tuCasco >= R.HULL ? 'mal' : ''}">&minus;${num(r.tuCasco)}</b>
+        <em>${esc(t('pvp.hundir.deCasco'))}</em>
+      </div>
+    </div>`;
+
+    /* El aviso que de verdad hace falta: si el plan te cuesta más casco del
+       que tienes, el que se hunde eres tú antes que él. */
+    const aviso = r.tuCasco >= R.HULL
+      ? `<p class="aviso-cambio"><b>${esc(t('pvp.hundir.caroT'))}</b>
+         <span>${t('pvp.hundir.caro')}</span></p>`
+      : '';
+
+    return resumen + aviso + `<div class="hundir">${filas}</div>`;
+  }
+
   /* ---------- montaje ---------- */
 
   /* Dos desplegables encadenados, como el mar y la isla del PvE: eliges la
@@ -476,12 +676,52 @@
     if (els.sel.selectedIndex === -1) els.sel.value = '';
   }
 
+  function repintaHundir(){
+    const salida = document.getElementById('hundirOut');
+    if (salida) salida.innerHTML = hundirHTML();
+  }
+
   function repinta(){
     els.out.innerHTML = planHTML();
     els.def.innerHTML = defensaHTML();
+    repintaHundir();
   }
 
   els.sel.addEventListener('change', repinta);
+
+  /* Cambiar de defensa repinta solo ese panel. */
+  els.def.addEventListener('click', e => {
+    const b = e.target.closest('[data-def]');
+    if (!b) return;
+    const k = b.getAttribute('data-def');
+    if (k === defOpcion) return;
+    defOpcion = k;
+    try { localStorage.setItem(DEF_KEY, k); }
+    catch(err){ /* si el navegador lo bloquea, dura la sesión */ }
+    els.def.innerHTML = defensaHTML();
+  });
+
+  ['hundirCasco', 'hundirKit', 'hundirDesg', 'hundirRemate'].forEach(id => {
+    const e = document.getElementById(id);
+    if (e) e.addEventListener('input', repintaHundir);
+  });
+
+  /* Las opciones llevan el daño dentro —«Perder 1-2 ajustado (−180)»— para
+     que no haya que fiarse de nada: eliges un marcador concreto y ves lo
+     que hace. Se pintan a mano porque el nombre es compuesto y el daño sale
+     de la tabla. */
+  function nombraGolpes(){
+    ['hundirRemate'].forEach(id => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      Array.prototype.forEach.call(sel.options, o => {
+        const k = o.value;
+        if (!NOMBRE_GOLPE[k]) return;
+        o.textContent = NOMBRE_GOLPE[k]() +
+          '  (−' + num(Math.round(R.CASCO[k].el * R.HULL)) + ')';
+      });
+    });
+  }
 
   /* Cambiar de alianza rehace la lista de rivales. Si el que tenías elegido
      ya no está en ella, el segundo desplegable vuelve a "elige un rival" y
@@ -513,7 +753,9 @@
     if (salida) salida.innerHTML = simularHTML();
   });
 
-  document.addEventListener('langchange', () => { llenarAlianzas(); llenarSelect(); repinta(); });
+  document.addEventListener('langchange', () => {
+    llenarAlianzas(); llenarSelect(); nombraGolpes(); repinta();
+  });
 
   /* Los desgloses vuelven como los dejaste. */
   const ABRE_KEY = 'opmaps-pvp-abre';
@@ -536,5 +778,6 @@
   pintaModo();
   llenarAlianzas();
   llenarSelect();
+  nombraGolpes();
   repinta();
 })();

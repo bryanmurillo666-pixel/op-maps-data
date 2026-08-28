@@ -1849,3 +1849,101 @@ details.sub-plegable > summary .bloque-tit{
   .riv-filtros input[type="search"]{flex:1 1 100%;min-height:38px}
   .rival-tag{min-height:38px}
 }
+
+/* ============================================================
+   Cuántos ataques para hundirlo
+   ============================================================ */
+
+.hundir-form{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px}
+.hundir-form .campo-corto{flex:0 0 130px}
+.hundir-form input[type="number"]{
+  background:var(--sea);border:0.5px solid var(--line-str);border-radius:9px;
+  color:var(--parch);font-family:var(--mono);font-size:14px;font-weight:700;
+  padding:9px 10px;width:100%;
+}
+.chk{display:flex;align-items:center;gap:8px;cursor:pointer;padding-bottom:9px}
+.chk input{width:17px;height:17px;accent-color:var(--brass);cursor:pointer}
+.chk span{font-size:12.5px;color:var(--mist)}
+
+.hundir{display:grid;grid-template-columns:minmax(0,1fr);gap:5px}
+.hun-fila{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:8px 11px;border-radius:9px;
+  border:0.5px solid var(--line);background:var(--hull-2);
+}
+.hun-fila.final{border-color:var(--line-str);background:rgba(88,180,166,.07)}
+.hun-n{
+  flex:0 0 auto;font-family:var(--mono);font-size:10px;color:var(--mist);
+  min-width:14px;
+}
+.hun-q{flex:1;min-width:0;font-size:12.5px}
+.hun-q.gana{color:var(--foam)}
+.hun-q.pierde{color:var(--blood)}
+.hun-d{flex:0 0 auto;font-family:var(--mono);font-size:12px;color:var(--brass)}
+.hun-h{
+  flex:0 0 auto;font-family:var(--mono);font-size:11px;color:var(--mist);
+  min-width:118px;text-align:right;
+}
+.hun-h b{color:var(--foam)}
+.hun-kit{
+  flex:0 0 auto;font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;
+  color:#1a1206;background:var(--brass-dim);border-radius:999px;padding:2px 8px;
+}
+@media (max-width:640px){
+  .hun-q{flex:1 0 100%}
+  .hun-h{margin-left:auto;min-width:0}
+}
+
+/* Las tres cifras del plan de hundimiento. El tiempo va primero a
+   propósito: contar ataques engaña, porque cada derrota son 90 minutos
+   aturdido en los que no se hace nada. */
+.hun-total{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.hun-caja{
+  display:flex;flex-direction:column;gap:1px;align-items:center;
+  padding:9px 8px;border-radius:11px;
+  border:0.5px solid var(--line);background:var(--hull-2);
+}
+.hun-caja span{
+  font-family:var(--mono);font-size:9px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--mist);text-align:center;
+}
+.hun-caja b{font-family:var(--display);font-size:22px;line-height:1.15;color:var(--brass)}
+.hun-caja b.mal{color:var(--blood)}
+.hun-caja em{font-family:var(--mono);font-size:10px;font-style:normal;color:var(--mist)}
+@media (max-width:520px){
+  .hun-total{grid-template-columns:minmax(0,1fr)}
+  .hun-caja{flex-direction:row;justify-content:space-between;align-items:baseline;gap:10px}
+  .hun-caja b{font-size:19px}
+}
+
+/* ============================================================
+   Las tres defensas
+   ============================================================ */
+
+.def-btns{margin:2px 0 12px}
+.fam-tabla{
+  width:100%;border-collapse:collapse;margin-bottom:6px;
+  font-family:var(--mono);font-size:11.5px;
+}
+.fam-tabla th,
+.fam-tabla td{padding:6px 8px;border-bottom:0.5px solid var(--line);text-align:right}
+.fam-tabla thead th{
+  font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--mist);
+  border-bottom-color:var(--line-str);
+}
+.fam-tabla tbody th{
+  text-align:left;font-weight:400;color:var(--mist);
+  font-family:var(--sans);font-size:12.5px;
+}
+.fam-tabla tbody tr.on th{color:var(--parch);font-weight:600}
+.fam-tabla tbody tr.on{background:var(--hull-2)}
+.fam-tabla td{color:var(--mist)}
+.fam-tabla td.top{color:var(--foam)}
+.fam-tabla tbody tr.on td{color:var(--parch)}
+.fam-tabla tbody tr.on td.top{color:var(--foam);font-weight:700}
+@media (max-width:520px){
+  .fam-tabla{font-size:10.5px}
+  .fam-tabla th,.fam-tabla td{padding:5px 4px}
+  .fam-tabla tbody th{font-size:11.5px}
+  .def-btns .modo{flex:1 1 33%;font-size:9px;padding:9px 4px;min-height:36px}
+}

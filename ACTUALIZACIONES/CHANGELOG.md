@@ -5,6 +5,208 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.9.8 — 26 ago 2026
+
+**Tres defensas en vez de una, y la tabla que dice cuál.** Estaba propuesto
+desde hace días y se me quedó esperando una confirmación que nunca pedí bien.
+
+El reparo era este: la recomendación de guardias mide contra las **27**
+combinaciones de táctica de un trío **por igual**. De esas, `3` son mono (las
+tres iguales), `18` son 2+1 y `6` una de cada — así que mono y 2+1 ya pesan el
+`78 %` y el modelo nunca dio por hecho «una de cada», como parecía. Pero pesarlas
+por igual sigue siendo una suposición: si en tu servidor se juega mono mucho más
+de lo que sale por azar, esa media está mal repartida.
+
+La respuesta no es tocar los pesos a ojo, es **enseñar las tres y dejar decidir**:
+
+```
+                  mono    2+1   1 de c/u
+Equilibrada       67 %   78 %      67 %
+Contra mono       93 %   64 %      80 %
+Contra 1 de cada  67 %   67 %     100 %
+```
+
+**No hay «contra 2 iguales + 1», y el primer intento sí lo tenía.** De las 27
+combinaciones, `18` son 2+1: dos tercios de todo lo que te pueden mandar. La
+equilibrada ya está dominada por ese patrón, así que afinar contra él devolvía
+**las mismas guardias** y un botón que no hacía nada. Las dos especializaciones
+que sí cambian algo son **todas iguales** y **todas distintas** — y esta última acierta el
+`100 %` cuando el rival reparte, contra el `67 %` de la equilibrada.
+
+Aun así dos defensas pueden coincidir con un rival concreto, y eso se dice en
+pantalla: dos filas idénticas en la tabla parecen un fallo y son un resultado.
+
+Y qué es cada patrón, que sin eso la tabla no dice nada:
+
+| Patrón | Ejemplo |
+|---|---|
+| **Todas iguales** | Asalto · Asalto · Asalto |
+| **2 iguales + 1** | Asalto · Asalto · Maniobra |
+| **Todas distintas** | Asalto · Maniobra · Emboscada |
+
+Se llamaban `mono` / `2+1` / `1 de cada`, que era la jerga con la que salieron
+del código. Dichos así se entienden sin explicación, y el mismo nombre vale
+ahora para el patrón de guardias que se detecta en el plan de ataque.
+
+Cada defensa está afinada contra un patrón y **medida contra los tres**, que es
+lo que deja ver el precio de especializarse. Y no es un precio fijo: probado en
+seis emparejamientos distintos, afinar contra mono da desde **`+3` puntos hasta
+`+27`** según con quién juegues, y contra 2+1 de `0` a `+11`. A veces compensa
+mucho y a veces nada — pero eso sólo se ve mirándolo, que es justo lo que antes
+no se podía hacer.
+
+Cambias de defensa con tres botones y se recuerda cuál miras, como el modo del
+plan de ataque. Las guardias, las reservas y la comparación con las que tienes
+puestas se recalculan con la elegida.
+
+### Por dentro
+
+El coste de una guardia contra los ataques del rival ya estaba en una máscara de
+bits. Lo único que hacía falta era **partir esa máscara por patrón**: cada
+candidata guarda ahora cuántos ataques de cada familia la tumban, así que medir
+cualquier defensa contra cualquier patrón es sumar tres números, sin rehacer
+nada. La búsqueda se ejecuta tres veces —`229 ms` en total— y el banquillo se
+recalcula para cada una, porque las reservas salen de quien no entró en las
+guardias y eso cambia con la defensa.
+
+La medida de la tabla va **sin el peso del último ataque apuntado**: ese
+pertenece a una familia concreta, y colarlo en la medida de las otras dos
+falsearía la comparación.
+
+### Comprobaciones
+
+`6` sobre la página: que salgan los tres botones y la tabla de 3×3, que arranque
+en la equilibrada, que al pulsar «contra mono» cambie el botón, cambien las
+guardias y se marque la fila correcta.
+
+---
+
+## 1.9.6 — 26 ago 2026
+
+### La salud apuntada caduca sola
+
+Un «Caído» de hace medio día no es un caído: es una anotación vieja, y el modelo
+la usaba para decidir si entraba una reserva. Ahora vuelve a **Sano** sola,
+con los números de la guía en vez de un número redondo — descansar cura el
+`10 %` de la vida por turno y un turno son `30 min`:
+
+| Banda | Turnos hasta el 70 % | Caduca a las |
+|---|---|---|
+| Herido (30-69 %) | `4` | **2 h** |
+| Crítico (1-29 %) | `7` | **3,5 h** |
+| Caído (0 %) | `4` para revivir al 20 % + `5` más | **4,5 h** |
+
+Es una estimación, no una regla, y la pantalla lo dice: descansar es voluntario
+y quien esté navegando o peleando no se cura. Pero equivocarse por creer que
+alguien sigue tumbado sale más caro que equivocarse al revés.
+
+Cada rival guarda **cuándo** apuntaste su salud, aparte de la fecha del rival
+entero. Al fusionar libretas, la salud la decide **esa** fecha: alguien pudo
+apuntar una guardia hace un minuto sin volver a mirar quién estaba tocado. La
+caducidad se aplica al **leer** la libreta, no con un temporizador, así que
+funciona igual si dejas la pestaña abierta media tarde que si vuelves mañana.
+
+### Plan de hundimiento
+
+Metes el casco que le queda y sale la tanda **más corta** de abordajes que lo
+hunde. Tres reglas lo gobiernan, todas de la guía:
+
+- el daño al casco depende **sólo del marcador**, y es una parte del casco
+  máximo: cantidades fijas, no porcentajes de lo que quede
+- el casco del ganador se desgasta pero **nunca se destruye**, así que el golpe
+  final tiene que ser una victoria; perdiendo se le puede dejar en 1, no en 0
+- su Kit de Emergencia salta solo al bajar de `450` y repara `600`
+
+Y de ahí sale lo interesante, que es lo que hace falta ver: **hay que dejarlo
+entre 451 y 525 antes del golpe final**. Por debajo de 450 el kit lo revive; por
+encima de 525 no hay golpe que lo hunda. Son 75 puntos de margen.
+
+```
+casco 1500  CON kit  ->  4 ataques
+   1. Ganar 3-0   −525   1500 →  975
+   2. Ganar 3-0   −525    975 → 1050   ← salta su kit +600
+   3. Ganar 3-0   −525   1050 →  525
+   4. Ganar 3-0   −525    525 → HUNDIDO
+
+casco 1500  SIN kit  ->  3 ataques
+```
+
+El kit le vale **un abordaje entero**. Y desde `1020` bastan dos, porque
+`1020 − 525 = 495` cae dentro de la ventana y el kit no llega a saltar.
+
+Por dentro es una búsqueda en anchura sobre `(casco, kit)` — unas doscientas
+situaciones posibles, así que se recorre entera y la tanda sale **mínima de
+verdad**, no «la primera que se encontró». Es aritmética pura: no depende de tu
+tripulación ni del rival elegido, y la pantalla avisa de que da por hecho que
+consigues el marcador que haga falta.
+
+**Corregido dos veces el mismo día, y la segunda por un renglón de la guía que
+lo cambia todo.** Entre los requisitos para poder atacar:
+
+> «the other crew cannot be stunned»
+
+O sea que el aturdimiento que te frena **no es el tuyo, es el suyo**. Y el suyo
+sólo salta cuando él **pierde**, o sea cuando tú ganas:
+
+- **ganas** → se queda aturdido `90 min` (`45` si tiene Músico en pie) y no
+  puedes volver a atacarle hasta que se le pase
+- **pierdes** → él ha ganado, así que no se aturde: puedes seguir enseguida
+
+De ahí sale, contra toda intuición, que **desgastarlo perdiendo es más rápido
+que ganarle**: cada victoria tuya le regala hora y media de respiro. El primer
+intento del día contaba el aturdimiento del atacante y salía justo al revés.
+
+Tu propio aturdimiento ya no se cuenta: Super Café, Lágrimas de Sirena y Café
+Cargado lo quitan.
+
+Ahora optimiza **tiempo**, no número de abordajes, y lo enseña primero:
+
+Y **nada de eso se pregunta**: un Comandante en TU tripulación te da dos
+abordajes por turno, y un Músico en pie en la SUYA le parte el aturdimiento por
+la mitad. Las dos cosas están en los datos que ya tienes, así que se miran
+solas y la pantalla dice qué ha detectado.
+
+Con el modelo bien puesto, la tanda que sale sola es exactamente la que se juega
+de verdad:
+
+```
+7 abordajes · 1 h 45 min (3,5 turnos) · 6 derrotas · te cuesta 1950
+
+  1..5  Perder 1-2 ajustado   −180   1500 → 600
+  6     Perder 0-3            − 75    600 → 525
+  7     Ganar 3-0             −525    525 → HUNDIDO
+```
+
+Y salen dos cifras más que deciden por sí solas: cuántas de esas son derrotas, y
+**lo que te cuesta a ti de casco**. Si el plan te cuesta más de `1500`, el que se
+hunde eres tú antes que él, y la pantalla lo dice con todas las letras.
+
+Se eligen además **con qué desgastas** —solo ganando o solo perdiendo— y **con
+qué rematas**, que es como se juega de verdad: le bajas la vida con lo que
+puedas y das el golpe final cuando ya conoces su guardia. Con «solo perdiendo»,
+que es lo que sale por defecto, aparece exactamente la tanda de
+`5×180 + 75 → 525 → 3-0`.
+
+Y una trampa que tenía la primera versión: **«solo ganando» daba por hecho un
+3-0 en cada abordaje**. Un 3-0 se consigue cuando le conoces las **tres**
+guardias; sin la libreta completa sabes que ganas, pero no con qué marcador, y
+contar con el 3-0 seis veces seguidas es contar con que suene la flauta. Ahora,
+mientras no tengas sus tres guardias apuntadas, el desgaste ganando se queda en
+**2-1** y la pantalla dice por qué. El remate sí lo eliges tú a mano: es el
+único golpe que se planea.
+
+Por dentro pasa de anchura a **Dijkstra con el tiempo como coste**. Y sale de la
+pestaña del plan de ataque a **su propio pliegue**.
+
+### Comprobaciones
+
+`8` pruebas nuevas de caducidad (que a las 2 h el herido esté sano y el caído
+no, que a las 4,5 h lo esté también, que al curarse todos se borre la fecha, y
+que marcar a alguien la selle) y el calculador contrastado a mano en cinco
+cascos. Los dos bancos siguen sin fallos.
+
+---
+
 ## 1.9.5 — 25 ago 2026
 
 **Dos arreglos de lo de ayer, y los dos por lo mismo: esconder un control no lo

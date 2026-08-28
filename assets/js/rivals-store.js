@@ -44,6 +44,20 @@ window.RIVALES = (function () {
   const ESTADOS = ['ok', 'her', 'cri', 'ko'];
   const CAIDO   = 'ko';
 
+  /* Cuánto tarda cada banda en volver a Sano, con los números de la guía:
+     descansar cura el 10 % de la vida por turno, y un turno son 30 min.
+
+       Herido  (30-69 %) → 70 %:  4 turnos           = 2 h
+       Crítico (1-29 %)  → 70 %:  7 turnos           = 3,5 h
+       Caído   (0 %)     → 4 turnos para revivir al 20 %,
+                           y 5 más hasta el 70 %:     = 4,5 h
+
+     Es una estimación, no una regla: descansar es voluntario y quien esté
+     navegando o peleando no se cura. Pero dar por bueno un "Caído" que
+     apuntaste hace medio día engaña mucho más de lo que ayuda, y el modelo
+     lo usa para decidir si entra una reserva. */
+  const CURA = { her: 2 * 3600e3, cri: 3.5 * 3600e3, ko: 4.5 * 3600e3 };
+
   let lista = [];
 
   const existe = n => n === VACIO || window.CHARACTERS.some(c => c.n === n);
@@ -112,7 +126,9 @@ window.RIVALES = (function () {
       g:  g,
       res: res,
       a:  a,
-      ts: Number(r.ts) || 0
+      ts: Number(r.ts) || 0,
+      // cuándo apuntaste su salud, para saber cuándo dejar de creértela
+      tsE: Number(r.tsE) || 0
     };
   }
 
@@ -137,7 +153,24 @@ window.RIVALES = (function () {
   const ahora = () => Date.now();
   function toca(r){ if (r) r.ts = ahora(); }
 
-  const porId = id => lista.find(r => r.id === id) || null;
+  /* Devuelve los estados a Sano cuando ha pasado tiempo de sobra. Se llama
+     al leer la libreta, no con un temporizador: así funciona igual si
+     dejas la pestaña abierta media tarde que si la abres al día siguiente. */
+  function caducaEstados(){
+    const ya = Date.now();
+    let cambio = false;
+    lista.forEach(r => {
+      if (!r.tsE) return;
+      const pasado = ya - r.tsE;
+      r.r.forEach(m => {
+        if (m.e !== 'ok' && pasado >= CURA[m.e]) { m.e = 'ok'; cambio = true; }
+      });
+      if (r.r.every(m => m.e === 'ok')) { r.tsE = 0; cambio = true; }
+    });
+    if (cambio) guardar();
+  }
+
+  const porId = id => { caducaEstados(); return lista.find(r => r.id === id) || null; };
 
   /* Cuántas guardias reparte el juego a esa tripulación. Con dos
      personajes solo salen dos; con uno o con tres o más, tres. */
@@ -153,7 +186,7 @@ window.RIVALES = (function () {
     if (lista.some(r => r.n.toLowerCase() === n.toLowerCase())) return null;
     const r = {
       id: 'r' + Date.now() + Math.random().toString(36).slice(2, 7),
-      n: n, tag: '', r: [], a: [], ts: ahora(), res: [null, null],
+      n: n, tag: '', r: [], a: [], ts: ahora(), tsE: 0, res: [null, null],
       g: [guardiaVacia(), guardiaVacia(), guardiaVacia()]
     };
     lista.push(r);
@@ -217,7 +250,12 @@ window.RIVALES = (function () {
     const r = porId(id);
     if (!r) return;
     const m = r.r.find(x => x.n === nombre);
-    if (m && ESTADOS.indexOf(estado) !== -1) { m.e = estado; toca(r); guardar(); }
+    if (m && ESTADOS.indexOf(estado) !== -1) {
+      m.e = estado;
+      if (estado !== 'ok') r.tsE = ahora();
+      toca(r);
+      guardar();
+    }
   }
 
   /* ---------- sus guardias ---------- */
@@ -341,7 +379,8 @@ window.RIVALES = (function () {
       r.a.map(at => [at.p.map(codPuesto), at.w]),
       r.ts || 0,
       r.res.map(codPuesto),
-      r.tag || ''
+      r.tag || '',
+      r.tsE || 0
     ]);
     return CABECERA + b64(JSON.stringify(datos));
   }
@@ -356,7 +395,10 @@ window.RIVALES = (function () {
     const mandaSuyo = (suyo.ts || 0) > (mio.ts || 0);
     let cambio = false;
 
-    // su tripulación: la unión de las dos. El estado, del más reciente.
+    /* Su tripulación: la unión de las dos. Para la SALUD manda su propia
+       fecha, no la del rival entero: alguien pudo apuntar una guardia hace
+       un minuto sin volver a mirar quién estaba tocado. */
+    const saludSuya = (suyo.tsE || 0) > (mio.tsE || 0);
     suyo.r.forEach(m => {
       const ya = mio.r.find(x => x.n === m.n);
       if (!ya) {
@@ -364,8 +406,9 @@ window.RIVALES = (function () {
           mio.r.push({ n: m.n, e: m.e });
           cambio = true;
         }
-      } else if (ya.e !== m.e && mandaSuyo) { ya.e = m.e; cambio = true; }
+      } else if (ya.e !== m.e && saludSuya) { ya.e = m.e; cambio = true; }
     });
+    if (saludSuya && suyo.tsE) { mio.tsE = suyo.tsE; cambio = true; }
 
     // sus guardias, puesto a puesto
     for (let i = 0; i < GUARDIAS; i++){
@@ -426,7 +469,8 @@ window.RIVALES = (function () {
       })),
       ts: d[4] || 0,
       res: (Array.isArray(d[5]) ? d[5] : []).map(dePuesto),
-      tag: d[6] || ''
+      tag: d[6] || '',
+      tsE: d[7] || 0
     });
   }
 
@@ -470,7 +514,8 @@ window.RIVALES = (function () {
     CAIDO:    CAIDO,
     /* Sale ordenada por lo último que se tocó. Con la libreta llena, lo que
        acabas de averiguar es lo que quieres tener delante. */
-    lista:     () => lista.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)),
+    lista:     () => { caducaEstados();
+                       return lista.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)); },
     porId:     porId,
     nGuardias: nGuardias,
     añadir:    añadir,

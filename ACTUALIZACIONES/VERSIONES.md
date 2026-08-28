@@ -1,10 +1,10 @@
 # Versiones que sigue el sitio
 
-Estado a **25 de agosto de 2026**.
+Estado a **26 de agosto de 2026**.
 
 | Fuente | Versión | Fecha | Estado |
 |---|---|---|---|
-| Sitio OP-MAPS DATA | `1.9.5` | 25 ago 2026 | sin publicar |
+| Sitio OP-MAPS DATA | `1.9.8` | 26 ago 2026 | sin publicar |
 | Guía del jugador | `5.1` | 20 ago 2026 | ✅ aplicada |
 | Changelog del juego | `v0.44.0` | 18 ago 2026 | ✅ leído |
 | Álbum del juego (ES/EN) | export | 16 ago 2026 | ✅ 226 personajes verificados |

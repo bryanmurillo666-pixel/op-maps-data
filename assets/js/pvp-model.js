@@ -615,6 +615,166 @@ window.PVP_MODEL = (function () {
     };
   }
 
+  /* ---------- ¿cuántos ataques para hundirlo? ----------
+     Se le mete el casco que le queda y sale la tanda más corta de
+     abordajes que lo hunde. Tres reglas lo gobiernan, y las tres son de la
+     guía:
+
+       - el daño al casco sólo depende del marcador, y es una parte del
+         casco MÁXIMO: cantidades fijas, no porcentajes de lo que quede
+       - el casco del ganador se desgasta pero NUNCA se destruye, así que
+         el golpe final tiene que ser una victoria; perdiendo se le puede
+         dejar en 1, no en 0
+       - su Kit de Emergencia salta solo al bajar de 450 y repara 600
+
+     Y de ahí sale lo bonito del asunto: si tiene kit, hay que dejarlo en
+     la ventana (450, 525] antes del golpe final. Por debajo de 450 el kit
+     lo devuelve a la vida; por encima de 525 no hay golpe que lo hunda.
+     Son 75 puntos de margen.
+
+     Búsqueda en anchura sobre (casco, kit) — unas doscientas situaciones
+     posibles, así que se recorre entera y la tanda sale mínima de verdad,
+     no "la primera que se encontró". */
+  const GOLPES = [
+    { k: 'g30',  gana: true  },
+    { k: 'g21a', gana: true  },
+    { k: 'g21t', gana: true  },
+    { k: 'p21t', gana: false },
+    { k: 'p21a', gana: false },
+    { k: 'p03',  gana: false }
+  ];
+
+  const TOPE_ATAQUES = 14;
+
+  /* Lo que cuesta cada abordaje EN TIEMPO, y aquí hay una vuelta de tuerca
+     que lo cambia todo. La guía, entre los requisitos para poder atacar:
+
+         «the other crew cannot be stunned»
+
+     O sea que el aturdimiento que te frena no es el tuyo: es el SUYO. Y el
+     suyo sólo salta cuando PIERDE, o sea cuando tú ganas.
+
+       ganas   → se queda aturdido 90 min (45 si tiene Músico en pie)
+                 y no puedes volver a atacarle hasta que se le pase
+       pierdes → él ha ganado, así que no se aturde: puedes seguir ya
+
+     De ahí sale, contra toda intuición, que **desgastarlo perdiendo es más
+     rápido que ganarle**: cada victoria tuya le regala hora y media de
+     respiro. Tu propio aturdimiento no se cuenta — Super Café, Lágrimas de
+     Sirena o Café Cargado lo quitan, y así lo pidió quien usa esto.
+
+       coste de una derrota = 30 / abordajesPorTurno
+       coste de una victoria = 30 / abordajesPorTurno + su aturdimiento
+
+     Es una aproximación: el aturdimiento puede solaparse con el final de un
+     turno y salir algo más barato. Pero el orden de magnitud es el que es. */
+  const TURNO = 30;
+
+  function comoHundirlo(casco, conKit, opciones){
+    const o = opciones || {};
+    const H       = R.HULL;
+    const porTurno = Math.max(1, Math.min(2, Number(o.porTurno) || 1));
+    // el aturdimiento que cuenta es el SUYO, y sólo lo sufre al perder
+    const suAturde = Math.max(0, Number(o.suAturdimiento) || 0);
+    const inicio   = Math.max(1, Math.min(H, Math.round(Number(casco) || H)));
+
+    /* Con qué desgastas y con qué rematas. Es la forma en que se juega de
+       verdad: se le baja la vida con lo que salga y el golpe final se da
+       cuando conoces su guardia. */
+    const permitidos = Array.isArray(o.desgaste) && o.desgaste.length
+      ? o.desgaste : GOLPES.map(g => g.k);
+    const remate = o.remate || 'g30';
+
+    const ranura = TURNO / porTurno;
+    const info = {};
+    GOLPES.forEach(g => {
+      info[g.k] = { k: g.k, gana: g.gana, d: Math.round(R.CASCO[g.k].el * H) };
+      // ganar le da un respiro; perder, no
+      info[g.k].min = ranura + (g.gana ? suAturde : 0);
+    });
+
+    const desgaste = permitidos.map(k => info[k]).filter(Boolean);
+    const final    = info[remate];
+    if (!final || !final.gana) return { ok: false, inicio: inicio, motivo: 'remate' };
+
+    /* Dijkstra sobre (casco, kit) con el tiempo como coste. El espacio es
+       pequeño —el casco se mueve en múltiplos de 15— así que se recorre
+       entero y la respuesta es la más rápida de verdad. */
+    const clave = (h, kit) => h + '|' + (kit ? 1 : 0);
+    const mejor = {};
+    const raiz  = { h: inicio, kit: !!conKit, min: 0, pasos: [] };
+    mejor[clave(inicio, !!conKit)] = 0;
+
+    let cola = [raiz], salida = null;
+
+    while (cola.length) {
+      // el más barato de la cola
+      let idx = 0;
+      for (let i = 1; i < cola.length; i++) if (cola[i].min < cola[idx].min) idx = i;
+      const e = cola.splice(idx, 1)[0];
+      if (salida && e.min >= salida.min) break;
+      if (e.pasos.length >= TOPE_ATAQUES) continue;
+
+      // ¿lo remato desde aquí?
+      if (e.h <= final.d) {
+        // el golpe final no espera a nada: lo hunde y se acabó
+        const total = e.min + ranura;
+        if (!salida || total < salida.min) {
+          salida = { min: total,
+                     pasos: e.pasos.concat([{ k: final.k, d: final.d, queda: 0, kit: false }]) };
+        }
+      }
+
+      for (let j = 0; j < desgaste.length; j++) {
+        const g = desgaste[j];
+        let h = e.h - g.d;
+        if (h <= 0) {
+          /* Si el golpe con el que desgastas es una victoria y ya lo hunde,
+             pues lo hunde: no hay que reservar el remate para otro. Sólo
+             perdiendo es imposible acabar con él. */
+          if (g.gana) {
+            const total = e.min + ranura;
+            if (!salida || total < salida.min) {
+              salida = { min: total,
+                         pasos: e.pasos.concat([{ k: g.k, d: g.d, queda: 0, kit: false }]) };
+            }
+            continue;
+          }
+          h = 1;   // se desgasta pero no se destruye
+        }
+
+        let kit = e.kit, salta = false;
+        if (kit && h <= R.KIT_EMERGENCIA) {
+          h = Math.min(H, h + R.KIT_REPARA);
+          kit = false;
+          salta = true;
+        }
+
+        const min = e.min + g.min;
+        const c = clave(h, kit);
+        if (mejor[c] !== undefined && mejor[c] <= min) continue;
+        mejor[c] = min;
+        cola.push({ h: h, kit: kit, min: min,
+                    pasos: e.pasos.concat([{ k: g.k, d: g.d, queda: h, kit: salta }]) });
+      }
+    }
+
+    if (!salida) return { ok: false, inicio: inicio, conKit: !!conKit };
+
+    const derrotas = salida.pasos.filter(p => !info[p.k].gana).length;
+    return {
+      ok: true, inicio: inicio, conKit: !!conKit,
+      pasos: salida.pasos,
+      minutos: salida.min,
+      turnos: salida.min / TURNO,
+      derrotas: derrotas,
+      porTurno: porTurno,
+      suAturde: suAturde,
+      // lo que TE cuesta a ti de casco todo el plan, que no es poco
+      tuCasco: salida.pasos.reduce((s, p) => s + Math.round(R.CASCO[p.k].yo * H), 0)
+    };
+  }
+
   /* Resuelve un plan contra UNA guardia concreta, para la simulación.
      Devuelve la lista de duelos con su daño. */
   function resolver(crew, plan, guardia, suyos){
@@ -873,6 +1033,32 @@ window.PVP_MODEL = (function () {
     const rec = ataqueRecordado(rival, suyos, ataques);
     const words = Math.ceil(ataques.length / 32) || 1;
 
+    /* ---------- las tres formas de atacar ----------
+       De las 27 combinaciones de táctica de un trío, 3 son MONO (las tres
+       iguales), 18 son DOS+UNA y 6 son UNA DE CADA. Optimizar contra las 27
+       por igual da una defensa equilibrada, pero si en tu servidor la gente
+       juega mono mucho más de lo que sale por azar, esa media está mal
+       repartida.
+
+       Así que se calculan las tres defensas —la mejor contra cada patrón— y
+       se mide cada una contra los tres. El precio de especializarse se ve
+       en la tabla en vez de decidirlo por ti. */
+    const FAMILIAS = ['mono', 'dos', 'una'];
+
+    const familiaDe = t => {
+      if (t[0] === t[1] && t[1] === t[2]) return 0;                  // mono
+      if (t[0] === t[1] || t[1] === t[2] || t[0] === t[2]) return 1; // 2+1
+      return 2;                                                      // una de cada
+    };
+
+    const maskFam = [new Uint32Array(words), new Uint32Array(words), new Uint32Array(words)];
+    const nFam = [0, 0, 0];
+    for (let k = 0; k < ataques.length; k++) {
+      const f = familiaDe(ataques[k].t);
+      maskFam[f][k >> 5] |= (1 << (k & 31));
+      nFam[f]++;
+    }
+
     /* Para cada guardia tuya, los ataques suyos que la tumban. */
     const cand = defensas.map(d => {
       const w = new Uint32Array(words);
@@ -890,7 +1076,13 @@ window.PVP_MODEL = (function () {
               + R.score(mios[d.c[1]], T[d.t[1]])
               + R.score(mios[d.c[2]], T[d.t[2]]);
       const rep = rec ? ((w[rec.i >> 5] >>> (rec.i & 31)) & 1) : 0;
-      return { d: d, w: w, n: n, f: f, rep: rep };
+      // cuántos ataques de cada patrón la tumban, para poder medirla contra
+      // uno solo sin tener que rehacer la máscara
+      const nf = [0, 0, 0];
+      for (let f = 0; f < 3; f++) {
+        for (let k = 0; k < words; k++) nf[f] += popcount(w[k] & maskFam[f][k]);
+      }
+      return { d: d, w: w, n: n, nf: nf, f: f, rep: rep };
     });
 
     /* Las que menos caen, pero con tope por reparto de personajes: si no,
@@ -909,11 +1101,15 @@ window.PVP_MODEL = (function () {
     const total  = ataques.length;
     const combos = nG === 2 ? 2 : 3;
 
-    const evalua = grupo => {
+    /* fam = -1 para las 27, o 0/1/2 para un patrón concreto. */
+    const evalua = (grupo, fam) => {
+      const fm = fam >= 0 ? maskFam[fam] : null;
+      const tot = fam >= 0 ? nFam[fam] : ataques.length;
       const A = grupo[0].w, B = grupo[1].w, Cw = grupo.length > 2 ? grupo[2].w : null;
       let tres = 0, dos = 0, una = 0, suma = 0;
       for (let k = 0; k < words; k++) {
-        const a = A[k], b = B[k], c = Cw ? Cw[k] : 0;
+        const m = fm ? fm[k] : 0xFFFFFFFF;
+        const a = A[k] & m, b = B[k] & m, c = Cw ? (Cw[k] & m) : 0;
         if (Cw) {
           tres += popcount(a & b & c);
           dos  += popcount((a & b) | (a & c) | (b & c));
@@ -924,7 +1120,11 @@ window.PVP_MODEL = (function () {
         }
       }
       let fuerza = 0, repCae = 0;
-      grupo.forEach(x => { suma += x.n; fuerza += x.f; repCae += x.rep; });
+      grupo.forEach(x => {
+        suma += fam >= 0 ? x.nf[fam] : x.n;
+        fuerza += x.f;
+        repCae += x.rep;
+      });
       let peor, caenPeor;
       if (Cw && tres) { peor = 3; caenPeor = tres; }
       else if (dos)   { peor = 2; caenPeor = dos; }
@@ -933,8 +1133,8 @@ window.PVP_MODEL = (function () {
       /* Cuántas de tus guardias te tumba un ataque suyo, de media. Si has
          apuntado su último ataque, ese pesa aparte: la gente repite. */
       const coste = rec
-        ? (1 - rec.w) * (suma / total) + rec.w * repCae
-        : suma / total;
+        ? (1 - rec.w) * (suma / (tot || 1)) + rec.w * repCae
+        : suma / (tot || 1);
       return { peor: peor, caenPeor: caenPeor, suma: suma,
                coste: coste, fuerza: fuerza };
     };
@@ -961,41 +1161,63 @@ window.PVP_MODEL = (function () {
        entonces ninguna pareja cumple la regla de repetición. Así que se
        arranca de varias semillas distintas y luego se intenta mejorar
        cada guardia por separado. */
-    let mejor = null;
     const semillas = Math.min(top.length, 25);
 
-    for (let s = 0; s < semillas; s++) {
-      const grupo = [top[s]];
-      while (grupo.length < combos) {
-        let elegido = null, valor = null;
-        for (let i = 0; i < top.length; i++) {
-          if (grupo.indexOf(top[i]) !== -1 || !encajan(grupo, top[i])) continue;
-          const v = evalua(grupo.concat([top[i]]));
-          if (!valor || mejorQue(v, valor)) { valor = v; elegido = top[i]; }
-        }
-        if (!elegido) break;
-        grupo.push(elegido);
-      }
-      if (grupo.length < combos) continue;
-
-      // mejoras: se intenta cambiar cada guardia por otra mejor
-      for (let ronda = 0; ronda < 3; ronda++) {
-        for (let g = 0; g < grupo.length; g++) {
-          const resto = grupo.filter((_, k) => k !== g);
-          let actual = evalua(grupo), cambio = null;
+    function busca(fam){
+      let mejor = null;
+      for (let s = 0; s < semillas; s++) {
+        const grupo = [top[s]];
+        while (grupo.length < combos) {
+          let elegido = null, valor = null;
           for (let i = 0; i < top.length; i++) {
-            if (grupo.indexOf(top[i]) !== -1 || !encajan(resto, top[i])) continue;
-            const v = evalua(resto.concat([top[i]]));
-            if (mejorQue(v, actual)) { actual = v; cambio = top[i]; }
+            if (grupo.indexOf(top[i]) !== -1 || !encajan(grupo, top[i])) continue;
+            const v = evalua(grupo.concat([top[i]]), fam);
+            if (!valor || mejorQue(v, valor)) { valor = v; elegido = top[i]; }
           }
-          if (cambio) grupo[g] = cambio;
+          if (!elegido) break;
+          grupo.push(elegido);
         }
-      }
+        if (grupo.length < combos) continue;
 
-      const v = evalua(grupo);
-      if (mejorQue(v, mejor)) mejor = Object.assign({ trio: grupo.slice() }, v);
+        // mejoras: se intenta cambiar cada guardia por otra mejor
+        for (let ronda = 0; ronda < 3; ronda++) {
+          for (let g = 0; g < grupo.length; g++) {
+            const resto = grupo.filter((_, k) => k !== g);
+            let actual = evalua(grupo, fam), cambio = null;
+            for (let i = 0; i < top.length; i++) {
+              if (grupo.indexOf(top[i]) !== -1 || !encajan(resto, top[i])) continue;
+              const v = evalua(resto.concat([top[i]]), fam);
+              if (mejorQue(v, actual)) { actual = v; cambio = top[i]; }
+            }
+            if (cambio) grupo[g] = cambio;
+          }
+        }
+
+        const v = evalua(grupo, fam);
+        if (mejorQue(v, mejor)) mejor = Object.assign({ trio: grupo.slice() }, v);
+      }
+      return mejor;
     }
-    if (!mejor) return { vacio: true };
+
+    /* Tres defensas: la mejor contra el patrón mono, la mejor contra el
+       2+1 y la equilibrada (contra las 27 por igual). Cada una se mide
+       después contra los tres patrones, que es lo que deja ver el precio
+       de especializarse. */
+    /* No hay opción «contra 2+1» y no es un olvido: de las 27 combinaciones,
+       18 son 2+1, o sea dos tercios de todo lo que te pueden mandar. La
+       equilibrada ya está dominada por ese patrón, así que afinar contra él
+       devolvía las mismas guardias y un botón que no hacía nada. Las dos
+       especializaciones que sí cambian algo son mono y una-de-cada. */
+    const CUALES = [
+      { clave: 'equilibrada', fam: -1 },
+      { clave: 'mono',        fam: 0  },
+      { clave: 'una',         fam: 2  }
+    ];
+
+    const hallado = CUALES.map(c => ({ clave: c.clave, fam: c.fam, r: busca(c.fam) }))
+                          .filter(x => x.r);
+    if (!hallado.length) return { vacio: true };
+    const mejor = hallado[0].r;
 
     /* ---------- el banquillo ----------
        Las tres guardias no son toda la defensa: el juego deja además dos
@@ -1021,60 +1243,101 @@ window.PVP_MODEL = (function () {
       }
     }
 
-    const enGuardia = {};
-    mejor.trio.forEach(x => x.d.c.forEach(i => { enGuardia[mios[i].n] = true; }));
+    function banquilloDe(trio){
+      const enGuardia = {};
+      trio.forEach(x => x.d.c.forEach(i => { enGuardia[mios[i].n] = true; }));
 
-    const notas = [];
-    crew.forEach(c => {
-      if (enGuardia[c.n]) return;
-      for (let u = 0; u < 3; u++) {
-        const miPunto = R.score(c, T[u]);
-        let ganados = concedidos;
-        for (let s = 0; s < suyos.length; s++) {
-          for (let v = 0; v < 3; v++) {
-            if (!veces[s][v]) continue;
-            if (!R.duelWin(R.score(suyos[s], T[v]), T[v], miPunto, T[u])) {
-              ganados += veces[s][v];
+      const notas = [];
+      crew.forEach(c => {
+        if (enGuardia[c.n]) return;
+        for (let u = 0; u < 3; u++) {
+          const miPunto = R.score(c, T[u]);
+          let ganados = concedidos;
+          for (let s = 0; s < suyos.length; s++) {
+            for (let v = 0; v < 3; v++) {
+              if (!veces[s][v]) continue;
+              if (!R.duelWin(R.score(suyos[s], T[v]), T[v], miPunto, T[u])) {
+                ganados += veces[s][v];
+              }
             }
           }
+          notas.push({ c: c, t: T[u], pts: miPunto,
+                       tasa: puestosTotales ? ganados / puestosTotales : 0 });
         }
-        notas.push({ c: c, t: T[u], pts: miPunto,
-                     tasa: puestosTotales ? ganados / puestosTotales : 0 });
-      }
-    });
-    notas.sort((a, b) => (b.tasa - a.tasa) || (b.pts - a.pts));
+      });
+      notas.sort((a, b) => (b.tasa - a.tasa) || (b.pts - a.pts));
 
-    const banquillo = [];
-    const yaEsta = {};
-    for (let i = 0; i < notas.length && banquillo.length < RESERVAS; i++) {
-      if (yaEsta[notas[i].c.n]) continue;   // uno no cubre dos huecos
-      yaEsta[notas[i].c.n] = true;
-      banquillo.push(notas[i]);
+      const banco = [], yaEsta = {};
+      for (let i = 0; i < notas.length && banco.length < RESERVAS; i++) {
+        if (yaEsta[notas[i].c.n]) continue;   // uno no cubre dos huecos
+        yaEsta[notas[i].c.n] = true;
+        banco.push(notas[i]);
+      }
+      return { banco: banco, libres: crew.filter(c => !enGuardia[c.n]).length };
     }
 
+    /* Cada defensa medida contra los tres patrones. Sin el peso del último
+       ataque apuntado: ese pertenece a una familia concreta y metido en la
+       medida de las otras dos falsearía la comparación. */
+    const contraFamilia = (trio, f) => {
+      let cae = 0;
+      trio.forEach(g => { cae += g.nf[f]; });
+      return 1 - (cae / (nFam[f] || 1)) / combos;
+    };
+
+    const opciones = hallado.map(x => {
+      const b = banquilloDe(x.r.trio);
+      const contra = {};
+      FAMILIAS.forEach((nombre, f) => { contra[nombre] = contraFamilia(x.r.trio, f); });
+      return {
+        clave: x.clave,
+        guardias: x.r.trio.map(g => ({
+          puestos: [0, 1, 2].map(i => ({ c: mios[g.d.c[i]], t: T[g.d.t[i]] })),
+          cae: g.n
+        })),
+        reservas: b.banco,
+        libres:   b.libres,
+        // lo que aguantas si él juega su mejor plan, y si lo elige al azar
+        peor:   1 - x.r.peor / combos,
+        media:  1 - x.r.coste / combos,
+        contra: contra,
+        inmune: x.r.peor === 0
+      };
+    });
+
+    /* Dos defensas pueden salir idénticas —pasa cuando afinar no aporta
+       nada contra ese rival— y hay que decirlo: si no, parece que el botón
+       está roto. */
+    const firma = o => o.guardias
+      .map(g => g.puestos.map(p => p.c.n + '|' + p.t).join(',')).join(' / ');
+    const deBase = firma(opciones[0]);
+    opciones.forEach((o, i) => { o.igualBase = i > 0 && firma(o) === deBase; });
+
+    const base = opciones[0];   // la equilibrada: la de toda la vida
+
     return {
-      guardias: mejor.trio.map(x => ({
-        puestos: [0, 1, 2].map(i => ({ c: mios[x.d.c[i]], t: T[x.d.t[i]] })),
-        cae: x.n
-      })),
-      reservas: banquillo,
-      // cuántos te quedaban libres, para poder decir por qué son menos de dos
-      libres: crew.filter(c => !enGuardia[c.n]).length,
-      // lo que aguantas si él juega su mejor plan, y si lo elige al azar
-      peor:  1 - mejor.peor / combos,
-      media: 1 - mejor.coste / combos,
+      // lo de siempre apunta a la equilibrada, para no romper nada
+      guardias: base.guardias,
+      reservas: base.reservas,
+      libres:   base.libres,
+      peor:     base.peor,
+      media:    base.media,
+      inmune:   base.inmune,
+      // y las tres, con lo que hace falta para comparar
+      opciones: opciones,
+      familias: FAMILIAS,
+      cuantas:  { mono: nFam[0], dos: nFam[1], una: nFam[2] },
       rec:   rec ? { gano: rec.gano, peso: rec.w } : null,
       nG: combos,
       ataques: total,
-      suyos: suyos,
-      // de cuántos planes suyos se defiende del todo
-      inmune: mejor.peor === 0
+      suyos: suyos
     };
   }
 
   return {
     CONCEDE: CONCEDE,
     evaluar: evaluar,
+    comoHundirlo: comoHundirlo,
     resolver: resolver,
     formaciones: formaciones,
     aguante: aguante,
