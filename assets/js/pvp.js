@@ -368,8 +368,8 @@
           num(o.contra[f] * 100)} %</td>`).join('')}
       </tr>`).join('');
 
-      /* Si la que miras sale igual que la equilibrada, se dice: dos filas
-         idénticas en la tabla parecen un fallo y son un resultado. */
+      /* Si la que miras sale igual que la de contra todo, se dice: dos
+         filas idénticas en la tabla parecen un fallo y son un resultado. */
       const misma = op.igualBase
         ? `<p class="hint">${esc(t('pvp.def.fam.igual'))}</p>` : '';
 
@@ -383,8 +383,23 @@
         <p class="note">${t('pvp.def.fam.d')}</p>`;
     }
 
+    /* Cuando lleva una racha, la recomendación cambia de verdad y hay que
+       decir por qué: si no, las guardias se mueven solas y parece un
+       capricho. Una línea, no una caja. */
+    let racha = '';
+    if (res.rec) {
+      const r = res.rec;
+      if (r.gano && r.exacta >= 2) {
+        racha = t('pvp.def.racha.gana').replace('{n}', r.exacta);
+      } else if (!r.gano && r.patron >= 2) {
+        racha = t('pvp.def.racha.falla').replace('{n}', r.patron);
+      }
+    }
+    const avisoRacha = racha ? `<p class="hint">${racha}</p>` : '';
+
     return `${cabecera}
       ${comparacion}
+      ${avisoRacha}
       <h3 class="sub-tit">${esc(t('pvp.def.reco'))}</h3>
       ${eleccion}
       <div class="def-guardias">${guardias}${banquillo}</div>

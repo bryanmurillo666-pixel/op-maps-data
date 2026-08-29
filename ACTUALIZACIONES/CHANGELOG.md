@@ -5,6 +5,63 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.9.9 — 26 ago 2026
+
+**La racha de sus ataques, que estaba guardada y sin usar.** La libreta guarda
+**diez** ataques por rival; el modelo miraba **uno**. Así que «te falló una vez»
+y «te ha fallado dos veces seguidas con lo mismo» pesaban exactamente igual.
+
+### Los pesos, ahora por racha
+
+| Historial | Pesa su ataque | Pesa el peor caso |
+|---|---|---|
+| Ganó `1` vez | `50 %` | — |
+| Ganó `2` veces seguidas | `70 %` | — |
+| Ganó `3` o más | `78 %` | — |
+| Falló `1` vez | `25 %` | — |
+| Falló `2` veces seguidas | `5 %` | **`35 %`** |
+| Falló `3` o más | `2 %` | **`50 %`** |
+
+La asimetría es lo que importa, y no es psicología de barra. Repetir lo que
+funciona es lo más humano que hay, así que **ganar** dos veces seguidas
+concentra la probabilidad en ese ataque.
+
+**Fallar** hace lo contrario por una razón que está en la guía: después de cada
+combate los dos recibís el **informe completo** —cada duelo, las tácticas, lo que
+valía cada puntuación—. No está adivinando por qué perdió: lo sabe. Insistir una
+tercera vez sería ignorar dos informes.
+
+Y lo que hará entonces no es cualquier cosa: con dos informes en la mano, lo
+racional es jugar **la contra de lo que vio**. Por eso el peso que se le quita a
+su ataque conocido no se reparte entre todo — se le da al **peor caso**. El
+modelo decía, con razón, que optimizar contra su contra perfecta «sería
+paranoia»; a estas alturas ya no lo es, y el coste pasa a mezclar tres términos
+en vez de dos.
+
+### Dos rachas, porque son dos cosas
+
+- **exacta** — el mismo trío con las mismas tácticas. Decide cuánto pesa ese
+  ataque concreto.
+- **de patrón** — todas iguales / 2 iguales + 1 / todas distintas. Decide si
+  está insistiendo en un **estilo**, que es lo que de verdad delata que va a
+  cambiar de rumbo.
+
+Dos derrotas con «todas distintas» cuentan como racha de patrón **aunque cambie
+de personajes**, que es justo el caso que la motivó.
+
+### Y se dice
+
+Cuando hay racha, la recomendación cambia de verdad, así que aparece una línea
+explicando por qué: si no, las guardias se mueven solas y parece un capricho.
+
+### Comprobaciones
+
+`8` nuevas: los seis pesos de la tabla, que cambiar de estilo corta la racha,
+que dos fallos del mismo estilo con distinto trío sigan contando, y —la que
+importa— que con dos derrotas seguidas **la recomendación salga distinta**.
+
+---
+
 ## 1.9.8 — 26 ago 2026
 
 **Tres defensas en vez de una, y la tabla que dice cuál.** Estaba propuesto

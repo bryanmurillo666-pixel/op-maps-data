@@ -93,6 +93,15 @@ window.PVP_MODEL = (function () {
     return (x * 0x01010101) >>> 24;
   }
 
+  /* Cómo reparte las tácticas un trío: 0 todas iguales, 1 dos iguales y una
+     distinta, 2 todas distintas. De las 27 combinaciones posibles hay 3 del
+     primer tipo, 18 del segundo y 6 del tercero. */
+  function familiaTac(t){
+    if (t[0] === t[1] && t[1] === t[2]) return 0;
+    if (t[0] === t[1] || t[1] === t[2] || t[0] === t[2]) return 1;
+    return 2;
+  }
+
   /* ---------- los patrones de táctica ---------- */
 
   /* Devuelve una lista de patrones. Cada uno son nG filas de 3 tácticas
@@ -886,8 +895,28 @@ window.PVP_MODEL = (function () {
 
      Ganó  → 50 %. Repetir lo que funciona es lo más humano que hay.
      Falló → 25 %. Menos, pero muy por encima de una jugada cualquiera. */
-  const PESO_GANO  = 0.5;
-  const PESO_FALLO = 0.25;
+  /* Cuánto pesa su último ataque en la recomendación, según cuántas veces
+     seguidas lo haya repetido. Antes eran dos números fijos y la racha se
+     tiraba a la basura: la libreta guarda diez ataques y sólo se miraba el
+     último, así que «falló una vez» y «falló dos veces seguidas con lo
+     mismo» pesaban igual.
+
+     La asimetría es lo que importa. Repetir lo que funciona es lo más
+     humano que hay, así que ganar dos veces seguidas CONCENTRA la
+     probabilidad en ese ataque. Pero fallar dos veces seguidas hace lo
+     contrario, y por una razón que no es psicología: después de cada
+     combate los dos recibís el informe COMPLETO —cada duelo, las tácticas,
+     lo que valía cada puntuación—. No está adivinando por qué perdió: lo
+     sabe. Insistir una tercera vez sería ignorar dos informes.
+
+     Y lo que hará entonces no es cualquier cosa: con dos informes en la
+     mano, lo racional es jugar la CONTRA de lo que vio. Así que el peso
+     que le quitamos a su ataque conocido no se reparte entre todo, se le
+     da al PEOR CASO — que de entrada sería paranoia y a estas alturas ya
+     no lo es. */
+  const PESO_GANO  = [0.50, 0.70, 0.78];   // 1, 2, 3 o más veces seguidas
+  const PESO_FALLO = [0.25, 0.05, 0.02];
+  const PESO_PEOR  = [0.00, 0.35, 0.50];   // sólo cuando le falla
 
   /* Sus mejores, más quien saliera en su último ataque aunque no esté
      entre los mejores: si lo mandó una vez, puede repetirlo. */
@@ -906,7 +935,8 @@ window.PVP_MODEL = (function () {
      Devuelve {i, w} con el índice y el peso, o null si no lo has apuntado
      entero (con un puesto en blanco no hay nada que predecir). */
   function ataqueRecordado(rival, suyos, ataques){
-    const ult = window.RIVALES.ultimoAtaque(rival);
+    const lista = (rival && rival.a) || [];
+    const ult = lista[0];
     if (!ult || !ult.p.every(Boolean)) return null;
 
     const c = [], t = [];
@@ -921,7 +951,41 @@ window.PVP_MODEL = (function () {
       a.c[0] === c[0] && a.c[1] === c[1] && a.c[2] === c[2] &&
       a.t[0] === t[0] && a.t[1] === t[1] && a.t[2] === t[2]);
     if (i === -1) return null;
-    return { i: i, w: ult.w ? PESO_GANO : PESO_FALLO, gano: !!ult.w };
+
+    /* Dos rachas, porque son dos cosas distintas. La EXACTA —el mismo
+       trío con las mismas tácticas— es la que dice cuánto pesa ese ataque
+       concreto. La de PATRÓN —todas iguales, 2+1, todas distintas— es la
+       que dice si está insistiendo en un estilo, que es lo que de verdad
+       delata que va a cambiar de rumbo. */
+    const mismoAtaque = (a, b) =>
+      a.w === b.w && [0, 1, 2].every(k => {
+        const p = a.p[k], q = b.p[k];
+        return (!p && !q) || (!!p && !!q && p.n === q.n && p.t === q.t);
+      });
+
+    const famDe = at => {
+      if (!at.p.every(Boolean)) return -1;
+      return familiaTac(at.p.map(p => T.indexOf(p.t)));
+    };
+    const famUlt = famDe(ult);
+    const mismoPatron = a => a.w === ult.w && famDe(a) === famUlt && famUlt >= 0;
+
+    let exacta = 1;
+    while (exacta < lista.length && mismoAtaque(lista[exacta], ult)) exacta++;
+    let patron = 1;
+    while (patron < lista.length && mismoPatron(lista[patron])) patron++;
+
+    const coge = (a, n) => a[Math.min(n - 1, a.length - 1)];
+
+    return {
+      i: i,
+      gano: !!ult.w,
+      exacta: exacta,
+      patron: patron,
+      w:    coge(ult.w ? PESO_GANO : PESO_FALLO, exacta),
+      // el peor caso sólo empieza a pesar cuando le está fallando el estilo
+      peor: ult.w ? 0 : coge(PESO_PEOR, patron)
+    };
   }
 
   /* ---------- lo que aguantan UNAS guardias concretas ----------
@@ -1045,16 +1109,10 @@ window.PVP_MODEL = (function () {
        en la tabla en vez de decidirlo por ti. */
     const FAMILIAS = ['mono', 'dos', 'una'];
 
-    const familiaDe = t => {
-      if (t[0] === t[1] && t[1] === t[2]) return 0;                  // mono
-      if (t[0] === t[1] || t[1] === t[2] || t[0] === t[2]) return 1; // 2+1
-      return 2;                                                      // una de cada
-    };
-
     const maskFam = [new Uint32Array(words), new Uint32Array(words), new Uint32Array(words)];
     const nFam = [0, 0, 0];
     for (let k = 0; k < ataques.length; k++) {
-      const f = familiaDe(ataques[k].t);
+      const f = familiaTac(ataques[k].t);
       maskFam[f][k >> 5] |= (1 << (k & 31));
       nFam[f]++;
     }
@@ -1132,8 +1190,14 @@ window.PVP_MODEL = (function () {
       else            { peor = 0; caenPeor = 0; }
       /* Cuántas de tus guardias te tumba un ataque suyo, de media. Si has
          apuntado su último ataque, ese pesa aparte: la gente repite. */
+      /* Tres términos: lo que cae de media contra todo lo que puede mandar,
+         lo que cae contra el ataque que le hemos visto, y lo que cae contra
+         su mejor jugada posible. El tercero sólo entra cuando lleva dos
+         derrotas seguidas con el mismo estilo. */
       const coste = rec
-        ? (1 - rec.w) * (suma / (tot || 1)) + rec.w * repCae
+        ? (1 - rec.w - rec.peor) * (suma / (tot || 1))
+          + rec.w * repCae
+          + rec.peor * peor
         : suma / (tot || 1);
       return { peor: peor, caenPeor: caenPeor, suma: suma,
                coste: coste, fuerza: fuerza };
@@ -1327,7 +1391,8 @@ window.PVP_MODEL = (function () {
       opciones: opciones,
       familias: FAMILIAS,
       cuantas:  { mono: nFam[0], dos: nFam[1], una: nFam[2] },
-      rec:   rec ? { gano: rec.gano, peso: rec.w } : null,
+      rec:   rec ? { gano: rec.gano, peso: rec.w, peor: rec.peor,
+                     exacta: rec.exacta, patron: rec.patron } : null,
       nG: combos,
       ataques: total,
       suyos: suyos
