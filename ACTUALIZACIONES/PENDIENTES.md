@@ -2,9 +2,12 @@
 
 ## Pedido por el usuario
 
-- [ ] **Ordenar las islas en el PvE.** Aparcado a propósito el 19 ago 2026 para
-      decidir después con qué criterio: por mar y recorrido, por dificultad de
-      la guardia, o alfabético.
+- [x] **Ordenar las islas en el PvE.** Hecho el 8 sep 2026: el usuario numeró cada
+      isla dentro de su mar (campo `o` de `islands.js`) y la lista se guarda ya
+      ordenada por (mar, orden), así que el desplegable las recorre de menos a más.
+- [ ] **Enemigos del New World.** Las 66 islas del New World están vacías, o sea
+      pendientes de comprobar en el juego. También `7 ???` (South Blue) y
+      `Hidden cloud village` (Grand Line): 78 de 158 en total.
 - [ ] **Consejos** (`tips.html`) sigue siendo un esqueleto.
 - [ ] **Enlaces desde la Guía** a las páginas que profundizan: los roles a
       Data Crew, el desembarco al PvE, las guardias al PvP. Pedido por el

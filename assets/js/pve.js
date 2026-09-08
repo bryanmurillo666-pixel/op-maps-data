@@ -194,8 +194,10 @@
     if (idx === '') return '';
 
     const isla = window.ISLANDS[Number(idx)];
-    // Sin enemigos es isla base: se desembarca sin pelear.
-    if (!isla.e.length) return `<p class="hint">${esc(t('pve.isla.base'))}</p>`;
+    /* Sin enemigos no es una isla sin combate: es una isla que aun no se
+       ha comprobado en el juego. El texto lleva negrita, asi que va sin
+       escapar, como los demas mensajes con formato. */
+    if (!isla.e.length) return `<p class="hint">${t('pve.isla.base')}</p>`;
 
     const enemigos = isla.e.map(n => DB.find(c => c.n === n));
     const cabecera = `<h3 class="sub-tit">${esc(t('pve.isla.enemies'))}</h3>

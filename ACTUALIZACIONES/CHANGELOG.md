@@ -5,6 +5,70 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.10.0 — 8 sep 2026
+
+**Las islas pasan a la lista del usuario, y por fin van ordenadas.** El mapa lo
+llevaba el export `Island.html` del juego, que ya venía dando problemas: se
+quedó corto en el recuento y traía enemigos que no cuadraban. Lo sustituye una
+lista comprobada a mano.
+
+### Lo que cambia en los datos
+
+| | Antes | Ahora |
+|---|---|---|
+| Islas | `156` | **`158`** |
+| Con enemigos | `146` | **`80`** |
+| Pendientes | `10` | **`78`** |
+
+**Dos islas nuevas**: `14 ???` y `15 ???`, las dos en North Blue.
+
+**Dos correcciones de verdad**, que es justo lo que el export traía mal:
+
+- `Ballywood kingdom` — el segundo enemigo era **Monkey D. Dragon**, no Luffy
+- `St. poplar` — el tercero era **Charlotte Daifuku**, no Katakuri
+
+Y una **renumeración en cascada de las islas `???`**: lo que estaba en `3 ???`
+pasa a `1 ???`, lo de `1 ???` a `2 ???`, y así por West Blue, South Blue y
+North Blue. No es que cambien de enemigos: es que estaban mal emparejadas.
+
+### 78 pendientes, y eso ya no significa lo mismo
+
+Antes una isla con la lista de enemigos vacía era **una isla sin combate**: se
+desembarcaba y ya. Ahora significa **pendiente de comprobar**, que es lo
+contrario de «no hay pelea».
+
+Son las `66` del New World enteras, más `7 ???` (South Blue) y
+`Hidden cloud village` (Grand Line). El PvE lo dice con esas palabras al elegir
+una, y en el desplegable van marcadas con un punto.
+
+**Ojo con esto**: las `66` del New World **tenían enemigos** en el archivo
+viejo, sacados del export. Se van a la papelera a propósito, porque el export es
+justo la fuente de la que ya nos habíamos bajado. Si alguno hacía falta, está en
+el historial de git —`islands.js` antes de este commit—, no perdido.
+
+### El orden, que llevaba desde el 19 de agosto aparcado
+
+Cada isla lleva ahora un campo **`o`**: su número dentro del mar, puesto a mano
+por el usuario. Va de `1` a `9` en East Blue, a `7` en West Blue, a `26` en
+Grand Line. Es aproximado y sirve para recorrerlas de menos a más.
+
+La lista se guarda **ya ordenada por (mar, orden)**, así que el desplegable del
+PvE las enseña en ese orden sin tocar una línea de `pve.js`: se limita a
+recorrer el array. Las del New World no llevan número —tampoco tienen enemigos—
+y se quedan al final de su mar, en el orden del archivo.
+
+### Comprobado antes de escribir
+
+El volcado valida contra el álbum: los **`240`** nombres de enemigo de las 80
+islas comprobadas existen los 240. Ninguna isla se queda con uno o dos enemigos
+—o tres o ninguno—, no hay nombres de isla repetidos y no desaparece ninguna de
+las que había. Las nueve páginas siguen sin claves de i18n crudas.
+
+De paso, un fallo que salió al probarlo: el mensaje de isla pendiente lleva
+negrita y se estaba escapando, así que salía el `<b>` como texto.
+
+---
+
 ## 1.9.9 — 26 ago 2026
 
 **La racha de sus ataques, que estaba guardada y sin usar.** La libreta guarda
