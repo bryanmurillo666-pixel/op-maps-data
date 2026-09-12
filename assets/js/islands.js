@@ -1,24 +1,29 @@
 /* ============================================================
    OP-MAPS DATA - las 158 islas del mapa y sus enemigos
    ------------------------------------------------------------
-   Fuente: la lista que llevo el usuario a mano, volcada el 8 sep 2026
-   desde `Islas nuevo pve.txt`. Sustituye al export `Island.html` del
-   juego, que iba corto y traia enemigos que no cuadraban.
+   Fuente: la lista que lleva el usuario a mano. Volcada el 12 sep 2026
+   desde `Islas actualizadas.xlsx`, que completa el New World entero.
+   Sustituye al export `Island.html` del juego, que iba corto y traia
+   enemigos que no cuadraban.
 
      m = mar, indice sobre ISLAND_SEAS
      n = nombre de la isla
      o = orden dentro de su mar, tal como lo numero el usuario. Es
          aproximado y sirve para recorrerlas de menos a mas. La lista ya
          viene ordenada por (mar, o), asi que quien la lea no ordena nada.
+         Las del New World no llevan numero: van en el orden del archivo.
      e = los tres enemigos, en el orden en que salen: el primero pelea
          contra tu posicion 1, el segundo contra la 2 y el tercero contra
          la 3. Los enemigos son fijos; lo unico que cambia de una visita a
          otra es la tactica que juega cada uno.
 
-   78 islas van con la lista de enemigos VACIA, y eso significa
+   14 islas van con la lista de enemigos VACIA, y eso significa
    PENDIENTE: son las que aun no se han comprobado en el juego, no islas
-   sin combate. Las 66 del New World estan todas asi, y por eso tampoco
-   llevan numero de orden.
+   sin combate. El PvE lo dice con esas palabras y las marca con un punto
+   en el desplegable.
+
+   El usuario puede corregir esta lista desde el PvE sin tocar el
+   archivo: lo que edite se guarda en su navegador y solo ahi.
    ============================================================ */
 window.ISLAND_SEAS = ["West Blue", "South Blue", "North Blue", "New World", "Grand Line", "East Blue"];
 
@@ -59,72 +64,72 @@ window.ISLANDS = [
   {m:2, o:4, n:"Lvneel kingdom", e:["Otohime", "Bepo", "Bartolomeo"]},
   {m:2, o:5, n:"Deul kingdom", e:["Van Augur", "Jozu", "Inuarashi"]},
   {m:2, o:6, n:"15 ???", e:["Diamante", "Donquixote Doflamingo", "Hibari"]},
-  {m:3, n:"Whole Cake island", e:[]},
-  {m:3, n:"Prodence kingdom", e:[]},
-  {m:3, n:"Karai bari island", e:[]},
-  {m:3, n:"Mystoria island", e:[]},
-  {m:3, n:"Risky red island", e:[]},
+  {m:3, n:"Whole Cake island", e:["Portgas D. Ace", "Blueno", "Pell"]},
+  {m:3, n:"Prodence kingdom", e:["Baron Tamago", "Charlotte Daifuku", "Foxy"]},
+  {m:3, n:"Karai bari island", e:["Queen", "Shinobu", "Rebecca"]},
+  {m:3, n:"Mystoria island", e:["Buggy", "Miss Doublefinger", "Ideo"]},
+  {m:3, n:"Risky red island", e:["Laffitte", "Jabra", "Baron Tamago"]},
   {m:3, n:"Green bit", e:[]},
-  {m:3, n:"Doerena kingdom", e:[]},
-  {m:3, n:"Broc coli island", e:[]},
-  {m:3, n:"Komugi", e:[]},
-  {m:3, n:"Ice", e:[]},
-  {m:3, n:"Milk", e:[]},
-  {m:3, n:"Yukiryu island", e:[]},
-  {m:3, n:"Ballon terminal", e:[]},
+  {m:3, n:"Doerena kingdom", e:["Nico Robin", "Vegapunk", "Avalo Pizarro"]},
+  {m:3, n:"Broc coli island", e:["Borsalino", "Sasaki", "Machvise"]},
+  {m:3, n:"Komugi", e:["Karasu", "Jango", "Kuzan"]},
+  {m:3, n:"Ice", e:["Hibari", "Fukaboshi", "Sengoku"]},
+  {m:3, n:"Milk", e:["Doc Q", "Kujaku", "Don Krieg"]},
+  {m:3, n:"Yukiryu island", e:["Sabo", "Kozuki Sukiyaki", "Donquixote Doflamingo"]},
+  {m:3, n:"Ballon terminal", e:["Yamato", "Inuarashi", "Baron Tamago"]},
   {m:3, n:"Onigashima", e:[]},
-  {m:3, n:"Hachinosu pirate island", e:[]},
-  {m:3, n:"Nuts", e:[]},
-  {m:3, n:"Kibo", e:[]},
-  {m:3, n:"Noko", e:[]},
-  {m:3, n:"Elbaf", e:[]},
-  {m:3, n:"Funwari", e:[]},
-  {m:3, n:"Sphinx island", e:[]},
-  {m:3, n:"Raijin island", e:[]},
-  {m:3, n:"Dressrosa kingdom", e:[]},
-  {m:3, n:"Applenine island", e:[]},
-  {m:3, n:"Majiatsuka kingdom", e:[]},
-  {m:3, n:"Tanega", e:[]},
-  {m:3, n:"Fruits", e:[]},
-  {m:3, n:"Unique", e:[]},
-  {m:3, n:"Futoru", e:[]},
-  {m:3, n:"Kimi", e:[]},
-  {m:3, n:"Poripori", e:[]},
-  {m:3, n:"Biscuits", e:[]},
-  {m:3, n:"Rokumitsu", e:[]},
-  {m:3, n:"Candy", e:[]},
-  {m:3, n:"Potato", e:[]},
-  {m:3, n:"Cacao", e:[]},
-  {m:3, n:"Jelly", e:[]},
-  {m:3, n:"Liqueur", e:[]},
-  {m:3, n:"Zou", e:[]},
-  {m:3, n:"Egghead island", e:[]},
-  {m:3, n:"Flavor", e:[]},
-  {m:3, n:"Yakigashi", e:[]},
-  {m:3, n:"Kinko", e:[]},
-  {m:3, n:"Milenge", e:[]},
-  {m:3, n:"Loadestar island", e:[]},
-  {m:3, n:"Fish-man island", e:[]},
-  {m:3, n:"New marineford", e:[]},
-  {m:3, n:"G-5", e:[]},
-  {m:3, n:"Punk hazard", e:[]},
-  {m:3, n:"Mogaro kingdom", e:[]},
-  {m:3, n:"Sanshoku", e:[]},
-  {m:3, n:"Piepie", e:[]},
-  {m:3, n:"Loving", e:[]},
-  {m:3, n:"Black", e:[]},
-  {m:3, n:"Topping", e:[]},
-  {m:3, n:"Cheese", e:[]},
-  {m:3, n:"100% island", e:[]},
-  {m:3, n:"Jam", e:[]},
-  {m:3, n:"Germa kingdom", e:[]},
-  {m:3, n:"Foodvalten island", e:[]},
-  {m:3, n:"Baltigo", e:[]},
-  {m:3, n:"Wano kingdom", e:[]},
-  {m:3, n:"G-14", e:[]},
-  {m:3, n:"Package", e:[]},
-  {m:3, n:"Margarine", e:[]},
-  {m:3, n:"Winner island", e:[]},
+  {m:3, n:"Hachinosu pirate island", e:["Kozuki Sukiyaki", "Fukaboshi", "Diamante"]},
+  {m:3, n:"Nuts", e:["Hamburg", "Sir Crocodile", "Vergo"]},
+  {m:3, n:"Kibo", e:["Sugar", "Jabra", "Franky"]},
+  {m:3, n:"Noko", e:["Pearl", "Iceburg", "Bogard"]},
+  {m:3, n:"Elbaf", e:["Van Augur", "Sakazuki", "Bepo"]},
+  {m:3, n:"Funwari", e:["Saint Ethanbaron V. Nusjuro", "Belo Betty", "Kikunojo"]},
+  {m:3, n:"Sphinx island", e:["Pell", "Enel", "Miss Doublefinger"]},
+  {m:3, n:"Raijin island", e:["Neptune", "Koala", "Miss Valentine"]},
+  {m:3, n:"Dressrosa kingdom", e:["Morley", "Lindbergh", "Sabo"]},
+  {m:3, n:"Applenine island", e:["Otama", "Perona", "Bartholomew Kuma"]},
+  {m:3, n:"Majiatsuka kingdom", e:["Dr. Hogback", "Franky", "Charlotte Mont-d'Or"]},
+  {m:3, n:"Tanega", e:["Hamburg", "Machvise", "Gladius"]},
+  {m:3, n:"Fruits", e:["Chew", "Miss Valentine", "Shiryu"]},
+  {m:3, n:"Unique", e:["Ryuboshi", "Baron Tamago", "Trebol"]},
+  {m:3, n:"Futoru", e:["Iceburg", "Morley", "Charlotte Oven"]},
+  {m:3, n:"Kimi", e:["Rocks D. Xebec", "Miss Goldenweek", "Fukaboshi"]},
+  {m:3, n:"Poripori", e:["Dellinger", "Shirahoshi", "Absalom"]},
+  {m:3, n:"Biscuits", e:["Dr. Hogback", "Kurozumi Orochi", "Boa Hancock"]},
+  {m:3, n:"Rokumitsu", e:["Ideo", "Donquixote Doflamingo", "Perona"]},
+  {m:3, n:"Candy", e:["Rocks D. Xebec", "Saint Shepherd Ju Peter", "Daz Bonez"]},
+  {m:3, n:"Potato", e:["Hyouzou", "Bepo", "Tilestone"]},
+  {m:3, n:"Cacao", e:["Otama", "Kuzan", "Charlotte Cracker"]},
+  {m:3, n:"Jelly", e:["Monkey D. Dragon", "Van Augur", "Urouge"]},
+  {m:3, n:"Liqueur", e:["Kurozumi Kanjuro", "Miss Valentine", "Momonosuke"]},
+  {m:3, n:"Zou", e:["Dracule Mihawk", "Cavendish", "Ashura Doji"]},
+  {m:3, n:"Egghead island", e:["Vista", "Kozuki Sukiyaki", "Stussy"]},
+  {m:3, n:"Flavor", e:["Jabra", "Shanks", "Vista"]},
+  {m:3, n:"Yakigashi", e:["Gol D. Roger", "Who's Who", "Baby 5"]},
+  {m:3, n:"Kinko", e:["Bartolomeo", "Charlotte Mont-d'Or", "Monkey D. Dragon"]},
+  {m:3, n:"Milenge", e:["Kyros", "Mr. 5", "Gecko Moria"]},
+  {m:3, n:"Loadestar island", e:["Nekomamushi", "Kozuki Oden", "Cavendish"]},
+  {m:3, n:"Fish-man island", e:["Sasaki", "Hibari", "Jack"]},
+  {m:3, n:"New marineford", e:["Roronoa Zoro", "York", "Trebol"]},
+  {m:3, n:"G-5", e:["Alvida", "Marshall D. Teach", "X Drake"]},
+  {m:3, n:"Punk hazard", e:["Pica", "Scratchmen Apoo", "Kumadori"]},
+  {m:3, n:"Mogaro kingdom", e:["Mr. 5", "Kozuki Sukiyaki", "Nami"]},
+  {m:3, n:"Sanshoku", e:["Mohji", "Kuzan", "Caribou"]},
+  {m:3, n:"Piepie", e:["Blue Gilly", "Gin", "Crocus"]},
+  {m:3, n:"Loving", e:["Professor Clover", "Rob Lucci", "Hatchan"]},
+  {m:3, n:"Black", e:["Edison", "Miss Valentine", "Ryuboshi"]},
+  {m:3, n:"Topping", e:["Portgas D. Ace", "Shanks", "Raizo"]},
+  {m:3, n:"Cheese", e:["Nico Olvia", "Prince Grus", "Tony Tony Chopper"]},
+  {m:3, n:"100% island", e:["Vinsmoke Yonji", "Charlotte Smoothie", "Hody Jones"]},
+  {m:3, n:"Jam", e:["Nico Robin", "Imu", "Sabo"]},
+  {m:3, n:"Germa kingdom", e:["Ryuboshi", "Ideo", "Blue Gilly"]},
+  {m:3, n:"Foodvalten island", e:["Vinsmoke Ichiji", "Issho", "Blueno"]},
+  {m:3, n:"Baltigo", e:["Tom", "Gecko Moria", "Charlotte Cracker"]},
+  {m:3, n:"Wano kingdom", e:["Lilith", "Rocks D. Xebec", "X Drake"]},
+  {m:3, n:"G-14", e:["Franky", "Fukaboshi", "Hody Jones"]},
+  {m:3, n:"Package", e:["Who's Who", "X Drake", "Doc Q"]},
+  {m:3, n:"Margarine", e:["Hajrudin", "Hamburg", "Kuroobi"]},
+  {m:3, n:"Winner island", e:["Vinsmoke Yonji", "Dracule Mihawk", "Charlotte Oven"]},
   {m:4, o:1, n:"Reverse mountain", e:["Lindbergh", "Tom", "Hibari"]},
   {m:4, o:2, n:"Cactus island", e:["Uta", "Capone Bege", "Sai"]},
   {m:4, o:3, n:"Little garden", e:["Hody Jones", "Koby", "Buffalo"]},

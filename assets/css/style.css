@@ -1947,3 +1947,41 @@ details.sub-plegable > summary .bloque-tit{
   .fam-tabla tbody th{font-size:11.5px}
   .def-btns .modo{flex:1 1 33%;font-size:9px;padding:9px 4px;min-height:36px}
 }
+
+/* ============================================================
+   Editor de islas (PvE) y el campo de isla, que ya se escribe
+   ============================================================ */
+
+/* El campo de la isla es texto con datalist, no un desplegable. Hereda
+   el aspecto y la flecha de .isla-select, que es justo lo que dice que
+   hay una lista detras; lo unico que cambia es el cursor, que ahi si se
+   escribe. */
+input.isla-select{cursor:text}
+input.isla-select::placeholder{color:var(--mist);opacity:.75}
+
+.ed-form{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 14px}
+.ed-form .campo{flex:1 1 170px}
+
+.ed-btns{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.ed-btns .btn-calc{width:auto;margin-top:0;padding:11px 18px}
+
+/* lo que has corregido, para verlo de un vistazo */
+.ed-mias{
+  margin-top:18px;padding-top:14px;
+  border-top:0.5px solid var(--line);
+}
+.ed-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.ed-chip{
+  background:var(--hull-2);border:0.5px solid var(--line-str);
+  border-radius:999px;padding:5px 12px;cursor:pointer;
+  font-family:var(--mono);font-size:11px;color:var(--parch);
+  transition:border-color .14s ease,color .14s ease;
+}
+.ed-chip:hover{border-color:var(--brass);color:var(--brass)}
+
+@media (max-width:640px){
+  .ed-form{gap:9px}
+  .ed-form .campo{flex:1 1 100%}
+  .ed-btns{gap:8px}
+  .ed-btns .btn-calc{flex:1 1 100%;width:100%;text-align:center}
+}

@@ -39,12 +39,30 @@
         </label>
         <label class="campo campo-ancho">
           <span data-i18n="pve.isla.pick">Elige la isla</span>
-          <!-- las opciones las rellena pve.js según el mar elegido -->
-          <select id="isla" class="isla-select"></select>
+          <!-- se escribe para buscar; las opciones las rellena pve.js
+               según el mar elegido -->
+          <input type="text" id="isla" class="isla-select" list="islasLista"
+                 autocomplete="off" spellcheck="false"
+                 data-i18n-attr="placeholder:pve.isla.ph">
+          <datalist id="islasLista"></datalist>
         </label>
       </div>
+      <p class="hint" id="islaHint" hidden></p>
       <div id="combate"></div>
     </section>
+
+    <!-- corregir a mano los enemigos de una isla, solo en este navegador -->
+    <details class="plegable" data-k="ed">
+      <summary>
+        <h2 data-i18n="pve.ed.t">Corregir los enemigos de una isla</h2>
+        <span class="cuenta" id="edCount"></span>
+      </summary>
+      <div class="plegable-body">
+        <p class="parrafo" data-i18n-html="pve.ed.d"></p>
+        <div id="editor"></div>
+        <datalist id="pjLista"></datalist>
+      </div>
+    </details>
 
     <p class="note ver-guia" data-i18n-html="site.verGuia"></p>
   </div>
@@ -56,6 +74,7 @@
 <script src="assets/js/site.js?v=1.10.0"></script>
 <script src="assets/js/characters.js?v=1.10.0"></script>
 <script src="assets/js/islands.js?v=1.10.0"></script>
+<script src="assets/js/islands-store.js?v=1.10.0"></script>
 <script src="assets/js/rules.js?v=1.10.0"></script>
 <script src="assets/js/crew-store.js?v=1.10.0"></script>
 <script src="assets/js/pve.js?v=1.10.0"></script>

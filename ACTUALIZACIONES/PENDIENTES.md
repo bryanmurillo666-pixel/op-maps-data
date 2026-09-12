@@ -5,9 +5,22 @@
 - [x] **Ordenar las islas en el PvE.** Hecho el 8 sep 2026: el usuario numeró cada
       isla dentro de su mar (campo `o` de `islands.js`) y la lista se guarda ya
       ordenada por (mar, orden), así que el desplegable las recorre de menos a más.
-- [ ] **Enemigos del New World.** Las 66 islas del New World están vacías, o sea
-      pendientes de comprobar en el juego. También `7 ???` (South Blue) y
-      `Hidden cloud village` (Grand Line): 78 de 158 en total.
+- [x] **Enemigos del New World.** Hecho el 12 sep 2026 con
+      `Islas actualizadas.xlsx`: `64` de las `66` del New World ya traen sus tres.
+      Quedan `14` islas pendientes de comprobar en el juego — `Green bit` y
+      `Onigashima` (New World), `Ilisia kigdom`, `Karate island`, `7 ???`,
+      `Downs island`, `Flevance kingdom`, `Rubeck island`,
+      `Yotsuba island region`, `Goat island`, `Goa kingdom`, `Kumate island`,
+      `Sixis island` y `Hidden cloud village`.
+- [x] **Buscar la isla escribiendo** (12 sep 2026). El desplegable de 158 pasa a
+      ser un campo de texto con `datalist`, con el mar al lado de cada nombre.
+- [x] **Editar islas a mano** (12 sep 2026). Desglose nuevo en el PvE. Lo que se
+      corrige vive en `localStorage` (`opmaps-islas`) y **no se comparte**: la
+      alianza sigue compartiendo solo rivales.
+- [x] **¿El PvE sirve para ganar 2-1?** Contestado el 12 sep 2026: no. El casco
+      solo recibe los `525` si pierdes y son fijos, y la recompensa por ganar no
+      depende del marcador; lo único que cambia es la vida de los tuyos. El PvE
+      lo explica debajo de la alineación.
 - [ ] **Consejos** (`tips.html`) sigue siendo un esqueleto.
 - [ ] **Enlaces desde la Guía** a las páginas que profundizan: los roles a
       Data Crew, el desembarco al PvE, las guardias al PvP. Pedido por el

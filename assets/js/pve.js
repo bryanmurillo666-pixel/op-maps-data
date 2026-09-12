@@ -38,7 +38,12 @@
     mar:     document.getElementById('mar'),
     isla:    document.getElementById('isla'),
     combate: document.getElementById('combate'),
-    fijos:   document.getElementById('fijos')
+    fijos:   document.getElementById('fijos'),
+    islaHint:   document.getElementById('islaHint'),
+    islasLista: document.getElementById('islasLista'),
+    pjLista:    document.getElementById('pjLista'),
+    editor:     document.getElementById('editor'),
+    edCount:    document.getElementById('edCount')
   };
 
   const t = k => window.I18N.t(k);
@@ -190,10 +195,10 @@
   }
 
   function combateHTML(){
-    const idx = els.isla.value;
-    if (idx === '') return '';
+    const idx = islaElegida();
+    if (idx === -1) return '';
 
-    const isla = window.ISLANDS[Number(idx)];
+    const isla = window.ISLANDS[idx];
     /* Sin enemigos no es una isla sin combate: es una isla que aun no se
        ha comprobado en el juego. El texto lleva negrita, asi que va sin
        escapar, como los demas mensajes con formato. */
@@ -254,6 +259,7 @@
       <div id="simOut"></div>
 
       <p class="note">${t('pve.isla.how')}</p>
+      <p class="note">${t('pve.isla.why21')}</p>
 `;
   }
 
@@ -344,6 +350,14 @@
     </div>`;
   }
 
+  /* ============================================================
+     ELEGIR LA ISLA
+     Es un campo de texto con datalist: se escribe y el navegador
+     filtra. Hay 158 islas, y un desplegable de 158 se recorre fatal.
+     El valor del campo es el NOMBRE, que es único, y de ahí sale el
+     índice.
+     ============================================================ */
+
   function llenarMares(){
     const antes = els.mar.value;
     els.mar.innerHTML = `<option value="">${esc(t('pve.isla.allSeas'))}</option>` +
@@ -352,31 +366,41 @@
     if (antes) els.mar.value = antes;
   }
 
-  /* La lista de islas, filtrada por el mar elegido. Sin mar, van todas
-     agrupadas; con mar, solo las suyas y sin agrupar. */
+  /* El índice de la isla escrita, o -1. Se admite el nombre tal cual y
+     también con el «· pendiente» pegado detrás, por si el navegador lo
+     copia al elegir. */
+  function islaElegida(){
+    const escrito = els.isla.value.trim().replace(/\s*·.*$/, '').trim();
+    if (!escrito) return -1;
+    let i = window.ISLANDS.findIndex(isla => isla.n === escrito);
+    if (i === -1) {
+      const bajo = escrito.toLowerCase();
+      i = window.ISLANDS.findIndex(isla => isla.n.toLowerCase() === bajo);
+    }
+    return i;
+  }
+
+  /* Las opciones del datalist, filtradas por el mar elegido. El nombre
+     va en value porque es lo que se escribe; el mar va en label, que el
+     navegador enseña al lado. */
   function llenarIslas(){
     const filtro = els.mar.value;
-    const antes = els.isla.value;
-    let html = `<option value="">${esc(t('pve.isla.none'))}</option>`;
+    const soloMar = filtro === '' ? null : Number(filtro);
 
-    const opcion = (isla, i) =>
-      `<option value="${i}">${esc(isla.n)}${isla.e.length ? '' : ' ·'}</option>`;
+    els.islasLista.innerHTML = window.ISLANDS.map(isla => {
+      if (soloMar !== null && isla.m !== soloMar) return '';
+      const mar = window.ISLAND_SEAS[isla.m];
+      const marca = isla.e.length ? '' : ' · ' + t('pve.isla.pend');
+      return `<option value="${esc(isla.n)}" label="${esc(mar + marca)}"></option>`;
+    }).join('');
 
-    if (filtro === '') {
-      maresEnOrden().forEach(m => {
-        html += `<optgroup label="${esc(window.ISLAND_SEAS[m])}">` +
-          window.ISLANDS.map((isla, i) => isla.m === m ? opcion(isla, i) : '').join('') +
-          `</optgroup>`;
-      });
-    } else {
-      const m = Number(filtro);
-      html += window.ISLANDS.map((isla, i) => isla.m === m ? opcion(isla, i) : '').join('');
+    /* Si al cambiar de mar la isla escrita ya no está en la lista, se
+       limpia: más vale el campo vacío que un nombre que el filtro
+       contradice. */
+    const i = islaElegida();
+    if (i !== -1 && soloMar !== null && window.ISLANDS[i].m !== soloMar) {
+      els.isla.value = '';
     }
-
-    els.isla.innerHTML = html;
-    // Si la isla que estaba elegida sigue en la lista, se mantiene.
-    els.isla.value = antes;
-    if (els.isla.selectedIndex === -1) els.isla.value = '';
   }
 
   /* ---------- los números fijos ---------- */
@@ -410,14 +434,96 @@
   /* ---------- pintado ---------- */
 
   function render(){
+    const escrito = els.isla.value.trim();
+    const i = islaElegida();
+
+    // Ha escrito algo que no es ninguna isla: hay que decírselo.
+    els.islaHint.hidden = !(escrito && i === -1);
+    if (!els.islaHint.hidden) els.islaHint.textContent = t('pve.isla.noMatch');
+
     els.combate.innerHTML = combateHTML();
     els.fijos.innerHTML   = fijosHTML();
+    editorRender();
+  }
+
+  /* ============================================================
+     EDITOR DE ISLAS
+     Corrige los tres enemigos de la isla elegida arriba. Lo que se
+     escriba se guarda SOLO en este navegador (islands-store.js): no
+     sube a ningún sitio ni lo ve la alianza, que solo comparte rivales.
+     ============================================================ */
+
+  const ED = window.ISLAS_EDIT;
+
+  function llenarPersonajes(){
+    /* Se escribe el nombre en inglés, que es el que guarda el almacén;
+       en español el oficial va como etiqueta, al lado. */
+    els.pjLista.innerHTML = DB.map(c => {
+      const otro = nameOf(c);
+      const et = (otro === c.n ? '' : otro + ' · ') + t('rn.' + c.r);
+      return `<option value="${esc(c.n)}" label="${esc(et)}"></option>`;
+    }).join('');
+  }
+
+  function editorRender(){
+    const n = ED.cuantas();
+    els.edCount.textContent = n ? num(n) : '';
+    els.edCount.hidden = !n;
+
+    const i = islaElegida();
+    if (i === -1) {
+      els.editor.innerHTML = `<p class="hint">${esc(t('pve.ed.pick'))}</p>` + listaEditadas();
+      return;
+    }
+
+    const isla = window.ISLANDS[i];
+    const tocada = ED.editada(isla.n);
+    const campos = [0, 1, 2].map(k => `<label class="campo">
+      <span>${esc(t('pve.ed.pos'))} ${k + 1}</span>
+      <input type="text" class="ed-pj" data-k="${k}" list="pjLista"
+             autocomplete="off" spellcheck="false"
+             value="${esc(isla.e[k] || '')}">
+    </label>`).join('');
+
+    els.editor.innerHTML = `
+      <h3 class="sub-tit">${esc(isla.n)} · ${esc(window.ISLAND_SEAS[isla.m])}${
+        tocada ? ` <span class="cuenta">${esc(t('pve.ed.mine'))}</span>` : ''}</h3>
+      <div class="ed-form">${campos}</div>
+      <div class="ed-btns">
+        <button class="btn-calc" id="edGuardar" type="button">${esc(t('pve.ed.save'))}</button>
+        <button class="btn-add" id="edVaciar" type="button">${esc(t('pve.ed.empty'))}</button>
+        ${tocada ? `<button class="btn-x" id="edDeshacer" type="button">${esc(t('pve.ed.undo'))}</button>` : ''}
+      </div>
+      <p class="hint" id="edHint"></p>
+      ${listaEditadas()}`;
+  }
+
+  /* El resumen de lo corregido, para saber qué se ha tocado sin ir isla
+     por isla. */
+  function listaEditadas(){
+    const nombres = ED.nombres();
+    if (!nombres.length) return '';
+    return `<div class="ed-mias">
+      <h3 class="sub-tit">${esc(t('pve.ed.list'))}</h3>
+      <p class="ed-chips">${nombres.map(n =>
+        `<button type="button" class="ed-chip" data-isla="${esc(n)}">${esc(n)}</button>`).join('')}</p>
+      <button class="btn-x" id="edLimpiar" type="button">${esc(t('pve.ed.clearAll'))}</button>
+    </div>`;
+  }
+
+  function edMensaje(clave, malo){
+    const h = document.getElementById('edHint');
+    if (!h) return;
+    h.textContent = t(clave);
+    h.className = 'hint' + (malo ? ' win-lo' : '');
   }
 
   /* ---------- eventos ---------- */
 
   els.mar.addEventListener('change', () => { llenarIslas(); render(); });
-  els.isla.addEventListener('change', render);
+  /* input y no change: al elegir del datalist con el ratón, Chrome manda
+     input y el change solo llega al salir del campo. */
+  els.isla.addEventListener('input', render);
 
   // El botón se repinta con el panel, así que se escucha por delegación.
   els.combate.addEventListener('click', e => {
@@ -426,9 +532,56 @@
     if (salida) salida.innerHTML = simularHTML();
   });
 
-  document.addEventListener('langchange', () => { llenarMares(); llenarIslas(); render(); });
+  els.editor.addEventListener('click', e => {
+    const chip = e.target.closest('.ed-chip');
+    if (chip) {
+      els.isla.value = chip.dataset.isla;
+      // La isla puede ser de otro mar: se quita el filtro para que se vea.
+      const j = islaElegida();
+      if (j !== -1 && els.mar.value !== '' && window.ISLANDS[j].m !== Number(els.mar.value)) {
+        els.mar.value = '';
+        llenarIslas();
+      }
+      render();
+      return;
+    }
+
+    if (e.target.closest('#edLimpiar')) {
+      if (!confirm(t('pve.ed.confirm'))) return;
+      ED.limpiar();
+      render();
+      return;
+    }
+
+    const i = islaElegida();
+    if (i === -1) return;
+    const isla = window.ISLANDS[i];
+
+    if (e.target.closest('#edDeshacer')) {
+      ED.deshacer(isla.n);
+      render();
+      return;
+    }
+    if (e.target.closest('#edVaciar')) {
+      els.editor.querySelectorAll('.ed-pj').forEach(x => { x.value = ''; });
+      return;
+    }
+    if (e.target.closest('#edGuardar')) {
+      const vals = [0, 1, 2].map(k =>
+        els.editor.querySelector('.ed-pj[data-k="' + k + '"]').value.trim());
+      const r = ED.guardar(isla.n, vals);
+      if (r === 'malos') { edMensaje('pve.ed.bad', true); return; }
+      render();
+      edMensaje(r === 'igual' ? 'pve.ed.same' : 'pve.ed.saved');
+    }
+  });
+
+  document.addEventListener('langchange', () => {
+    llenarMares(); llenarIslas(); llenarPersonajes(); render();
+  });
 
   llenarMares();
   llenarIslas();
+  llenarPersonajes();
   render();
 })();

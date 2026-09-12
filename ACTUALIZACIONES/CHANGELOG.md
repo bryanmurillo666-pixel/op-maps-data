@@ -5,20 +5,22 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
-## 1.10.0 — 8 sep 2026
+## 1.10.0 — 12 sep 2026
 
-**Las islas pasan a la lista del usuario, y por fin van ordenadas.** El mapa lo
-llevaba el export `Island.html` del juego, que ya venía dando problemas: se
-quedó corto en el recuento y traía enemigos que no cuadraban. Lo sustituye una
-lista comprobada a mano.
+**Las islas pasan a la lista del usuario, van ordenadas, se buscan escribiendo
+y se pueden corregir sin tocar el archivo.** El mapa lo llevaba el export
+`Island.html` del juego, que ya venía dando problemas: se quedó corto en el
+recuento y traía enemigos que no cuadraban. Lo sustituye una lista comprobada a
+mano, en dos tandas — `Islas nuevo pve.txt` primero y
+`Islas actualizadas.xlsx` después, que es la que completa el New World entero.
 
 ### Lo que cambia en los datos
 
 | | Antes | Ahora |
 |---|---|---|
 | Islas | `156` | **`158`** |
-| Con enemigos | `146` | **`80`** |
-| Pendientes | `10` | **`78`** |
+| Con enemigos | `146` | **`144`** |
+| Pendientes | `10` | **`14`** |
 
 **Dos islas nuevas**: `14 ???` y `15 ???`, las dos en North Blue.
 
@@ -31,20 +33,34 @@ Y una **renumeración en cascada de las islas `???`**: lo que estaba en `3 ???`
 pasa a `1 ???`, lo de `1 ???` a `2 ???`, y así por West Blue, South Blue y
 North Blue. No es que cambien de enemigos: es que estaban mal emparejadas.
 
-### 78 pendientes, y eso ya no significa lo mismo
+**El New World entero**, que en la primera tanda se quedó pendiente, viene
+completo en la segunda: `64` de sus `66` islas con sus tres enemigos. `Green
+bit` y `Onigashima` siguen sin apuntar.
+
+### El xlsx traía dos erratas, y se han arreglado al volcarlo
+
+- `15 ???` venía en el mar **`Noth Blue`**, que no existe. Se ha leído como
+  `North Blue`, que es donde van sus vecinas y donde el orden `6` encaja.
+- `Yakigashi` traía a **`Gold D. Roger`**, y en el álbum es **`Gol D. Roger`**,
+  sin la `d`. Con el nombre mal la isla no habría encontrado su ficha y la
+  probabilidad no habría salido.
+
+Las dos quedan corregidas **solo en `islands.js`**; el `.xlsx` no se toca, así
+que si se vuelve a volcar hay que arreglarlas otra vez o cambiarlas en el
+origen.
+
+### 14 pendientes, y eso ya no significa lo mismo
 
 Antes una isla con la lista de enemigos vacía era **una isla sin combate**: se
 desembarcaba y ya. Ahora significa **pendiente de comprobar**, que es lo
 contrario de «no hay pelea».
 
-Son las `66` del New World enteras, más `7 ???` (South Blue) y
-`Hidden cloud village` (Grand Line). El PvE lo dice con esas palabras al elegir
-una, y en el desplegable van marcadas con un punto.
-
-**Ojo con esto**: las `66` del New World **tenían enemigos** en el archivo
-viejo, sacados del export. Se van a la papelera a propósito, porque el export es
-justo la fuente de la que ya nos habíamos bajado. Si alguno hacía falta, está en
-el historial de git —`islands.js` antes de este commit—, no perdido.
+Son estas: `Ilisia kigdom`, `Karate island` y `7 ???` (los Blues del oeste y el
+sur), `Downs island`, `Flevance kingdom` y `Rubeck island` (North Blue),
+`Yotsuba island region`, `Goat island`, `Goa kingdom`, `Kumate island` y
+`Sixis island` (East Blue), `Hidden cloud village` (Grand Line) y `Green bit` y
+`Onigashima` (New World). El PvE lo dice con esas palabras al elegir una, y en
+la lista van marcadas.
 
 ### El orden, que llevaba desde el 19 de agosto aparcado
 
@@ -52,17 +68,74 @@ Cada isla lleva ahora un campo **`o`**: su número dentro del mar, puesto a mano
 por el usuario. Va de `1` a `9` en East Blue, a `7` en West Blue, a `26` en
 Grand Line. Es aproximado y sirve para recorrerlas de menos a más.
 
-La lista se guarda **ya ordenada por (mar, orden)**, así que el desplegable del
-PvE las enseña en ese orden sin tocar una línea de `pve.js`: se limita a
-recorrer el array. Las del New World no llevan número —tampoco tienen enemigos—
-y se quedan al final de su mar, en el orden del archivo.
+La lista se guarda **ya ordenada por (mar, orden)**, así que el PvE las enseña
+en ese orden sin tocar una línea de `pve.js`: se limita a recorrer el array.
+Las del New World no llevan número y se quedan al final de su mar, en el orden
+del archivo.
+
+### La isla ya no se busca en un desplegable: se escribe
+
+Un desplegable de `158` islas se recorre fatal, y con el New World lleno la
+lista solo iba a crecer. Ahora el campo es de texto con `datalist`: escribes
+tres letras y el navegador filtra. Al lado de cada nombre sale su mar, así que
+también vale buscar por mar.
+
+Admite mayúsculas o minúsculas y el nombre con la etiqueta pegada detrás, por
+si el navegador la copia al elegir. Si escribes algo que no es ninguna isla, lo
+dice en vez de quedarse en blanco. El filtro de mar sigue donde estaba y ahora
+recorta la lista de sugerencias.
+
+### Y se pueden corregir los enemigos de una isla, **solo en tu navegador**
+
+Este mapa lo lleva el autor a mano, así que siempre va un paso por detrás del
+juego. Nuevo desglose en el PvE, **Corregir los enemigos de una isla**: eliges
+la isla arriba, escribes sus tres enemigos —también con buscador, sobre los
+`226` del álbum— y guardas.
+
+- Se guarda en `localStorage`, en su propia clave `opmaps-islas`, y **no sale de
+  ahí**: no sube a ningún sitio, **la alianza no lo toca** —eso solo comparte
+  rivales— y en otro equipo no está.
+- Se guarda **por nombre de isla**, no por posición, para que siga valiendo
+  cuando `islands.js` se regenere y las islas cambien de sitio. Y solo se
+  guardan las que hayas tocado.
+- Los tres o ninguno: un nombre suelto no se guarda, y solo se aceptan nombres
+  que estén en el álbum. **Los tres vacíos también vale**, y es la forma de
+  volver a marcar una isla como pendiente aunque el archivo traiga enemigos.
+- Cada isla corregida lleva su **Volver a la de la página**, hay un atajo a cada
+  una en la lista de abajo y un **Borrar todas mis correcciones** que lo deja
+  todo como viene.
+- Guardar exactamente lo que ya traía la página no se apunta como corrección: se
+  borra la que hubiera.
+
+### Y de paso, una pregunta contestada en la propia página
+
+**¿El PvE sirve para intentar ganar 2-1?** No, y ahora lo explica el PvE mismo,
+debajo de la alineación. En el PvE ganar es ganar: la recompensa es la misma
+—`5000` de oro, la victoria y la tirada de tripulante al `80 %`— y tu casco no
+se lleva nada. Los `525` del casco son fijos y **solo caen si pierdes**, da
+igual por cuánto (guía v5.1: *«The hull damage is flat: it does not depend on
+how close the scoreline was»*). Lo único que separa un 3-0 de un 2-1 es la vida
+de los tuyos: el duelo perdido cuesta el `34 %` en vez del `8 %`. Por eso la
+alineación recomendada busca el 3-0 y no hay modo «2-1».
 
 ### Comprobado antes de escribir
 
-El volcado valida contra el álbum: los **`240`** nombres de enemigo de las 80
-islas comprobadas existen los 240. Ninguna isla se queda con uno o dos enemigos
+El volcado valida contra el álbum: los **`432`** nombres de enemigo de las 144
+islas comprobadas existen los 432. Ninguna isla se queda con uno o dos enemigos
 —o tres o ninguno—, no hay nombres de isla repetidos y no desaparece ninguna de
-las que había. Las nueve páginas siguen sin claves de i18n crudas.
+las que había; el único cambio de enemigo respecto a la tanda anterior es el
+`Gol D. Roger` de arriba.
+
+El editor va con su propio banco de pruebas, `_test-islas.html`, que mueve la
+página de verdad dentro de un iframe: **34 comprobaciones**, todas en verde.
+Escribir el nombre, las mayúsculas, la etiqueta pegada, el aviso de isla que no
+existe, el filtro de mar que limpia el campo, guardar, rechazar un nombre
+inventado, rechazar uno suelto, aguantar una recarga, dejar pendiente,
+deshacer, guardar lo mismo que ya había, los atajos y el borrado.
+
+Las nueve páginas siguen sin claves de i18n crudas, la paridad ES/EN sigue
+cuadrando (`784` claves a cada lado) y el PvE no se sale de la pantalla a
+`380 px`.
 
 De paso, un fallo que salió al probarlo: el mensaje de isla pendiente lleva
 negrita y se estaba escapando, así que salía el `<b>` como texto.
