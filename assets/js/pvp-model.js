@@ -1037,8 +1037,15 @@ window.PVP_MODEL = (function () {
 
     const nG = usables.length;
     const medioUniforme = suma / total;
+    /* La MISMA mezcla que usa la recomendación, término por término. Aquí
+       faltaba el del peor caso, y ese número se enseña justo al lado del de
+       la recomendación con una flecha entre los dos: si cada lado se mide
+       con una fórmula distinta, la flecha no dice lo que parece. Se nota
+       solo cuando lleva dos derrotas seguidas con el mismo estilo, que es
+       cuando el término del peor caso deja de valer cero — o sea justo
+       cuando el modelo está haciendo algo interesante. */
     const medio = rec
-      ? (1 - rec.w) * medioUniforme + rec.w * sumaRec
+      ? (1 - rec.w - rec.peor) * medioUniforme + rec.w * sumaRec + rec.peor * peor
       : medioUniforme;
 
     return {
@@ -1117,6 +1124,14 @@ window.PVP_MODEL = (function () {
       nFam[f]++;
     }
 
+    /* Y una cuarta «familia» que no es una familia: SU ULTIMO ATAQUE, el
+       que tienes apuntado. Sirve para dos cosas — pedir la defensa que
+       para eso y nada mas, y medir en la tabla que hace cada defensa
+       contra ese ataque exacto. Solo existe si lo has apuntado entero. */
+    const ULT = 3;
+    const maskUlt = new Uint32Array(words);
+    if (rec) maskUlt[rec.i >> 5] |= (1 << (rec.i & 31));
+
     /* Para cada guardia tuya, los ataques suyos que la tumban. */
     const cand = defensas.map(d => {
       const w = new Uint32Array(words);
@@ -1161,8 +1176,8 @@ window.PVP_MODEL = (function () {
 
     /* fam = -1 para las 27, o 0/1/2 para un patrón concreto. */
     const evalua = (grupo, fam) => {
-      const fm = fam >= 0 ? maskFam[fam] : null;
-      const tot = fam >= 0 ? nFam[fam] : ataques.length;
+      const fm  = fam === ULT ? maskUlt : (fam >= 0 ? maskFam[fam] : null);
+      const tot = fam === ULT ? 1       : (fam >= 0 ? nFam[fam] : ataques.length);
       const A = grupo[0].w, B = grupo[1].w, Cw = grupo.length > 2 ? grupo[2].w : null;
       let tres = 0, dos = 0, una = 0, suma = 0;
       for (let k = 0; k < words; k++) {
@@ -1179,7 +1194,7 @@ window.PVP_MODEL = (function () {
       }
       let fuerza = 0, repCae = 0;
       grupo.forEach(x => {
-        suma += fam >= 0 ? x.nf[fam] : x.n;
+        suma += fam === ULT ? x.rep : (fam >= 0 ? x.nf[fam] : x.n);
         fuerza += x.f;
         repCae += x.rep;
       });
@@ -1194,11 +1209,15 @@ window.PVP_MODEL = (function () {
          lo que cae contra el ataque que le hemos visto, y lo que cae contra
          su mejor jugada posible. El tercero sólo entra cuando lleva dos
          derrotas seguidas con el mismo estilo. */
-      const coste = rec
-        ? (1 - rec.w - rec.peor) * (suma / (tot || 1))
+      const medio = suma / (tot || 1);
+      /* Contra SU ULTIMO ATAQUE no se mezcla nada: ya se esta midiendo
+         contra ese ataque y solo contra ese, asi que volver a pesarlo
+         seria contarlo dos veces. */
+      const coste = (rec && fam !== ULT)
+        ? (1 - rec.w - rec.peor) * medio
           + rec.w * repCae
           + rec.peor * peor
-        : suma / (tot || 1);
+        : medio;
       return { peor: peor, caenPeor: caenPeor, suma: suma,
                coste: coste, fuerza: fuerza };
     };
@@ -1277,6 +1296,11 @@ window.PVP_MODEL = (function () {
       { clave: 'mono',        fam: 0  },
       { clave: 'una',         fam: 2  }
     ];
+    /* La cuarta apuesta a que repite EXACTAMENTE lo ultimo que te mando.
+       Es la apuesta mas fuerte que se puede hacer, asi que se ofrece solo
+       cuando hay algo que apostar, y su precio se ve en la tabla como el
+       de las otras. */
+    if (rec) CUALES.push({ clave: 'ult', fam: ULT });
 
     const hallado = CUALES.map(c => ({ clave: c.clave, fam: c.fam, r: busca(c.fam) }))
                           .filter(x => x.r);
@@ -1349,10 +1373,31 @@ window.PVP_MODEL = (function () {
       return 1 - (cae / (nFam[f] || 1)) / combos;
     };
 
+    /* Y contra su ultimo ataque: que parte de tus guardias sigue en pie
+       si vuelve a mandar exactamente eso. */
+    const contraUlt = trio => {
+      let cae = 0;
+      trio.forEach(g => { cae += g.rep; });
+      return 1 - cae / combos;
+    };
+
     const opciones = hallado.map(x => {
       const b = banquilloDe(x.r.trio);
       const contra = {};
       FAMILIAS.forEach((nombre, f) => { contra[nombre] = contraFamilia(x.r.trio, f); });
+      if (rec) contra.ult = contraUlt(x.r.trio);
+
+      /* El porcentaje grande se mide SIEMPRE contra todo lo que puede
+         mandarte, sea cual sea la defensa. Cada `busca(fam)` se optimiza
+         contra su trozo, y quedarse con ese número ponía a cada botón su
+         propia vara: «contra todas iguales» enseñaba lo que aguanta contra
+         las 3 mono, y «contra su último» lo que aguanta contra ese ataque y
+         nada más —o sea un 100 % casi siempre—. Uno al lado del otro,
+         parecía que especializarse salía gratis, que es justo lo contrario
+         de lo que pasa. El precio de afinar va en la tabla, que para eso
+         está. */
+      const comun = evalua(x.r.trio, -1);
+
       return {
         clave: x.clave,
         guardias: x.r.trio.map(g => ({
@@ -1362,10 +1407,10 @@ window.PVP_MODEL = (function () {
         reservas: b.banco,
         libres:   b.libres,
         // lo que aguantas si él juega su mejor plan, y si lo elige al azar
-        peor:   1 - x.r.peor / combos,
-        media:  1 - x.r.coste / combos,
+        peor:   1 - comun.peor / combos,
+        media:  1 - comun.coste / combos,
         contra: contra,
-        inmune: x.r.peor === 0
+        inmune: comun.peor === 0
       };
     });
 
@@ -1374,8 +1419,16 @@ window.PVP_MODEL = (function () {
        está roto. */
     const firma = o => o.guardias
       .map(g => g.puestos.map(p => p.c.n + '|' + p.t).join(',')).join(' / ');
-    const deBase = firma(opciones[0]);
-    opciones.forEach((o, i) => { o.igualBase = i > 0 && firma(o) === deBase; });
+    const firmas = opciones.map(firma);
+    opciones.forEach((o, i) => {
+      /* La primera de antes que salga EXACTAMENTE igual. Antes solo se
+         miraba contra la equilibrada, y entonces dos botones distintos
+         podían dar las mismas guardias sin que nadie lo dijera: en la tabla
+         se ven dos filas clavadas y parece un fallo. */
+      const j = firmas.indexOf(firmas[i]);
+      o.igualBase = i > 0 && j === 0;
+      o.igualQue  = (i > 0 && j < i) ? opciones[j].clave : null;
+    });
 
     const base = opciones[0];   // la equilibrada: la de toda la vida
 
@@ -1390,9 +1443,16 @@ window.PVP_MODEL = (function () {
       // y las tres, con lo que hace falta para comparar
       opciones: opciones,
       familias: FAMILIAS,
+      // las columnas de la tabla: los tres patrones y, si lo has apuntado,
+      // su ultimo ataque
+      columnas: rec ? FAMILIAS.concat(['ult']) : FAMILIAS,
       cuantas:  { mono: nFam[0], dos: nFam[1], una: nFam[2] },
       rec:   rec ? { gano: rec.gano, peso: rec.w, peor: rec.peor,
                      exacta: rec.exacta, patron: rec.patron } : null,
+      /* Para poder distinguir «no has apuntado ningun ataque suyo» de
+         «has apuntado alguno pero el ultimo no sirve»: sin esto la pagina
+         se queda callada en los dos casos y parece que no mira nada. */
+      hayAtaques: !!(rival.a && rival.a.length),
       nG: combos,
       ataques: total,
       suyos: suyos

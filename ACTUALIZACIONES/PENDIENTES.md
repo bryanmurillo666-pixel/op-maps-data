@@ -21,6 +21,10 @@
       solo recibe los `525` si pierdes y son fijos, y la recompensa por ganar no
       depende del marcador; lo único que cambia es la vida de los tuyos. El PvE
       lo explica debajo de la alineación.
+- [x] **Las guardias y el último ataque** (14 sep 2026). Ya contaban con él
+      —la mitad del peso si le salió bien, un cuarto si le falló— pero solo
+      se decía a partir de dos seguidas. Ahora se dice siempre, hay una cuarta
+      defensa **Contra su último ataque** y su columna en la tabla.
 - [ ] **Consejos** (`tips.html`) sigue siendo un esqueleto.
 - [ ] **Enlaces desde la Guía** a las páginas que profundizan: los roles a
       Data Crew, el desembarco al PvE, las guardias al PvP. Pedido por el

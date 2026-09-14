@@ -356,7 +356,7 @@
         `data-def="${esc(o.clave)}">${esc(t('pvp.def.fam.' + o.clave))}</button>`
       ).join('');
 
-      const cols = res.familias || ['mono', 'dos', 'una'];
+      const cols = res.columnas || res.familias || ['mono', 'dos', 'una'];
       const mejorDe = {};
       cols.forEach(f => {
         mejorDe[f] = Math.max.apply(null, ops.map(o => o.contra[f]));
@@ -370,30 +370,56 @@
 
       /* Si la que miras sale igual que la de contra todo, se dice: dos
          filas idénticas en la tabla parecen un fallo y son un resultado. */
-      const misma = op.igualBase
-        ? `<p class="hint">${esc(t('pvp.def.fam.igual'))}</p>` : '';
+      const misma = op.igualQue
+        ? `<p class="hint">${esc(op.igualBase
+            ? t('pvp.def.fam.igual')
+            : t('pvp.def.fam.igualQue')
+                .replace('{d}', t('pvp.def.fam.' + op.igualQue)))}</p>`
+        : '';
 
-      eleccion = `<div class="modo-btns def-btns" role="group">${botones}</div>
+      /* Y el caso contrario al de arriba: unas guardias distintas de las de
+         «contra todo» que no compran nada. Pasa cuando la equilibrada ya
+         aguanta ese patrón entero — entonces afinar solo te quita en los
+         demás. En la tabla está, pero hay que leerla entera para verlo. */
+      const propia = { mono: 'mono', una: 'una', ult: 'ult' }[op.clave];
+      const base0 = ops[0];
+      const balde = (propia && !op.igualQue
+          && op.contra[propia] <= base0.contra[propia] + 1e-9
+          && op.media < base0.media - 1e-9)
+        ? `<p class="hint">${esc(t('pvp.def.fam.enBalde')
+            .replace('{d}', t('pvp.def.fam.' + base0.clave)))}</p>`
+        : '';
+
+      eleccion = `<div class="modo-btns def-btns${ops.length > 3 ? ' def-muchos' : ''}" role="group">${botones}</div>
         <table class="fam-tabla">
           <thead><tr><th></th>${cols.map(f =>
             `<th>${esc(t('pvp.def.fam.c.' + f))}</th>`).join('')}</tr></thead>
           <tbody>${filas}</tbody>
         </table>
         ${misma}
+        ${balde}
         <p class="note">${t('pvp.def.fam.d')}</p>`;
     }
 
-    /* Cuando lleva una racha, la recomendación cambia de verdad y hay que
-       decir por qué: si no, las guardias se mueven solas y parece un
-       capricho. Una línea, no una caja. */
+    /* Su último ataque pesa SIEMPRE en estas guardias: la mitad si le
+       salió bien, un cuarto si le falló. Antes esto solo se decía a partir
+       de dos seguidas, así que con un ataque apuntado la recomendación
+       cambiaba sin que nada en pantalla lo explicara — y entonces parece
+       que no se mira, que es justo lo contrario de lo que pasa.
+       Una línea, no una caja. */
     let racha = '';
     if (res.rec) {
       const r = res.rec;
-      if (r.gano && r.exacta >= 2) {
-        racha = t('pvp.def.racha.gana').replace('{n}', r.exacta);
-      } else if (!r.gano && r.patron >= 2) {
-        racha = t('pvp.def.racha.falla').replace('{n}', r.patron);
+      if (r.gano) {
+        racha = t(r.exacta >= 2 ? 'pvp.def.racha.gana' : 'pvp.def.racha.gana1')
+                  .replace('{n}', r.exacta);
+      } else {
+        racha = t(r.patron >= 2 ? 'pvp.def.racha.falla' : 'pvp.def.racha.falla1')
+                  .replace('{n}', r.patron);
       }
+    } else if (res.hayAtaques) {
+      // apuntó ataques suyos pero el último no se puede usar
+      racha = t('pvp.def.racha.medio');
     }
     const avisoRacha = racha ? `<p class="hint">${racha}</p>` : '';
 

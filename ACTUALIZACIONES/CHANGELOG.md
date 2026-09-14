@@ -5,6 +5,95 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.10.1 — 14 sep 2026
+
+**Las guardias del PvP ya contaban con el último ataque del rival; lo que no
+hacían era decirlo.** De la pregunta salieron una opción nueva y dos fallos de
+medida que llevaban tiempo ahí.
+
+### El último ataque del rival, que sí contaba pero no se veía
+
+La pregunta era si las guardias tienen en cuenta que su último ataque le
+saliera bien o mal. **Sí, siempre, y en las tres defensas**: el coste con el
+que se eligen las guardias es una mezcla de tres cosas —lo que cae de media
+contra todo lo que puede mandarte, lo que cae contra el ataque que le has
+visto, y lo que cae contra su mejor jugada posible—. Ese segundo término pesa
+**el 50 %** si su último ataque le salió bien y **el 25 %** si le falló.
+
+Lo que no se veía es justo eso. La línea que lo explicaba solo salía a partir
+de **dos ataques seguidos**, así que con uno apuntado —que es el caso normal—
+las guardias cambiaban sin que nada en pantalla dijera por qué. Ahora se dice
+siempre, y además se distingue el tercer caso: **tienes ataques apuntados pero
+el último está incompleto**, que antes se quedaba callado igual que si no
+hubieras apuntado nada.
+
+### Cuarta defensa: **Contra su último ataque**
+
+Junto a *Contra todo*, *Contra todas iguales* y *Contra todas distintas*. Las
+tres primeras apuestan por un **patrón** de tácticas; esta apuesta por el
+**ataque exacto** que te mandó la última vez, que es la apuesta más fuerte de
+las cuatro. Solo aparece si lo tienes apuntado entero.
+
+La tabla de comparación gana su columna, **su último**, con lo que aguanta cada
+una de las cuatro si vuelve a mandar justo eso. Y como en las demás, el precio
+de afinar se ve en la tabla en vez de decidirlo la página.
+
+### Dos formas de medir que no medían lo mismo
+
+Buscando cómo enseñar la cuarta salieron dos fallos de verdad, los dos del
+mismo tipo: **números que se enseñan juntos pero se calculaban con varas
+distintas**.
+
+**1. El porcentaje grande de cada defensa.** Cada una se optimiza contra su
+trozo —*contra todas iguales* contra las 3 combinaciones mono, *contra su
+último* contra ese único ataque— y se estaba enseñando **ese** número. Puestos
+en fila parecía que especializarse salía gratis: *contra su último* marcaba un
+`100 %` porque paraba el ataque contra el que se había optimizado, y nada más.
+Ahora las cuatro se miden **contra todo lo que puede mandarte**, que es lo
+único que las hace comparables. En el ejemplo de prueba: `87 %` la equilibrada
+contra `81 %` la afinada — afinar cuesta 6 puntos, y eso es lo que había que
+poder leer.
+
+**2. La flecha de «tus guardias ahora → las recomendadas».** Los dos lados
+mezclaban el último ataque con fórmulas distintas: al de la recomendación se le
+cobraba un término de peor caso que al tuyo no. Se notaba solo cuando el rival
+lleva **dos derrotas seguidas con el mismo estilo**, o sea justo cuando el
+modelo está haciendo lo más interesante que sabe hacer. Ahora los dos usan la
+misma mezcla, término por término.
+
+Hay una prueba nueva que fija esto para siempre: las mismas guardias, medidas
+por los dos caminos, tienen que dar el mismo número. Seis casos —sin ataques,
+con uno ganado, con uno fallado, con dos y tres fallos seguidos, con dos
+victorias seguidas— y las cuatro defensas.
+
+### Dos botones que podían mentir sin querer
+
+- **Dos defensas idénticas.** El aviso existía pero solo miraba contra *contra
+  todo*: si *contra su último* salía clavada a *contra todas iguales*, la tabla
+  enseñaba dos filas idénticas y nadie lo decía. Ahora se compara con todas las
+  anteriores y el aviso **nombra con cuál coincide**.
+- **Afinar en balde.** Cuando *contra todo* ya aguanta ese patrón entero,
+  afinar no compra nada y solo te quita en los demás. Está en la tabla, pero
+  había que leérsela entera; ahora lo dice en una línea.
+
+### Comprobado
+
+Banco nuevo `_test-ultimo.html`: **42 comprobaciones**, todas en verde. Que sin
+ataque apuntado no aparezca la cuarta ni su columna; que con uno aparezcan las
+dos; que ninguna defensa aguante ese ataque mejor que la especializada; que el
+ataque ganado pese el doble que el fallado; que un ataque incompleto no cuente
+pero sí se sepa que lo hay; que las reservas sigan sin solaparse con las
+guardias; y las doce de coherencia entre las dos formas de medir.
+
+`_test-pvp4`, `_test-racha` y `_test-islas` siguen en verde, las nueve páginas
+sin claves de i18n crudas y la paridad ES/EN cuadra.
+
+En el móvil, con cuatro botones el reparto al tercio dejaba tres arriba y el
+cuarto estirado de lado a lado, que parece otra cosa; van de dos en dos. La
+tabla, ya con cinco columnas, sigue entrando a `380 px` sin que nada se salga.
+
+---
+
 ## 1.10.0 — 12 sep 2026
 
 **Las islas pasan a la lista del usuario, van ordenadas, se buscan escribiendo

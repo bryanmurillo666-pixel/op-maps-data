@@ -1946,6 +1946,9 @@ details.sub-plegable > summary .bloque-tit{
   .fam-tabla th,.fam-tabla td{padding:5px 4px}
   .fam-tabla tbody th{font-size:11.5px}
   .def-btns .modo{flex:1 1 33%;font-size:9px;padding:9px 4px;min-height:36px}
+  /* Con cuatro, 33% deja tres arriba y el cuarto estirado de lado a
+     lado: parece otra cosa y no lo es. De dos en dos quedan iguales. */
+  .def-btns.def-muchos .modo{flex:1 1 50%}
 }
 
 /* ============================================================
