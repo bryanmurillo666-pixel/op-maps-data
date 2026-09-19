@@ -25,6 +25,13 @@
       —la mitad del peso si le salió bien, un cuarto si le falló— pero solo
       se decía a partir de dos seguidas. Ahora se dice siempre, hay una cuarta
       defensa **Contra su último ataque** y su columna en la tabla.
+- [x] **Lo borrado volvía al sincronizar** (18 sep 2026). No era la caché: borrar
+      no salía de tu navegador y el compañero âo tu propio hueco de una
+      temporada pasadaâ te lo devolvía. Ahora se apunta lo que borras.
+- [x] **Ver las guardias del rival en el PvP y marcar Caído de un toque**
+      (18 sep 2026). Desglose Â«Sus guardiasÂ».
+- [x] **Fuera el plan de hundimiento** (18 sep 2026). En el historial de git.
+- [x] **Isla del jefe final** (18 sep 2026): Dracule Mihawk en los tres puestos.
 - [ ] **Consejos** (`tips.html`) sigue siendo un esqueleto.
 - [ ] **Enlaces desde la Guía** a las páginas que profundizan: los roles a
       Data Crew, el desembarco al PvE, las guardias al PvP. Pedido por el

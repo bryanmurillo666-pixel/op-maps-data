@@ -217,7 +217,7 @@ window.ALIANZA = (function () {
         if (!g.ok) return { ok: false, error: g.error };
 
         const miembros = (g.data && g.data.miembros) || {};
-        let nuevos = 0, actualizados = 0;
+        let nuevos = 0, actualizados = 0, enterrados = 0;
         const filas = [];
         const deQuien = [];
 
@@ -234,6 +234,7 @@ window.ALIANZA = (function () {
           if (fila.yo) return;
 
           const res = window.RIVALES.importar(m.rivales || '');
+          if (res) enterrados += res.enterrados || 0;
           if (res && (res.nuevos || res.actualizados)) {
             nuevos       += res.nuevos;
             actualizados += res.actualizados;
@@ -252,6 +253,8 @@ window.ALIANZA = (function () {
           ok: true,
           nuevos: nuevos,
           actualizados: actualizados,
+          // los que un compañero sigue teniendo y tú borraste a propósito
+          enterrados: enterrados,
           deQuien: deQuien,
           miembros: filas,
           antes: mios.length,

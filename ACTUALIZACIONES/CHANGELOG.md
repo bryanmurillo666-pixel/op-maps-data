@@ -5,6 +5,125 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.10.2 — 18 sep 2026
+
+**Lo que borras deja de volver, el PvP enseña lo que sabes del rival, se va el
+plan de hundimiento y el mapa gana la isla del jefe final.**
+
+### Lo que borrabas volvía, y no era la caché
+
+El síntoma: borras rivales de temporadas pasadas, sincronizas con la alianza y
+están otra vez ahí.
+
+La causa no tenía nada que ver con la caché. Sincronizar son tres pasos: subes
+tu libreta entera, te bajas la de todos y las juntas. Borrar un rival era un
+acto que **no salía de tu navegador**: el compañero seguía teniéndolo en la
+suya, lo juntabas y volvía. Y hay una segunda vía, más silenciosa: al entrar en
+una alianza **estrenas hueco**, así que si volviste a entrar alguna vez —otro
+equipo, datos del navegador borrados— tu hueco viejo sigue en el servidor
+sirviendo lo de entonces, y se lee como si fuera un compañero más.
+
+Ahora **se apunta lo que borras**, con la hora. Al juntar, un rival que viene de
+fuera se salta si lo borraste después de la última vez que alguien lo tocó:
+
+- **borrado después** → lo tiraste sabiendo lo que había: sigue fuera
+- **tocado después** → un compañero se lo ha encontrado: vuelve, y así debe ser
+
+Con eso una temporada vieja no resucita pero un rival de verdad sí. Se guarda
+por nombre, que es lo que empareja las libretas, y da igual cómo lo escribas.
+Volver a apuntar a alguien con ese nombre **levanta la lápida**, porque lo has
+traído de vuelta a propósito.
+
+En *Mis rivales* sale un aviso con cuántos llevas borrados y un **Olvidar los
+borrados** para deshacerlo entero. Al importar y al sincronizar se dice cuántos
+se han quedado fuera, que si no parecería que el compañero no comparte.
+
+**El hueco viejo se quita aparte**: en *Mi alianza*, en la lista de miembros,
+con la × de cada uno. Eso ya estaba y sigue siendo lo que hay que hacer con los
+huecos de temporadas pasadas.
+
+De paso, un texto que mentía: la nota de *Mis rivales* decía que un rival con el
+mismo nombre **se sustituye** por el que llega. No es verdad desde hace tiempo —
+se completa puesto a puesto, que es justo lo que hace que compartir valga la
+pena—. Ahora dice lo que hace el código.
+
+### El PvP enseña lo que sabes de él, y el Caído se marca de un toque
+
+Desglose nuevo, **Sus guardias**, entre el plan de ataque y tus guardias. Sale
+su tripulación y las guardias que le tengas apuntadas, sin salir de la página.
+
+Su tripulación va en botones: **un toque marca Caído, otro lo devuelve a Sano**.
+Es el estado que más cambia lo que te conviene hacer —un Caído no puede
+defender, así que en su puesto entra una reserva— y es justo lo que el juego te
+enseña un segundo antes de atacar. Tocarlo repinta la página entera, porque con
+eso cambian el plan y las guardias recomendadas.
+
+Es el mismo dato que hay en *Mis rivales*: lo que marques está allí y viaja por
+la alianza igual. Los estados de en medio —Herido y Crítico— se siguen poniendo
+allí, y aquí se ven pero no estorban.
+
+Los puestos que no has apuntado salen como huecos, que también es información:
+te dicen lo que te falta por ver. Y de un rival del que no sabes nada, se dice
+en vez de quedarse en blanco.
+
+### Fuera el plan de hundimiento
+
+Quitado entero: el desglose, sus cuatro controles, el Dijkstra sobre
+`(casco, kit)` que buscaba la tanda más corta en tiempo, sus `58` claves de
+i18n, su hoja de estilos y su banco de pruebas. Las constantes del juego
+—`450` del Kit de Emergencia, `600` que repara— se quedan en `rules.js`, que es
+donde viven los números del juego se usen o no.
+
+Está entero en el historial de git si algún día vuelve a hacer falta.
+
+### El jefe final
+
+Isla nueva en el New World: **Jefe final: Dracule Mihawk**, con **Dracule
+Mihawk** en los tres puestos. Funciona como cualquier otra —la probabilidad sale
+exacta, la alineación se calcula igual y se puede corregir desde el editor—.
+Contra la tripulación de prueba da un `59 %`.
+
+Como el nombre lleva parte en español y el resto de islas van en inglés, las
+islas admiten ahora un campo **`es`** opcional. Sin él se enseña el nombre del
+archivo en los dos idiomas, que es lo normal porque se llaman igual. La
+**identidad** de una isla sigue siendo su nombre en inglés: es lo que guarda el
+editor, así que una corrección hecha en español sigue valiendo en inglés. El
+buscador acepta los dos nombres.
+
+El mapa pasa a **`159`** islas. Los textos de la Guía siguen diciendo `158`
+porque describen el mundo **según la guía v5.1**, y esa cuenta es suya.
+
+### Comprobado
+
+Dos bancos nuevos. **`_test-borrados.html`**, `22` comprobaciones: que lo
+borrado no vuelva al sincronizar, que sí vuelva si un compañero lo tocó después,
+que añadirlo a mano levante la lápida, que dé igual cómo lo escribas, que una
+temporada de 8 no resucite, que el botón de olvidar lo deshaga y que todo
+aguante una recarga.
+
+**`_test-suyas.html`**, `24` comprobaciones sobre la página de verdad dentro de
+un iframe: los botones, el toque que marca y desmarca, que quede guardado en la
+libreta, que el puesto salga tachado en su guardia, que las guardias
+recomendadas se rehagan, que aguante una recarga, que un rival vacío lo diga, y
+que del plan de hundimiento no quede nada.
+
+Ese primer banco encontró un fallo de verdad: `RIVALES.recargar()` releía la
+libreta pero **no** lo borrado, así que quien la recargara se quedaba con la
+lista al día y las lápidas de antes.
+
+El banco de red, `_test-red.html`, **recoge ahora lo que ensucia**: creaba una
+alianza de verdad en Firebase y se limitaba a imprimir el código para
+borrarla a mano, así que cada pasada dejaba una para siempre —y como las
+reglas no dejan listar alianzas, luego no había forma de encontrarlas—. Al
+acabar borra sus tres huecos y comprueba que ya no se puede entrar.
+
+`_test-islas` sube a `48` con la isla del jefe. `_test-ultimo`, `_test-pvp4` y
+`_test-racha` siguen en verde, las nueve páginas sin claves de i18n crudas, la
+paridad ES/EN cuadra y el PvP no se sale de la pantalla a `380 px` — los botones
+de su tripulación van de dos en dos, con `45 px` de alto.
+
+---
+
 ## 1.10.1 — 14 sep 2026
 
 **Las guardias del PvP ya contaban con el último ataque del rival; lo que no

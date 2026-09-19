@@ -26,6 +26,9 @@
     impIn:    document.getElementById('impIn'),
     impBtn:   document.getElementById('impBtn'),
     impHint:  document.getElementById('impHint'),
+    borrados:     document.getElementById('borrados'),
+    borradosHint: document.getElementById('borradosHint'),
+    olvidarBtn:   document.getElementById('olvidarBtn'),
     datalist: document.getElementById('db'),
     filtros:  document.getElementById('rivFiltros'),
     buscar:   document.getElementById('rivBuscar'),
@@ -348,6 +351,7 @@
     const vistos = filtrados().length;
     els.count.textContent = !total ? ''
       : (vistos === total ? total : vistos + ' / ' + total);
+    pintaBorrados();
   }
 
   function rellenarDatalist(){
@@ -507,11 +511,32 @@
     }
     els.impHint.classList.remove('err');
     els.impHint.textContent = t('riv.share.ok')
-      .replace('{n}', res.nuevos).replace('{a}', res.actualizados);
+      .replace('{n}', res.nuevos).replace('{a}', res.actualizados)
+      + (res.enterrados
+          ? ' ' + t('riv.borrados.saltados').replace('{n}', res.enterrados)
+          : '');
     els.impIn.value = '';
     congelaOrden();
     render();
   });
+
+  /* Lo que has borrado se queda borrado aunque sincronices, y eso hay que
+     verlo: si no, un compañero que sigue teniéndolo parece que no comparte.
+     Y con el botón se deshace, que es lo justo cuando te has pasado. */
+  function pintaBorrados(){
+    if (!els.borrados) return;
+    const n = RV.enterrados();
+    els.borrados.hidden = !n;
+    if (n) els.borradosHint.textContent = t('riv.borrados.hay').replace('{n}', n);
+  }
+
+  if (els.olvidarBtn) {
+    els.olvidarBtn.addEventListener('click', () => {
+      if (!window.confirm(t('riv.borrados.seguro'))) return;
+      RV.olvidarBorrados();
+      pintaBorrados();
+    });
+  }
 
   /* ---------- buscar y filtrar ---------- */
 

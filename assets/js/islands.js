@@ -1,5 +1,5 @@
 /* ============================================================
-   OP-MAPS DATA - las 158 islas del mapa y sus enemigos
+   OP-MAPS DATA - las 159 islas del mapa y sus enemigos
    ------------------------------------------------------------
    Fuente: la lista que lleva el usuario a mano. Volcada el 12 sep 2026
    desde `Islas actualizadas.xlsx`, que completa el New World entero.
@@ -7,7 +7,11 @@
    enemigos que no cuadraban.
 
      m = mar, indice sobre ISLAND_SEAS
-     n = nombre de la isla
+     n = nombre de la isla, en inglés como en el juego
+     es = su nombre en español, sólo si hace falta. Sin él se enseña `n`
+          en los dos idiomas, que es lo normal: los nombres de isla son
+          los mismos. La identidad de una isla es SIEMPRE `n`, también
+          para las correcciones del usuario
      o = orden dentro de su mar, tal como lo numero el usuario. Es
          aproximado y sirve para recorrerlas de menos a mas. La lista ya
          viene ordenada por (mar, o), asi que quien la lea no ordena nada.
@@ -130,6 +134,8 @@ window.ISLANDS = [
   {m:3, n:"Package", e:["Who's Who", "X Drake", "Doc Q"]},
   {m:3, n:"Margarine", e:["Hajrudin", "Hamburg", "Kuroobi"]},
   {m:3, n:"Winner island", e:["Vinsmoke Yonji", "Dracule Mihawk", "Charlotte Oven"]},
+  {m:3, n:"Final boss: Dracule Mihawk", es:"Jefe final: Dracule Mihawk",
+   e:["Dracule Mihawk", "Dracule Mihawk", "Dracule Mihawk"]},
   {m:4, o:1, n:"Reverse mountain", e:["Lindbergh", "Tom", "Hibari"]},
   {m:4, o:2, n:"Cactus island", e:["Uta", "Capone Bege", "Sai"]},
   {m:4, o:3, n:"Little garden", e:["Hody Jones", "Koby", "Buffalo"]},

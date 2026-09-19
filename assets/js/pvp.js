@@ -35,7 +35,8 @@
     ali: document.getElementById('planAlianza'),
     campoAli: document.getElementById('campoAlianza'),
     out: document.getElementById('resultado'),
-    def: document.getElementById('defensa')
+    def: document.getElementById('defensa'),
+    suyas: document.getElementById('suyas')
   };
 
   /* ---------- utilidades ---------- */
@@ -240,6 +241,117 @@
       res: [null, null]
     };
     return refCache;
+  }
+
+  /* ============================================================
+     LO QUE SABES DE ÉL
+     ------------------------------------------------------------
+     Sus guardias apuntadas y su tripulación, aquí y no sólo en Mis
+     rivales. Dos razones, y las dos son de uso:
+
+     1. Cuando estás mirando qué le mandas, lo que quieres delante es
+        contra qué te vas a encontrar. Ir a otra página a mirarlo y
+        volver rompe lo que estabas haciendo.
+     2. Un CAÍDO suyo lo cambia todo —no puede defender, entra una
+        reserva en su puesto— y eso se sabe justo antes de atacar,
+        porque el juego te enseña en qué banda está cada uno. Así que
+        marcarlo tiene que costar un toque, no un viaje.
+
+     Se toca lo mismo que en Mis rivales (RIVALES.setEstado), así que
+     lo que marques aquí está allí, y viaja por la alianza igual.
+     ============================================================ */
+
+  /* Un toque cambia entre Caído y Sano, que es lo único que se mira
+     deprisa. Los estados de en medio —Herido, Crítico— se siguen
+     pudiendo poner en Mis rivales, y aquí se ven pero no estorban. */
+  function suyoHTML(m){
+    const c = porNombre(m.n);
+    if (!c) return '';
+    const caido = m.e === RV.CAIDO;
+    return `<button type="button" class="suyo-tog est-${esc(m.e)}${caido ? ' caido' : ''}"
+      data-quien="${esc(m.n)}" aria-pressed="${caido}">
+      <b>${esc(nameOf(c))}</b>
+      <span>${esc(t('pvp.est.' + m.e))}</span>
+    </button>`;
+  }
+
+  /* Una guardia suya, como la enseña Mis rivales pero sin poder tocarla:
+     aquí se consulta, se edita allí. Los puestos sin apuntar salen como
+     huecos, que es información: te dice lo que te falta por ver. */
+  function suGuardiaHTML(g, gi, caidos){
+    const huecos = g.map((p, i) => {
+      if (!p) return `<div class="puesto-fijo vacio">
+        <span class="pos">${i + 1}</span>
+        <b>—</b>
+      </div>`;
+      if (p.n === RV.VACIO) return `<div class="puesto-fijo vacio">
+        <span class="pos">${i + 1}</span>
+        <b>${esc(t('pvp.riv.empty'))}</b>
+      </div>`;
+      const c = porNombre(p.n);
+      const fuera = caidos[p.n];
+      return `<div class="puesto-fijo${fuera ? ' fuera' : ''}">
+        <span class="pos">${i + 1}</span>
+        <b>${esc(c ? nameOf(c) : p.n)}</b>
+        <span class="tac-pill tac-${seg(p.t)}">${esc(t('tac.' + p.t))}</span>
+        ${fuera ? `<span class="cuenta">${esc(t('pvp.est.ko'))}</span>` : ''}
+      </div>`;
+    }).join('');
+
+    return `<div class="guardia">
+      <div class="guardia-cab"><h5>${esc(t('pvp.riv.guard'))} ${gi + 1}</h5></div>
+      <div class="puestos">${huecos}</div>
+    </div>`;
+  }
+
+  function suyasHTML(){
+    const r = RV.porId(els.sel.value);
+    if (!r) return `<p class="hint">${esc(t('pvp.suyas.sinRival'))}</p>`;
+
+    const caidos = {};
+    r.r.forEach(m => { if (m.e === RV.CAIDO) caidos[m.n] = true; });
+
+    const tripu = r.r.length
+      ? `<div class="suyos-tog">${r.r.map(suyoHTML).join('')}</div>`
+      : `<p class="hint">${t('pvp.suyas.sinCrew')}</p>`;
+
+    const nG = RV.nGuardias(r);
+    const apuntadas = r.g.slice(0, nG).filter(g => g.some(Boolean)).length;
+    const guardias = apuntadas
+      ? `<div class="def-guardias">${r.g.slice(0, nG)
+          .map((g, gi) => suGuardiaHTML(g, gi, caidos)).join('')}</div>`
+      : `<p class="hint">${t('pvp.suyas.sinGuardias')}</p>`;
+
+    /* Las reservas sólo si hay alguna: dos huecos vacíos no dicen nada que
+       no diga ya el mensaje de arriba. */
+    const res = r.res.filter(Boolean);
+    const reservas = res.length
+      ? `<div class="guardia">
+          <div class="guardia-cab"><h5>${esc(t('pvp.def.res'))}</h5></div>
+          <div class="puestos reservas-${res.length}">${res.map((p, i) => {
+            const c = porNombre(p.n);
+            return `<div class="puesto-fijo${caidos[p.n] ? ' fuera' : ''}">
+              <span class="pos res">R${i + 1}</span>
+              <b>${esc(c ? nameOf(c) : p.n)}</b>
+              <span class="tac-pill tac-${seg(p.t)}">${esc(t('tac.' + p.t))}</span>
+            </div>`;
+          }).join('')}</div>
+        </div>`
+      : '';
+
+    const cuantos = r.r.filter(m => m.e === RV.CAIDO).length;
+    const aviso = cuantos
+      ? `<p class="hint win-lo">${t('pvp.suyas.caidos').replace('{n}', num(cuantos))}</p>`
+      : '';
+
+    return `<h3 class="sub-tit">${esc(t('pvp.suyas.crew'))}</h3>
+      ${tripu}
+      ${aviso}
+      <h3 class="sub-tit">${esc(t('pvp.suyas.guardias'))} ${
+        apuntadas ? `<span class="cuenta">${num(apuntadas)} / ${num(nG)}</span>` : ''}</h3>
+      ${guardias}
+      ${reservas}
+      <p class="note">${t('pvp.suyas.d2')}</p>`;
   }
 
   function defensaHTML(){
@@ -511,151 +623,6 @@
     </div>`;
   }
 
-  /* ---------- cuántos ataques para hundirlo ----------
-     Aritmética pura: no depende del rival elegido ni de tu tripulación,
-     sólo del casco que le quede y de si lleva kit. Da por hecho que
-     consigues el marcador que haga falta — arriba tienes cada cuánto te
-     sale de verdad. */
-  const NOMBRE_GOLPE = {
-    g30:  () => t('pvp.mk.g30'),
-    g21a: () => t('pvp.mk.g21') + ' · ' + t('pvp.hundir.amplio'),
-    g21t: () => t('pvp.mk.g21') + ' · ' + t('pvp.hundir.ajust'),
-    p21t: () => t('pvp.mk.p12') + ' · ' + t('pvp.hundir.ajust'),
-    p21a: () => t('pvp.mk.p12') + ' · ' + t('pvp.hundir.amplio'),
-    p03:  () => t('pvp.mk.p03')
-  };
-
-  /* "3 h 15 min". Nunca en minutos sueltos a partir de la hora: lo que se
-     quiere ver es si esto es una tarde o un rato. */
-  function reloj(min){
-    const h = Math.floor(min / 60), m = Math.round(min % 60);
-    if (!h) return m + ' min';
-    return h + ' h' + (m ? ' ' + m + ' min' : '');
-  }
-
-  const valor = (id, cae) => {
-    const e = document.getElementById(id);
-    return e ? e.value : cae;
-  };
-
-  /* Lo que antes se elegía a mano y ahora se mira solo.
-
-     Un Comandante TUYO te da dos abordajes por turno. Un Músico SUYO le
-     parte el aturdimiento por la mitad, y es el suyo el que manda: no
-     puedes atacar a una tripulación aturdida, así que su aturdimiento es
-     tu tiempo de espera. */
-  const tengoRol = rol => mios().some(c => c.r === rol);
-
-  function suMusico(){
-    const r = RV.porId(els.sel.value);
-    if (!r || !r.r || !r.r.length) return false;   // sin rival elegido, lo caro
-    return r.r.some(m => {
-      if (m.e === RV.CAIDO) return false;          // caído no cuenta
-      const c = porNombre(m.n);
-      return c && c.r === 'Musician';
-    });
-  }
-
-  /* Con qué desgastas. Perdiendo no hay nada que suponer: perder se puede
-     siempre. Ganando sí, y ahí estaba el engaño de la primera versión —
-     elegía el 3-0 en todos los abordajes, que es el mejor caso posible.
-
-     Un 3-0 se consigue cuando le conoces las TRES guardias; si no, sabes
-     que ganas pero no con qué marcador, y contar con el 3-0 es contar con
-     que suene la flauta seis veces seguidas. Así que sin la libreta
-     completa el desgaste ganando se queda en 2-1. */
-  function conoceGuardias(){
-    const r = RV.porId(els.sel.value);
-    if (!r) return false;
-    const nG = RV.nGuardias(r);
-    return r.g.slice(0, nG).filter(g => g.every(p => p)).length >= nG;
-  }
-
-  function marcadoresDesgaste(){
-    if (valor('hundirDesg', 'perder') === 'perder') return ['p21t', 'p21a', 'p03'];
-    return conoceGuardias() ? ['g30', 'g21a', 'g21t'] : ['g21a', 'g21t'];
-  }
-
-  function hundirHTML(){
-    const caja = document.getElementById('hundirCasco');
-    if (!caja) return '';
-    const chk = document.getElementById('hundirKit');
-
-    const casco = Math.max(1, Math.min(R.HULL, Math.round(Number(caja.value) || R.HULL)));
-    const conComandante = tengoRol('Commander');
-    const conMusico     = suMusico();
-
-    const r = M.comoHundirlo(casco, chk && chk.checked, {
-      porTurno:       conComandante ? 2 : 1,
-      suAturdimiento: conMusico ? 45 : 90,
-      desgaste:       marcadoresDesgaste(),
-      remate:         valor('hundirRemate', 'g30')
-    });
-
-    /* Se dice qué se ha detectado: si no, salen números y no se sabe de
-       dónde. */
-    const auto = document.getElementById('hundirAuto');
-    if (auto) {
-      const trozos = [
-        t(conComandante ? 'pvp.hundir.autoCmd2' : 'pvp.hundir.autoCmd1'),
-        t(conMusico ? 'pvp.hundir.autoMus45' : 'pvp.hundir.autoMus90')
-      ];
-      if (valor('hundirDesg', 'perder') === 'ganar' && !conoceGuardias()) {
-        trozos.push(t('pvp.hundir.sin30'));
-      }
-      auto.innerHTML = trozos.map(esc).join(' · ');
-    }
-
-    if (!r.ok) return `<p class="hint err">${esc(t('pvp.hundir.no'))}</p>`;
-
-    let h = r.inicio;
-    const filas = r.pasos.map((p, i) => {
-      const desde = h;
-      h = p.queda;
-      const gana = p.k.charAt(0) === 'g';
-      return `<div class="hun-fila${p.queda === 0 ? ' final' : ''}">
-        <span class="hun-n">${i + 1}</span>
-        <span class="hun-q ${gana ? 'gana' : 'pierde'}">${esc(NOMBRE_GOLPE[p.k]())}</span>
-        <span class="hun-d">&minus;${num(p.d)}</span>
-        <span class="hun-h">${num(desde)} &rarr; ${p.queda === 0
-          ? `<b>${esc(t('pvp.hundir.hundido'))}</b>` : num(p.queda)}</span>
-        ${p.kit ? `<span class="hun-kit">${esc(t('pvp.hundir.salta'))}</span>` : ''}
-      </div>`;
-    }).join('');
-
-    const n = r.pasos.length;
-
-    /* Las tres cifras que deciden si el plan compensa, y la del tiempo la
-       primera: contar ataques engaña, porque cada derrota son 90 minutos
-       aturdido en los que no haces nada. */
-    const resumen = `<div class="hun-total">
-      <div class="hun-caja">
-        <span>${esc(t('pvp.hundir.tiempo'))}</span>
-        <b>${esc(reloj(r.minutos))}</b>
-        <em>${num(r.turnos, 1)} ${esc(t('pvp.hundir.turnos'))}</em>
-      </div>
-      <div class="hun-caja">
-        <span>${esc(t('pvp.hundir.ataques'))}</span>
-        <b>${n}</b>
-        <em>${r.derrotas} ${esc(t('pvp.hundir.derrotas'))}</em>
-      </div>
-      <div class="hun-caja">
-        <span>${esc(t('pvp.hundir.tuCasco'))}</span>
-        <b class="${r.tuCasco >= R.HULL ? 'mal' : ''}">&minus;${num(r.tuCasco)}</b>
-        <em>${esc(t('pvp.hundir.deCasco'))}</em>
-      </div>
-    </div>`;
-
-    /* El aviso que de verdad hace falta: si el plan te cuesta más casco del
-       que tienes, el que se hunde eres tú antes que él. */
-    const aviso = r.tuCasco >= R.HULL
-      ? `<p class="aviso-cambio"><b>${esc(t('pvp.hundir.caroT'))}</b>
-         <span>${t('pvp.hundir.caro')}</span></p>`
-      : '';
-
-    return resumen + aviso + `<div class="hundir">${filas}</div>`;
-  }
-
   /* ---------- montaje ---------- */
 
   /* Dos desplegables encadenados, como el mar y la isla del PvE: eliges la
@@ -717,18 +684,31 @@
     if (els.sel.selectedIndex === -1) els.sel.value = '';
   }
 
-  function repintaHundir(){
-    const salida = document.getElementById('hundirOut');
-    if (salida) salida.innerHTML = hundirHTML();
-  }
-
   function repinta(){
     els.out.innerHTML = planHTML();
+    if (els.suyas) els.suyas.innerHTML = suyasHTML();
     els.def.innerHTML = defensaHTML();
-    repintaHundir();
   }
 
   els.sel.addEventListener('change', repinta);
+
+  /* Marcar a uno suyo como Caído cambia TODO: no puede defender, así que
+     entra una reserva en su puesto y con ella cambian el plan de ataque y
+     las guardias que te convienen. Por eso se repinta la página entera y
+     no sólo este panel. */
+  if (els.suyas) {
+    els.suyas.addEventListener('click', e => {
+      const b = e.target.closest('.suyo-tog');
+      if (!b) return;
+      const r = RV.porId(els.sel.value);
+      if (!r) return;
+      const quien = b.getAttribute('data-quien');
+      const m = r.r.filter(x => x.n === quien)[0];
+      if (!m) return;
+      RV.setEstado(r.id, quien, m.e === RV.CAIDO ? 'ok' : RV.CAIDO);
+      repinta();
+    });
+  }
 
   /* Cambiar de defensa repinta solo ese panel. */
   els.def.addEventListener('click', e => {
@@ -741,28 +721,6 @@
     catch(err){ /* si el navegador lo bloquea, dura la sesión */ }
     els.def.innerHTML = defensaHTML();
   });
-
-  ['hundirCasco', 'hundirKit', 'hundirDesg', 'hundirRemate'].forEach(id => {
-    const e = document.getElementById(id);
-    if (e) e.addEventListener('input', repintaHundir);
-  });
-
-  /* Las opciones llevan el daño dentro —«Perder 1-2 ajustado (−180)»— para
-     que no haya que fiarse de nada: eliges un marcador concreto y ves lo
-     que hace. Se pintan a mano porque el nombre es compuesto y el daño sale
-     de la tabla. */
-  function nombraGolpes(){
-    ['hundirRemate'].forEach(id => {
-      const sel = document.getElementById(id);
-      if (!sel) return;
-      Array.prototype.forEach.call(sel.options, o => {
-        const k = o.value;
-        if (!NOMBRE_GOLPE[k]) return;
-        o.textContent = NOMBRE_GOLPE[k]() +
-          '  (−' + num(Math.round(R.CASCO[k].el * R.HULL)) + ')';
-      });
-    });
-  }
 
   /* Cambiar de alianza rehace la lista de rivales. Si el que tenías elegido
      ya no está en ella, el segundo desplegable vuelve a "elige un rival" y
@@ -795,7 +753,7 @@
   });
 
   document.addEventListener('langchange', () => {
-    llenarAlianzas(); llenarSelect(); nombraGolpes(); repinta();
+    llenarAlianzas(); llenarSelect(); repinta();
   });
 
   /* Los desgloses vuelven como los dejaste. */
@@ -819,6 +777,5 @@
   pintaModo();
   llenarAlianzas();
   llenarSelect();
-  nombraGolpes();
   repinta();
 })();

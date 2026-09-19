@@ -1851,72 +1851,6 @@ details.sub-plegable > summary .bloque-tit{
 }
 
 /* ============================================================
-   Cuántos ataques para hundirlo
-   ============================================================ */
-
-.hundir-form{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px}
-.hundir-form .campo-corto{flex:0 0 130px}
-.hundir-form input[type="number"]{
-  background:var(--sea);border:0.5px solid var(--line-str);border-radius:9px;
-  color:var(--parch);font-family:var(--mono);font-size:14px;font-weight:700;
-  padding:9px 10px;width:100%;
-}
-.chk{display:flex;align-items:center;gap:8px;cursor:pointer;padding-bottom:9px}
-.chk input{width:17px;height:17px;accent-color:var(--brass);cursor:pointer}
-.chk span{font-size:12.5px;color:var(--mist)}
-
-.hundir{display:grid;grid-template-columns:minmax(0,1fr);gap:5px}
-.hun-fila{
-  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  padding:8px 11px;border-radius:9px;
-  border:0.5px solid var(--line);background:var(--hull-2);
-}
-.hun-fila.final{border-color:var(--line-str);background:rgba(88,180,166,.07)}
-.hun-n{
-  flex:0 0 auto;font-family:var(--mono);font-size:10px;color:var(--mist);
-  min-width:14px;
-}
-.hun-q{flex:1;min-width:0;font-size:12.5px}
-.hun-q.gana{color:var(--foam)}
-.hun-q.pierde{color:var(--blood)}
-.hun-d{flex:0 0 auto;font-family:var(--mono);font-size:12px;color:var(--brass)}
-.hun-h{
-  flex:0 0 auto;font-family:var(--mono);font-size:11px;color:var(--mist);
-  min-width:118px;text-align:right;
-}
-.hun-h b{color:var(--foam)}
-.hun-kit{
-  flex:0 0 auto;font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;
-  color:#1a1206;background:var(--brass-dim);border-radius:999px;padding:2px 8px;
-}
-@media (max-width:640px){
-  .hun-q{flex:1 0 100%}
-  .hun-h{margin-left:auto;min-width:0}
-}
-
-/* Las tres cifras del plan de hundimiento. El tiempo va primero a
-   propósito: contar ataques engaña, porque cada derrota son 90 minutos
-   aturdido en los que no se hace nada. */
-.hun-total{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
-.hun-caja{
-  display:flex;flex-direction:column;gap:1px;align-items:center;
-  padding:9px 8px;border-radius:11px;
-  border:0.5px solid var(--line);background:var(--hull-2);
-}
-.hun-caja span{
-  font-family:var(--mono);font-size:9px;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--mist);text-align:center;
-}
-.hun-caja b{font-family:var(--display);font-size:22px;line-height:1.15;color:var(--brass)}
-.hun-caja b.mal{color:var(--blood)}
-.hun-caja em{font-family:var(--mono);font-size:10px;font-style:normal;color:var(--mist)}
-@media (max-width:520px){
-  .hun-total{grid-template-columns:minmax(0,1fr)}
-  .hun-caja{flex-direction:row;justify-content:space-between;align-items:baseline;gap:10px}
-  .hun-caja b{font-size:19px}
-}
-
-/* ============================================================
    Las tres defensas
    ============================================================ */
 
@@ -1987,4 +1921,69 @@ input.isla-select::placeholder{color:var(--mist);opacity:.75}
   .ed-form .campo{flex:1 1 100%}
   .ed-btns{gap:8px}
   .ed-btns .btn-calc{flex:1 1 100%;width:100%;text-align:center}
+}
+
+/* ============================================================
+   PvP: lo que sabes de él — su tripulación y sus guardias
+   ============================================================ */
+
+/* Los suyos, cada uno un botón que cambia entre Caído y Sano de un
+   toque. Se envuelven porque una tripulación son hasta 11. */
+.suyos-tog{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.suyo-tog{
+  display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+  background:var(--sea);border:0.5px solid var(--line);
+  border-radius:9px;padding:7px 11px;cursor:pointer;min-height:44px;
+  text-align:left;
+  transition:border-color .14s ease,background .14s ease;
+}
+.suyo-tog b{font-size:12.5px;color:var(--parch);font-weight:600}
+.suyo-tog span{
+  font-family:var(--mono);font-size:9px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--mist);
+}
+.suyo-tog:hover{border-color:var(--brass)}
+
+/* El estado se lee por el color del borde, no por el texto: de un
+   vistazo hay que ver quién está en pie. */
+.suyo-tog.est-her{border-color:rgba(212,162,83,.45)}
+.suyo-tog.est-her span{color:var(--brass)}
+.suyo-tog.est-cri{border-color:rgba(193,80,75,.45)}
+.suyo-tog.est-cri span{color:var(--blood)}
+.suyo-tog.caido{
+  border-color:rgba(193,80,75,.75);background:rgba(193,80,75,.14);
+}
+.suyo-tog.caido b{color:var(--blood);text-decoration:line-through}
+.suyo-tog.caido span{color:var(--blood)}
+
+/* Un puesto de guardia suya que no has apuntado, y uno que ocupa alguien
+   que está Caído: los dos son huecos, por motivos distintos. */
+.puesto-fijo.vacio{border-style:dashed;opacity:.6}
+.puesto-fijo.vacio b{color:var(--mist)}
+.puesto-fijo.fuera{border-color:rgba(193,80,75,.45);background:rgba(193,80,75,.08)}
+.puesto-fijo.fuera b{color:var(--mist);text-decoration:line-through}
+.puesto-fijo.fuera .cuenta{
+  flex:0 0 auto;font-family:var(--mono);font-size:9px;
+  letter-spacing:.08em;color:var(--blood);
+  border:0.5px solid rgba(193,80,75,.4);border-radius:999px;padding:2px 7px;
+}
+
+@media (max-width:640px){
+  /* A lo ancho del todo no: dos por fila se tocan mejor y se leen igual. */
+  /* Con un numero impar, el ultimo se quedaba solo y estirado de lado a
+     lado: el tope lo deja de su tamano, como los demas. */
+  .suyo-tog{flex:1 1 calc(50% - 4px);max-width:calc(50% - 3px);min-width:0}
+  .suyos-tog{gap:6px}
+}
+
+/* El aviso de lo que has borrado: sólo sale si has borrado algo. */
+.borrados{
+  display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;
+  margin-top:14px;padding:12px 14px;
+  background:var(--hull-2);border:0.5px solid var(--line);border-radius:10px;
+}
+.borrados .hint{flex:1 1 220px;margin:0}
+.ali-res-nota{
+  margin-top:8px;font-size:11.5px;color:var(--mist);
+  padding-top:8px;border-top:0.5px solid var(--line);
 }

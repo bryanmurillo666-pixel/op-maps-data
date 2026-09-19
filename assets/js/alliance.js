@@ -154,8 +154,16 @@
   }
 
   function pintaResumen(r){
+    /* Lo que tus compañeros tienen y tú borraste no vuelve, y eso se dice
+       aquí: sin esta línea parece que la sincronización se ha dejado cosas. */
+    const saltados = r.enterrados
+      ? '<p class="ali-res-nota">' +
+          esc(t('riv.borrados.saltados').replace('{n}', r.enterrados)) + '</p>'
+      : '';
+
     if (!r.nuevos && !r.actualizados) {
-      els.resumen.innerHTML = '<p class="ali-res vacio">' + esc(t('ali.res.nada')) + '</p>';
+      els.resumen.innerHTML = '<p class="ali-res vacio">' + esc(t('ali.res.nada')) + '</p>'
+        + saltados;
       return;
     }
     const lineas = r.deQuien.map(d => {
@@ -172,6 +180,7 @@
           esc(t(r.ahora === 1 ? 'ali.rival' : 'ali.rivales')) +
         '</p>' +
         '<ul class="ali-res-l">' + lineas + '</ul>' +
+        saltados +
       '</div>';
   }
 

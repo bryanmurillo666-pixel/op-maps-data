@@ -178,6 +178,82 @@ window.RIVALES = (function () {
     return (r && r.r.length === 2) ? 2 : GUARDIAS;
   }
 
+  /* ============================================================
+     LO QUE HAS BORRADO, Y POR QUÉ HAY QUE RECORDARLO
+     ------------------------------------------------------------
+     Borrar un rival era un acto que no salía de tu navegador, y eso
+     chocaba de frente con la alianza: al sincronizar te bajas la lista
+     ENTERA de cada compañero, y el que acabas de borrar sigue en la
+     suya. Lo juntabas y volvía. Lo mismo con un hueco tuyo de una
+     temporada pasada —al volver a entrar con el código estrenas hueco y
+     el viejo se queda ahí para siempre, sirviendo lo de entonces—.
+
+     No era la caché: lo borrado volvía porque no había forma de decir
+     «esto lo he borrado a propósito».
+
+     La solución son LÁPIDAS: al borrar se apunta el nombre y la hora.
+     Al juntar, un rival que venga de fuera se salta si lo borraste
+     DESPUÉS de la última vez que alguien lo tocó.
+
+       borrado después  → lo tiraste tú sabiendo lo que había: sigue fuera
+       tocado después   → alguien se lo ha vuelto a encontrar: vuelve
+
+     Así una temporada vieja no resucita, pero un rival de verdad sí.
+     Se guarda por NOMBRE porque es lo que empareja las libretas: los
+     ids son de cada navegador.
+     ============================================================ */
+
+  const BORRADOS = 'opmaps-borrados';
+  const TOPE_LAPIDAS = 300;   // no crece sin fin; se van las más viejas
+
+  let lapidas = {};
+
+  const clave = n => String(n || '').trim().toLowerCase();
+
+  function cargarLapidas(){
+    try {
+      const g = JSON.parse(localStorage.getItem(BORRADOS) || '{}');
+      lapidas = (g && typeof g === 'object' && !Array.isArray(g)) ? g : {};
+    } catch(e){ lapidas = {}; }
+    // por si el archivo viene tocado a mano
+    Object.keys(lapidas).forEach(k => {
+      if (!(Number(lapidas[k]) > 0)) delete lapidas[k];
+    });
+    return lapidas;
+  }
+
+  function guardarLapidas(){
+    const nombres = Object.keys(lapidas);
+    if (nombres.length > TOPE_LAPIDAS) {
+      nombres.sort((a, b) => lapidas[b] - lapidas[a])
+             .slice(TOPE_LAPIDAS)
+             .forEach(n => { delete lapidas[n]; });
+    }
+    try { localStorage.setItem(BORRADOS, JSON.stringify(lapidas)); }
+    catch(e){ /* si el navegador lo bloquea, dura la sesión */ }
+  }
+
+  function enterrar(nombre){
+    const k = clave(nombre);
+    if (k) { lapidas[k] = ahora(); guardarLapidas(); }
+  }
+
+  /* Al volver a apuntar a alguien con ese nombre, la lápida se levanta:
+     lo has traído de vuelta a propósito, y lo que sepan tus compañeros de
+     él vuelve a interesarte. */
+  function desenterrar(nombre){
+    const k = clave(nombre);
+    if (k && (k in lapidas)) { delete lapidas[k]; guardarLapidas(); }
+  }
+
+  /* ¿Me lo salto al juntar? Sólo si lo borré después de su último cambio.
+     Sin fecha suya se cuenta como viejo: quien no trae fecha no puede
+     ganarle a una decisión con hora. */
+  function estaEnterrado(nombre, ts){
+    const t = lapidas[clave(nombre)];
+    return !!t && t >= (Number(ts) || 0);
+  }
+
   /* Devuelve el id del rival nuevo, o null si el nombre está vacío o
      repetido: dos rivales con el mismo nombre solo confunden. */
   function añadir(nombre){
@@ -190,12 +266,15 @@ window.RIVALES = (function () {
       g: [guardiaVacia(), guardiaVacia(), guardiaVacia()]
     };
     lista.push(r);
+    desenterrar(n);                // lo has traído de vuelta a propósito
     guardar();
     return r.id;
   }
 
   function borrar(id){
-    lista = lista.filter(r => r.id !== id);
+    const r = lista.filter(x => x.id === id)[0];
+    if (r) enterrar(r.n);          // que no vuelva por la alianza
+    lista = lista.filter(x => x.id !== id);
     guardar();
   }
 
@@ -485,12 +564,16 @@ window.RIVALES = (function () {
     catch(e){ return null; }
     if (!Array.isArray(datos)) return null;
 
-    let nuevos = 0, actualizados = 0;
+    let nuevos = 0, actualizados = 0, enterrados = 0;
 
     datos.forEach(d => {
       const suyo = deCodigo(d);
       if (!suyo) return;
       const ya = lista.find(r => r.n.toLowerCase() === suyo.n.toLowerCase());
+      /* Lo borraste tú y nadie lo ha vuelto a tocar desde entonces: se
+         queda fuera. Si alguien se lo ha encontrado después, su fecha le
+         gana a la lápida y vuelve, que es lo que quieres. */
+      if (!ya && estaEnterrado(suyo.n, suyo.ts)) { enterrados++; return; }
       if (ya) {
         if (fusionaRival(ya, suyo)) actualizados++;
       } else {
@@ -500,10 +583,11 @@ window.RIVALES = (function () {
     });
 
     guardar();
-    return { nuevos: nuevos, actualizados: actualizados };
+    return { nuevos: nuevos, actualizados: actualizados, enterrados: enterrados };
   }
 
   cargar();
+  cargarLapidas();
 
   return {
     GUARDIAS: GUARDIAS,
@@ -533,8 +617,13 @@ window.RIVALES = (function () {
     delAtaque:  delAtaque,
     ultimoAtaque: ultimoAtaque,
     exportar:   exportar,
+    enterrados: () => Object.keys(lapidas).length,
+    olvidarBorrados: () => { lapidas = {}; guardarLapidas(); },
     importar:   importar,
     fusionar:   fusionaRival,
-    recargar:  cargar
+    /* Vuelve a leerlo TODO del navegador, libreta y lapidas. Si solo
+       releyera la libreta, lo borrado quedaria a medias: la lista al dia
+       y las lapidas de antes. */
+    recargar:  () => { cargarLapidas(); return cargar(); }
   };
 })();

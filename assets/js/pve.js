@@ -64,6 +64,12 @@
 
   const nameOf = c => (isES() && c.es) ? c.es : c.n;
 
+  /* Casi ninguna isla necesita traducción —se llaman igual en los dos
+     idiomas— así que sólo las que traen `es` cambian de nombre. Pero la
+     IDENTIDAD de una isla es siempre `n`: es lo que guarda el editor y
+     lo que empareja las correcciones, pase lo que pase con el idioma. */
+  const nombreIsla = isla => (isES() && isla.es) ? isla.es : isla.n;
+
   function kpi(valor, etiqueta, nota){
     return `<div class="kpi-box">
       <b>${valor}</b>
@@ -372,10 +378,15 @@
   function islaElegida(){
     const escrito = els.isla.value.trim().replace(/\s*·.*$/, '').trim();
     if (!escrito) return -1;
-    let i = window.ISLANDS.findIndex(isla => isla.n === escrito);
+    /* Se busca por los dos nombres: el del archivo y el traducido. Si no,
+       en español no encontrarías una isla escribiendo lo que la página te
+       acaba de enseñar. */
+    const bajo = escrito.toLowerCase();
+    const como = isla => [isla.n, isla.es || ''];
+    let i = window.ISLANDS.findIndex(isla => como(isla).indexOf(escrito) !== -1);
     if (i === -1) {
-      const bajo = escrito.toLowerCase();
-      i = window.ISLANDS.findIndex(isla => isla.n.toLowerCase() === bajo);
+      i = window.ISLANDS.findIndex(isla =>
+        como(isla).some(x => x && x.toLowerCase() === bajo));
     }
     return i;
   }
@@ -391,7 +402,7 @@
       if (soloMar !== null && isla.m !== soloMar) return '';
       const mar = window.ISLAND_SEAS[isla.m];
       const marca = isla.e.length ? '' : ' · ' + t('pve.isla.pend');
-      return `<option value="${esc(isla.n)}" label="${esc(mar + marca)}"></option>`;
+      return `<option value="${esc(nombreIsla(isla))}" label="${esc(mar + marca)}"></option>`;
     }).join('');
 
     /* Si al cambiar de mar la isla escrita ya no está en la lista, se
@@ -486,7 +497,7 @@
     </label>`).join('');
 
     els.editor.innerHTML = `
-      <h3 class="sub-tit">${esc(isla.n)} · ${esc(window.ISLAND_SEAS[isla.m])}${
+      <h3 class="sub-tit">${esc(nombreIsla(isla))} · ${esc(window.ISLAND_SEAS[isla.m])}${
         tocada ? ` <span class="cuenta">${esc(t('pve.ed.mine'))}</span>` : ''}</h3>
       <div class="ed-form">${campos}</div>
       <div class="ed-btns">
@@ -505,8 +516,13 @@
     if (!nombres.length) return '';
     return `<div class="ed-mias">
       <h3 class="sub-tit">${esc(t('pve.ed.list'))}</h3>
-      <p class="ed-chips">${nombres.map(n =>
-        `<button type="button" class="ed-chip" data-isla="${esc(n)}">${esc(n)}</button>`).join('')}</p>
+      <p class="ed-chips">${nombres.map(n => {
+        // el atajo lleva dentro el nombre del archivo, que es la identidad,
+        // y enseña el traducido, que es lo que se reconoce
+        const isla = window.ISLANDS.filter(x => x.n === n)[0];
+        return `<button type="button" class="ed-chip" data-isla="${esc(n)}">${
+          esc(isla ? nombreIsla(isla) : n)}</button>`;
+      }).join('')}</p>
       <button class="btn-x" id="edLimpiar" type="button">${esc(t('pve.ed.clearAll'))}</button>
     </div>`;
   }
@@ -535,7 +551,8 @@
   els.editor.addEventListener('click', e => {
     const chip = e.target.closest('.ed-chip');
     if (chip) {
-      els.isla.value = chip.dataset.isla;
+      const suya = window.ISLANDS.filter(x => x.n === chip.dataset.isla)[0];
+      els.isla.value = suya ? nombreIsla(suya) : chip.dataset.isla;
       // La isla puede ser de otro mar: se quita el filtro para que se vea.
       const j = islaElegida();
       if (j !== -1 && els.mar.value !== '' && window.ISLANDS[j].m !== Number(els.mar.value)) {
