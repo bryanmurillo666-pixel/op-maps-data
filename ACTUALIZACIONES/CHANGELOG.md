@@ -78,17 +78,21 @@ Está entero en el historial de git si algún día vuelve a hacer falta.
 
 ### El jefe final
 
-Isla nueva en el New World: **Jefe final: Dracule Mihawk**, con **Dracule
-Mihawk** en los tres puestos. Funciona como cualquier otra —la probabilidad sale
-exacta, la alineación se calcula igual y se puede corregir desde el editor—.
-Contra la tripulación de prueba da un `59 %`.
+Isla nueva y última del **Grand Line**, con **Dracule Mihawk** en los tres
+puestos. Funciona como cualquier otra —la probabilidad sale exacta, la
+alineación se calcula igual y se puede corregir desde el editor—. Contra la
+tripulación de prueba da un `59 %`.
 
-Como el nombre lleva parte en español y el resto de islas van en inglés, las
-islas admiten ahora un campo **`es`** opcional. Sin él se enseña el nombre del
-archivo en los dos idiomas, que es lo normal porque se llaman igual. La
-**identidad** de una isla sigue siendo su nombre en inglés: es lo que guarda el
-editor, así que una corrección hecha en español sigue valiendo en inglés. El
-buscador acepta los dos nombres.
+Se llama distinto en cada idioma, y por eso las islas admiten ahora un campo
+**`es`** opcional: en inglés es **`Final boss`** y en español **`Jefe final:
+Dracule Mihawk`**. Sin ese campo se enseña el nombre del archivo en los dos
+idiomas, que es lo normal porque las islas se llaman igual. La **identidad** de
+una isla sigue siendo su nombre en inglés: es lo que guarda el editor, así que
+una corrección hecha en español sigue valiendo en inglés. El buscador acepta los
+dos nombres.
+
+Lleva **`o:27`**, detrás de `Sabaody archipielago`, así que la lista sigue
+ordenada por (mar, orden) sin tocar `pve.js`.
 
 El mapa pasa a **`159`** islas. Los textos de la Guía siguen diciendo `158`
 porque describen el mundo **según la guía v5.1**, y esa cuenta es suya.

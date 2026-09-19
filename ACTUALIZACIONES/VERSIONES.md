@@ -8,7 +8,7 @@ Estado a **18 de septiembre de 2026**.
 | Guía del jugador | `5.1` | 20 ago 2026 | ✅ aplicada |
 | Changelog del juego | `v0.44.0` | 18 ago 2026 | ✅ leído |
 | Álbum del juego (ES/EN) | export | 16 ago 2026 | ✅ 226 personajes verificados |
-| Islas | `islands.js` | 18 sep 2026 | ✅ 159 islas (con la del jefe final), 145 comprobadas y 14 pendientes (lista propia del usuario, `Islas actualizadas.xlsx`). Se corrigen en el PvE sin tocar el archivo, y esas correcciones son de cada navegador. |
+| Islas | `islands.js` | 18 sep 2026 | ✅ 159 islas (con la del jefe final del Grand Line), 145 comprobadas y 14 pendientes (lista propia del usuario, `Islas actualizadas.xlsx`). Se corrigen en el PvE sin tocar el archivo, y esas correcciones son de cada navegador. |
 | Tienda | export | 16 ago 2026 | ✅ 14 objetos |
 
 ## Servicios de los que depende

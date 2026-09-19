@@ -31,7 +31,9 @@
 - [x] **Ver las guardias del rival en el PvP y marcar Caído de un toque**
       (18 sep 2026). Desglose Â«Sus guardiasÂ».
 - [x] **Fuera el plan de hundimiento** (18 sep 2026). En el historial de git.
-- [x] **Isla del jefe final** (18 sep 2026): Dracule Mihawk en los tres puestos.
+- [x] **Isla del jefe final** (18 sep 2026): la última del Grand Line, con Dracule
+      Mihawk en los tres puestos. `Final boss` en inglés, `Jefe final: Dracule
+      Mihawk` en español.
 - [ ] **Consejos** (`tips.html`) sigue siendo un esqueleto.
 - [ ] **Enlaces desde la Guía** a las páginas que profundizan: los roles a
       Data Crew, el desembarco al PvE, las guardias al PvP. Pedido por el
