@@ -48,14 +48,59 @@ window.RULES = (function () {
   // Lo que aporta a la probabilidad de encontrar un poneglifo.
   function searchShare(c){ return c.i * 0.001; }
 
+  /* ---------- armas ----------
+     Un arma se equipa a UN personaje de una tripulación y le sube el
+     score en las tres tácticas. Dos detalles que mandan en cómo está
+     montado esto:
+
+     1. Es de la TRIPULACIÓN, no del personaje del álbum. Tu Mihawk
+        puede llevar Yoru y el Mihawk de un rival no, o al revés. Por eso
+        el arma no se toca nunca sobre `CHARACTERS`: se pone sobre una
+        COPIA con `conArma`, y cada tripulación hace la suya.
+     2. Viaja PEGADA al personaje, no por parámetro. `score` se llama
+        desde media página —el PvE, el plan de ataque, las guardias, la
+        simulación— y añadirle un argumento a todas esas llamadas era
+        pedir que se olvidara en alguna. Así no hay nada que recordar:
+        quien reciba el personaje recibe su arma.
+
+     El multiplicador cae sobre el score y no sobre los stats, pero da
+     exactamente igual: `base` es lineal en los stats, así que subirlos
+     un 25 % sube el score un 25 %. Sobre el score se lee mejor y no
+     ensucia ni la vida, ni el precio, ni el poder de la tripulación. */
+  const ARMAS = {
+    // ×1.25 en Asalto, Maniobra y Emboscada. Una por tripulación.
+    Yoru: { rol: 'Swordsman', mult: 1.25 }
+  };
+
+  const armaDe = c => (c && c.arma) ? (ARMAS[c.arma] || null) : null;
+
+  /* ¿Puede este personaje llevar esta arma? Yoru es de espadachines. */
+  function puedeArma(c, nombre){
+    const a = ARMAS[nombre];
+    return !!(a && c && (!a.rol || c.r === a.rol));
+  }
+
+  /* Una COPIA del personaje con el arma puesta. Si no puede llevarla, o
+     no hay arma, devuelve el personaje tal cual: así se puede llamar sin
+     comprobar nada antes. */
+  function conArma(c, nombre){
+    if (!c || !nombre || !puedeArma(c, nombre)) return c;
+    const copia = {};
+    for (const k in c) if (Object.prototype.hasOwnProperty.call(c, k)) copia[k] = c[k];
+    copia.arma = nombre;
+    return copia;
+  }
+
   /* Score de un personaje en UNA táctica:
      stat principal ×100 + las otras dos ×15 (×45 en Manoeuvre),
-     y ×1.10 si su rol casa con la táctica. */
+     ×1.10 si su rol casa con la táctica, y ×el arma que lleve. */
   function score(c, tactic){
     const main = c[MAIN[tactic]];
     const rest = total(c) - main;
     const base = main * 100 + rest * OFF[tactic];
-    return hasAffinity(c, tactic) ? base * AFFINITY : base;
+    const conAfinidad = hasAffinity(c, tactic) ? base * AFFINITY : base;
+    const a = armaDe(c);
+    return a ? conAfinidad * a.mult : conAfinidad;
   }
 
   function hasAffinity(c, tactic){ return c.r === ROLE_FOR[tactic]; }
@@ -189,6 +234,7 @@ window.RULES = (function () {
     TACTICS, BEATS, ROLE_FOR, USEFUL_ROLES, PASSIVE_ROLES,
     total, power, health, price, speedShare, searchShare,
     score, scores, bestTactic, hasAffinity,
+    ARMAS, armaDe, puedeArma, conArma,
     crewSpeed, crewPower, rpChance, conquestTime, supplies, SUPPORT_ROLES,
     beats, duelWin, isUsefulRole, hasPassiveRole, isReader
   };

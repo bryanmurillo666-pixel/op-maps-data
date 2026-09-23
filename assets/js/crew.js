@@ -22,6 +22,7 @@
     resumen:  document.getElementById('resumen'),
     roles:    document.getElementById('roles'),
     lista:    document.getElementById('miembros'),
+    armas:    document.getElementById('armas'),
     datalist: document.getElementById('db')
   };
 
@@ -278,6 +279,7 @@
             <span class="ch-name">${esc(nameOf(c))} ${readerMark(c)}</span>
             <span class="ch-sub">
               <span class="ch-role">${esc(roleOf(c))}</span>
+              ${c.arma ? `<span class="tag-arma">${esc(c.arma)} ×${num(R.ARMAS[c.arma].mult, 2)}</span>` : ''}
               ${sobra ? `<span class="tag-rojo">${esc(t('crew.tag'))}</span>` : ''}
             </span>
           </span>
@@ -290,6 +292,36 @@
         </div>
       </article>`;
     }).join('');
+  }
+
+  /* ---------- las armas ----------
+     Un arma se equipa a UNO de la tripulación y le sube el score en las
+     tres tácticas. Va como una tira de botones y no como un desplegable
+     por dos razones: se ve de un vistazo quién la lleva, y se ve QUIÉNES
+     pueden llevarla, que es la mitad de la regla —Yoru es de
+     espadachines—. Tocar a otro se la pasa, porque es una por tripulación
+     y el almacén se la quita al anterior.
+
+     Si no tienes a nadie que pueda llevarla, la tira no sale: un control
+     sin nada que elegir es un control muerto. */
+  function armasHTML(crew){
+    const tiras = Object.keys(R.ARMAS).map(nombre => {
+      const puede = crew.filter(c => R.puedeArma(c, nombre));
+      if (!puede.length) return '';
+      const lleva = C.portador(nombre);
+      const botones = puede.map(c => `<button type="button"
+        class="arma-quien${c.n === lleva ? ' on' : ''}"
+        data-arma="${esc(nombre)}" data-quien="${esc(c.n)}"
+        aria-pressed="${c.n === lleva}">${esc(nameOf(c))}</button>`).join('');
+      return `<div class="arma">
+        <span class="arma-n">${esc(nombre)} <em>×${num(R.ARMAS[nombre].mult, 2)}</em></span>
+        <div class="arma-quienes">${botones}</div>
+      </div>`;
+    }).join('');
+
+    return tiras
+      ? `<div class="armas">${tiras}<p class="note">${t('crew.arma.d')}</p></div>`
+      : '';
   }
 
   /* ---------- pintado ---------- */
@@ -305,6 +337,7 @@
     els.addBtn.disabled = crew.length >= C.TOPE;
 
     els.resumen.innerHTML = crew.length ? resumenHTML(crew) : '';
+    if (els.armas) els.armas.innerHTML = crew.length ? armasHTML(crew) : '';
     els.roles.innerHTML   = crew.length ? rolesHTML(crew) : '';
     els.lista.innerHTML   = avisoHTML(crew, rec) + miembrosHTML(crew, rec);
     // que las guardias sepan que la tripulación ha cambiado
@@ -356,6 +389,20 @@
   }
 
   /* ---------- eventos ---------- */
+
+  /* Tocar a alguien le da el arma; tocar a quien ya la lleva se la quita,
+     que es lo que uno espera de un botón que se queda encendido. */
+  if (els.armas) {
+    els.armas.addEventListener('click', e => {
+      const b = e.target.closest('.arma-quien');
+      if (!b) return;
+      const arma = b.dataset.arma, quien = b.dataset.quien;
+      C.setArma(arma, C.portador(arma) === quien ? '' : quien);
+      render();
+    });
+  }
+
+
 
   els.addBtn.addEventListener('click', añadir);
   els.input.addEventListener('keydown', e => {

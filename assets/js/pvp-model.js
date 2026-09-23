@@ -239,6 +239,13 @@ window.PVP_MODEL = (function () {
 
   /* Una formación son nG guardias; cada guardia, 3 puestos
      {c: índice de personaje rival o CONCEDE, t: índice de táctica}. */
+  /* El personaje del album CON el arma que lleve en la tripulacion de
+     ese rival. Es la unica puerta por la que las armas de un rival entran
+     en el modelo, igual que CREW.personajes() lo es para las tuyas: en el
+     album nadie lleva nada, porque el mismo personaje puede llevar Yoru
+     en una tripulacion y no en otra. */
+  const delRival = (rival, n) => window.RIVALES.conArma(rival, DB.find(c => c.n === n));
+
   function formaciones(pool, nG, obs){
     const out = [];
     if (!pool.length) return out;
@@ -343,7 +350,7 @@ window.PVP_MODEL = (function () {
     const nPool = nombres.length;
     (rival.res || []).forEach(p => { if (p) mete(p.n); });
 
-    const suyos = nombres.map(n => DB.find(c => c.n === n)).filter(Boolean);
+    const suyos = nombres.map(n => delRival(rival, n)).filter(Boolean);
 
     // índice de personaje rival -> posición en `suyos`
     const idx = {};
@@ -843,7 +850,7 @@ window.PVP_MODEL = (function () {
     };
     rival.r.forEach(m => mete(m.n));
     rival.g.forEach(g => g.forEach(p => { if (p) mete(p.n); }));
-    const todos = nombres.map(n => DB.find(c => c.n === n)).filter(Boolean);
+    const todos = nombres.map(n => delRival(rival, n)).filter(Boolean);
     if (!todos.length) return null;
 
     const suyos = nucleoConAtaque(todos, rival, 5);
@@ -910,7 +917,7 @@ window.PVP_MODEL = (function () {
     };
     rival.r.forEach(m => mete(m.n));
     rival.g.forEach(g => g.forEach(p => { if (p) mete(p.n); }));
-    const suyosTodos = nombres.map(n => DB.find(c => c.n === n)).filter(Boolean);
+    const suyosTodos = nombres.map(n => delRival(rival, n)).filter(Boolean);
     if (suyosTodos.length < 1) return { vacio: true };
 
     const suyos = nucleoConAtaque(suyosTodos, rival, 5);

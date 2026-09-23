@@ -5,6 +5,112 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.11.0 — 23 sep 2026
+
+**Las armas.** El juego las ha añadido y la primera es **Yoru**: se equipa a un
+espadachín —uno solo por tripulación— y le multiplica la puntuación por
+**`×1,25`** en las tres tácticas. Se puede apuntar tanto en tu tripulación como
+en la de cualquier rival.
+
+### Cómo está metido, que es lo que decide si esto envejece bien
+
+El arma **viaja pegada al personaje**, no por parámetro. `score(c, táctica)` se
+llama desde media página —Data Crew, el PvE, el plan de ataque, tus guardias,
+la simulación: `47` sitios— y añadirle un argumento a todas esas llamadas era
+pedir que se olvidara en alguna, y entonces la mitad de la página calcularía
+con el arma y la otra mitad sin ella. Así no hay nada que recordar: quien
+recibe el personaje recibe su arma.
+
+Y el arma **no se toca nunca sobre el álbum**: se pone sobre una copia. Esto no
+es un detalle de estilo, es la regla del juego — un arma es de la
+**tripulación**, no del personaje. Tu Mihawk puede llevar Yoru y el Mihawk de un
+rival no llevarla, o al revés, y los dos son el mismo del álbum. Con una marca
+global eso sería imposible.
+
+De ahí que los sitios donde hay que enganchar el arma sean solo **cuatro**:
+`CREW.personajes()` para la tuya, y tres resoluciones de `pvp-model.js` para las
+de los rivales. Todo lo demás se enteró solo.
+
+El multiplicador cae sobre el score y no sobre los stats, y da exactamente
+igual: `base` es lineal en los stats, así que subirlos un 25 % sube el score un
+25 %. Sobre el score se lee mejor y **no ensucia la vida, ni el precio, ni el
+poder del ranking** — que es lo que dice la regla tal como me la contaron: sube
+el poder *en las tres posiciones*, o sea las tres puntuaciones de duelo.
+
+`rules.js` gana una tabla `ARMAS`, no un `if` de Yoru. Cuando aparezca la
+segunda arma será **una línea** ahí y una clave de texto: nombre, rol que puede
+llevarla y multiplicador.
+
+### Dónde se pone
+
+En **Mi tripulación** y en cada ficha de **Mis rivales**, como una tira: el
+nombre del arma con su multiplicador y, al lado, **quiénes pueden llevarla**.
+Tira y no desplegable a propósito — así se ve de un vistazo quién la lleva *y*
+quién podría llevarla, que es la mitad de la regla. Tocar a otro se la pasa,
+porque solo hay una; tocar al que ya la tiene se la quita.
+
+Si no tienes ningún espadachín, la tira no sale: un control sin nada que elegir
+es un control muerto.
+
+Quien la lleva queda marcado con una pastilla allí donde aparezca — en su ficha,
+en la tripulación del rival y en el panel **Sus guardias** del PvP, incluidos sus
+puestos de guardia.
+
+### Lo que cambia de verdad
+
+Los números suben solos donde tocan. Con el arma puesta, Mihawk pasa de
+`12.238` a `15.297` en Asalto, y **eso entra en los cálculos**, no solo en la
+pantalla: en el caso de prueba, darle Yoru a un Mihawk rival baja lo que
+aguantan tus guardias **del `53 %` al `36 %`**.
+
+Cuidado con leerlo al revés: contra un rival que ya te ganaba todos los duelos,
+el arma **no cambia nada**, y eso es correcto, no un fallo. Un `×1,25` solo se
+nota si voltea algún duelo.
+
+El **PvE no se entera**, y es lo que toca: las armas son de tripulaciones y los
+enemigos de una isla no son una tripulación.
+
+### Se comparte como todo lo demás
+
+El arma de un rival va dentro del código de exportación, en el **índice 8**,
+añadido al final a propósito: un código de los de antes no lo trae, sale
+`undefined` y se queda vacío. Los códigos que ya tengas por ahí **se siguen
+leyendo**.
+
+Al juntar libretas se aplica la misma regla que a la etiqueta: si tú no sabes
+quién la lleva y un compañero sí, te lo quedas; si os contradecís, manda el más
+reciente. No hay nada que complementar, porque solo hay una.
+
+Quien se va de una tripulación **suelta el arma**, en la tuya y en la de un
+rival: si no, quedaría sumando puntos a alguien que ya no está.
+
+### Comprobado
+
+Banco nuevo **`_test-armas.html`**, `44` comprobaciones. El multiplicador exacto
+en las tres tácticas y que no toque ni la vida, ni el precio, ni el poder. Que
+solo los espadachines puedan llevarla y que el álbum nunca se manche. Que sea
+una por tripulación y que pasársela a otro se la quite al anterior. Que se
+suelte al irse de la tripulación y que aguante una recarga. Que **la tuya y la
+suya no se mezclen** con el mismo personaje. Que llegue hasta el modelo con el
+`×1,25` puesto. Que viaje en el código, que los códigos viejos sigan leyéndose y
+que al juntar libretas te quedes con lo que sepa tu compañero.
+
+Dos de esas comprobaciones fallaron al escribirlas y las dos eran **mías, no del
+código**: había supuesto que el arma tiene que cambiar el resultado siempre, y
+no es así ni cuando el rival ya te ganaba todo, ni cuando tiene un solo
+tripulante —concede dos puestos y no puede ganar—. La prueba busca ahora un
+emparejamiento donde el arma sí decida, en vez de suponerlo.
+
+Y un fallo de verdad que salió al probarlo: el formateador de números de *Mis
+rivales* se comía los decimales que se le pidieran, así que la tira anunciaba
+**`×1`** en vez de `×1,25`. Ahora es el mismo que en las demás páginas.
+
+Los otros siete bancos siguen en verde, las nueve páginas sin claves de i18n
+crudas, la paridad ES/EN cuadra y nada se sale a `380 px` — los botones de la
+tira van de dos en dos, con `40 px` de alto.
+
+---
+
 ## 1.10.2 — 18 sep 2026
 
 **Lo que borras deja de volver, el PvP enseña lo que sabes del rival, se va el

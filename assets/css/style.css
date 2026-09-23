@@ -1987,3 +1987,45 @@ input.isla-select::placeholder{color:var(--mist);opacity:.75}
   margin-top:8px;font-size:11.5px;color:var(--mist);
   padding-top:8px;border-top:0.5px solid var(--line);
 }
+
+/* ============================================================
+   Armas: quién lleva cada una
+   ============================================================ */
+
+.armas{
+  margin:12px 0 14px;padding:12px 14px;
+  background:var(--hull-2);border:0.5px solid var(--line);border-radius:10px;
+}
+.arma{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.arma + .arma{margin-top:10px;padding-top:10px;border-top:0.5px solid var(--line)}
+.arma-n{
+  flex:0 0 auto;font-family:var(--mono);font-size:11px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--brass);
+}
+.arma-n em{font-style:normal;font-weight:400;color:var(--mist);letter-spacing:.04em}
+.arma-quienes{display:flex;flex-wrap:wrap;gap:6px;flex:1 1 200px;min-width:0}
+.arma-quien{
+  background:var(--sea);border:0.5px solid var(--line-str);border-radius:999px;
+  padding:6px 13px;cursor:pointer;min-height:34px;
+  font-family:var(--mono);font-size:11px;color:var(--mist);
+  transition:border-color .14s ease,color .14s ease,background .14s ease;
+}
+.arma-quien:hover{color:var(--parch);border-color:var(--brass)}
+.arma-quien.on{
+  background:var(--brass);border-color:var(--brass);color:#1a1206;font-weight:700;
+}
+.armas .note{margin-top:10px}
+
+/* la pastilla que marca a quien la lleva, allí donde salga */
+.tag-arma{
+  flex:0 0 auto;font-family:var(--mono);font-size:9px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--brass);
+  border:0.5px solid rgba(212,162,83,.45);border-radius:999px;padding:2px 7px;
+  background:rgba(212,162,83,.1);
+}
+
+@media (max-width:640px){
+  .arma{gap:8px}
+  .arma-n{flex:1 1 100%}
+  .arma-quien{flex:1 1 calc(50% - 3px);max-width:calc(50% - 3px);min-width:0;min-height:40px}
+}

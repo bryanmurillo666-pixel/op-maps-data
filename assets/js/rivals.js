@@ -52,9 +52,13 @@
       { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]
     ));
   }
-  function num(n){
-    return Number(n).toLocaleString(isES() ? 'es-ES' : 'en-GB',
-      { maximumFractionDigits: 0 });
+  /* Mismo formateador que en las demas paginas: sin decimales por
+     defecto, pero admitiendo los que se le pidan. Antes se comia el
+     segundo argumento, asi que un x1,25 salia como x1. */
+  function num(n, dec){
+    return Number(n).toLocaleString(isES() ? 'es-ES' : 'en-GB', {
+      minimumFractionDigits: dec || 0, maximumFractionDigits: dec || 0
+    });
   }
   function aClave(texto){
     const q = fold(texto);
@@ -79,11 +83,38 @@
     ).join('');
   }
 
-  function miembroHTML(m){
+  /* Las armas de ESTE rival. Misma tira que en Mi tripulación y por los
+     mismos motivos: se ve quién la lleva y se ve quién podría llevarla.
+     Sólo sale si entre los suyos hay alguien que pueda: si aún no le has
+     apuntado ningún espadachín, no hay nada que elegir. */
+  function armasRivalHTML(r){
+    const tiras = Object.keys(R.ARMAS).map(nombre => {
+      const puede = r.r
+        .map(m => porNombre(m.n))
+        .filter(c => c && R.puedeArma(c, nombre));
+      if (!puede.length) return '';
+      const lleva = (r.w || {})[nombre] || '';
+      const botones = puede.map(c => `<button type="button"
+        class="arma-quien${c.n === lleva ? ' on' : ''}"
+        data-arma="${esc(nombre)}" data-quien="${esc(c.n)}"
+        aria-pressed="${c.n === lleva}">${esc(nameOf(c))}</button>`).join('');
+      return `<div class="arma">
+        <span class="arma-n">${esc(nombre)} <em>×${num(R.ARMAS[nombre].mult, 2)}</em></span>
+        <div class="arma-quienes">${botones}</div>
+      </div>`;
+    }).join('');
+
+    return tiras
+      ? `<div class="armas">${tiras}<p class="note">${t('riv.arma.d')}</p></div>`
+      : '';
+  }
+
+  function miembroHTML(m, arma){
     const c = porNombre(m.n);
     if (!c) return '';
     return `<div class="suyo est-${m.e}" data-quien="${esc(m.n)}">
-      <span class="suyo-n"><b>${esc(nameOf(c))}</b></span>
+      <span class="suyo-n"><b>${esc(nameOf(c))}</b>${
+        arma ? `<span class="tag-arma">${esc(arma)}</span>` : ''}</span>
       <select class="suyo-e" aria-label="${esc(t('pvp.riv.state'))}">${opcionesEstado(m.e)}</select>
       <button type="button" class="btn-x suyo-del" aria-label="${esc(t('pvp.riv.del'))}">×</button>
     </div>`;
@@ -178,7 +209,8 @@
     const lleno = r.r.length >= tope;
 
     const suyos = r.r.length
-      ? `<div class="suyos">${r.r.map(miembroHTML).join('')}</div>`
+      ? `<div class="suyos">${r.r.map(m =>
+          miembroHTML(m, RV.armaDe(r, m.n))).join('')}</div>`
       : `<p class="hint">${esc(t('pvp.riv.crewNone'))}</p>`;
 
     const guardias = r.g.slice(0, nG).map((g, gi) => `<div class="guardia" data-g="${gi}">
@@ -237,6 +269,7 @@
                   <button type="button" class="btn-add suyo-btn">+</button>
                 </div>`}
             ${suyos}
+            ${armasRivalHTML(r)}
             <p class="note">${t('pvp.riv.stateNote')}</p>
           </div>
         </details>
@@ -404,6 +437,20 @@
 
     const suyoDel = e.target.closest('.suyo-del');
     if (suyoDel) { RV.delMiembro(id, suyoDel.closest('.suyo').dataset.quien); render(); return; }
+
+    /* Tocar a uno de los suyos le da el arma; tocar al que ya la lleva se
+       la quita. Una por tripulación, así que dársela a otro se la quita al
+       anterior sin preguntar. */
+    const bArma = e.target.closest('.arma-quien');
+    if (bArma) {
+      const arma = bArma.dataset.arma, quien = bArma.dataset.quien;
+      const r = RV.porId(id);
+      const lleva = r && (r.w || {})[arma];
+      RV.setArma(id, arma, lleva === quien ? '' : quien);
+      congelaOrden();
+      render();
+      return;
+    }
 
     const gClear = e.target.closest('.g-clear');
     if (gClear) {

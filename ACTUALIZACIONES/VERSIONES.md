@@ -1,14 +1,15 @@
 # Versiones que sigue el sitio
 
-Estado a **18 de septiembre de 2026**.
+Estado a **23 de septiembre de 2026**.
 
 | Fuente | Versión | Fecha | Estado |
 |---|---|---|---|
-| Sitio OP-MAPS DATA | `1.10.2` | 18 sep 2026 | sin publicar |
+| Sitio OP-MAPS DATA | `1.11.0` | 23 sep 2026 | sin publicar |
 | Guía del jugador | `5.1` | 20 ago 2026 | ✅ aplicada |
 | Changelog del juego | `v0.44.0` | 18 ago 2026 | ✅ leído |
 | Álbum del juego (ES/EN) | export | 16 ago 2026 | ✅ 226 personajes verificados |
 | Islas | `islands.js` | 18 sep 2026 | ✅ 159 islas (con la del jefe final del Grand Line), 145 comprobadas y 14 pendientes (lista propia del usuario, `Islas actualizadas.xlsx`). Se corrigen en el PvE sin tocar el archivo, y esas correcciones son de cada navegador. |
+| Armas | `rules.js` | 23 sep 2026 | ✅ 1 de las que hay: `Yoru` (espadachín, ×1,25 en las tres tácticas, una por tripulación) |
 | Tienda | export | 16 ago 2026 | ✅ 14 objetos |
 
 ## Servicios de los que depende

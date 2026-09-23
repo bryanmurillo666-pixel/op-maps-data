@@ -86,6 +86,24 @@ window.RIVALES = (function () {
      alguien, o alguien toca el guardado a mano, no debe romper nada.
      También sube los rivales guardados con el formato viejo, que no
      tenían tripulación y podían llevar menos de tres guardias. */
+  /* Las armas de una tripulación rival, con las mismas reglas que las
+     tuyas: el arma tiene que existir, quien la lleva tiene que estar en
+     SU tripulación y tiene que poder llevarla por su rol. Lo que no
+     cumpla se tira, que es mejor que enseñar un número inflado. */
+  function limpiaArmas(w, roster){
+    const out = {};
+    if (!w || typeof w !== 'object' || Array.isArray(w)) return out;
+    Object.keys(w).forEach(nombre => {
+      if (!window.RULES.ARMAS[nombre]) return;
+      const quien = String(w[nombre] || '');
+      if (!roster.some(m => m.n === quien)) return;
+      const c = window.CHARACTERS.find(x => x.n === quien);
+      if (!window.RULES.puedeArma(c, nombre)) return;
+      out[nombre] = quien;
+    });
+    return out;
+  }
+
   function limpiaRival(r){
     if (!r || typeof r !== 'object') return null;
 
@@ -128,7 +146,9 @@ window.RIVALES = (function () {
       a:  a,
       ts: Number(r.ts) || 0,
       // cuándo apuntaste su salud, para saber cuándo dejar de creértela
-      tsE: Number(r.tsE) || 0
+      tsE: Number(r.tsE) || 0,
+      // sus armas: { Yoru: 'nombre' }. Una por arma, como en la tuya.
+      w:  limpiaArmas(r.w, rr)
     };
   }
 
@@ -262,7 +282,7 @@ window.RIVALES = (function () {
     if (lista.some(r => r.n.toLowerCase() === n.toLowerCase())) return null;
     const r = {
       id: 'r' + Date.now() + Math.random().toString(36).slice(2, 7),
-      n: n, tag: '', r: [], a: [], ts: ahora(), tsE: 0, res: [null, null],
+      n: n, tag: '', r: [], a: [], ts: ahora(), tsE: 0, res: [null, null], w: {},
       g: [guardiaVacia(), guardiaVacia(), guardiaVacia()]
     };
     lista.push(r);
@@ -276,6 +296,39 @@ window.RIVALES = (function () {
     if (r) enterrar(r.n);          // que no vuelva por la alianza
     lista = lista.filter(x => x.id !== id);
     guardar();
+  }
+
+  /* Le pone un arma a uno de los suyos. Mismos resultados que en tu
+     tripulación: 'ok', 'noExiste', 'fuera' o 'rolMalo'. Con `quien`
+     vacío se la quita. */
+  function setArma(id, nombre, quien){
+    const r = porId(id);
+    if (!r) return 'noExiste';
+    if (!window.RULES.ARMAS[nombre]) return 'noExiste';
+    const n = String(quien || '').trim();
+    if (!n) { delete r.w[nombre]; toca(r); guardar(); return 'ok'; }
+    if (!r.r.some(m => m.n === n)) return 'fuera';
+    const c = window.CHARACTERS.find(x => x.n === n);
+    if (!window.RULES.puedeArma(c, nombre)) return 'rolMalo';
+    r.w[nombre] = n;
+    toca(r);
+    guardar();
+    return 'ok';
+  }
+
+  // Qué arma lleva ese tripulante suyo, o ''.
+  function armaDe(rival, quien){
+    const w = (rival && rival.w) || {};
+    return Object.keys(w).filter(a => w[a] === quien)[0] || '';
+  }
+
+  /* El personaje del álbum con el arma que lleve EN ESTA tripulación.
+     Es la puerta por la que el arma de un rival entra en los cálculos,
+     igual que CREW.personajes() lo es para la tuya. */
+  function conArma(rival, c){
+    if (!c) return c;
+    const a = armaDe(rival, c.n);
+    return a ? window.RULES.conArma(c, a) : c;
   }
 
   function renombrar(id, nombre){
@@ -321,9 +374,12 @@ window.RIVALES = (function () {
     const r = porId(id);
     if (!r) return;
     r.r = r.r.filter(m => m.n !== nombre);
+    // quien se va se lleva su arma: si no, quedaría sumando sin estar
+    Object.keys(r.w).forEach(a => { if (r.w[a] === nombre) delete r.w[a]; });
     toca(r);
     guardar();
   }
+
 
   function setEstado(id, nombre, estado){
     const r = porId(id);
@@ -459,7 +515,11 @@ window.RIVALES = (function () {
       r.ts || 0,
       r.res.map(codPuesto),
       r.tag || '',
-      r.tsE || 0
+      r.tsE || 0,
+      /* Índice 8, nuevo. Se AÑADE al final a propósito: un código viejo
+         no lo trae, y al leerlo sale `undefined`, que se queda en {}.
+         Así los códigos de antes se siguen leyendo sin tocar nada. */
+      r.w || {}
     ]);
     return CABECERA + b64(JSON.stringify(datos));
   }
@@ -515,6 +575,18 @@ window.RIVALES = (function () {
       if (mandaSuyo) { mio.res[i] = b; cambio = true; }
     }
 
+    /* Sus armas. Una por arma, así que no hay nada que complementar: o
+       la lleva uno o la lleva otro. Si tú no sabes quién la lleva y él
+       sí, te lo quedas; si os contradecís, manda el más reciente. Misma
+       regla que la etiqueta. */
+    Object.keys(suyo.w || {}).forEach(a => {
+      const suya = suyo.w[a], mia = mio.w[a];
+      if (suya && suya !== mia && (!mia || mandaSuyo)) {
+        mio.w[a] = suya;
+        cambio = true;
+      }
+    });
+
     // sus ataques: se juntan sin repetir, los más recientes delante
     const firma = at => JSON.stringify([at.p.map(codPuesto), at.w]);
     const tengo = {};
@@ -549,7 +621,8 @@ window.RIVALES = (function () {
       ts: d[4] || 0,
       res: (Array.isArray(d[5]) ? d[5] : []).map(dePuesto),
       tag: d[6] || '',
-      tsE: d[7] || 0
+      tsE: d[7] || 0,
+      w:   d[8] || {}
     });
   }
 
@@ -610,6 +683,9 @@ window.RIVALES = (function () {
     addMiembro: addMiembro,
     delMiembro: delMiembro,
     setEstado:  setEstado,
+    setArma:    setArma,
+    armaDe:     armaDe,
+    conArma:    conArma,
     setPuesto:  setPuesto,
     vaciarGuardia: vaciarGuardia,
     setReserva:  setReserva,

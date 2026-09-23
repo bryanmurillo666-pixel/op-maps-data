@@ -34,6 +34,12 @@
 - [x] **Isla del jefe final** (18 sep 2026): la última del Grand Line, con Dracule
       Mihawk en los tres puestos. `Final boss` en inglés, `Jefe final: Dracule
       Mihawk` en español.
+- [x] **Armas** (23 sep 2026). `Yoru`: a un espadachín por tripulación, `×1,25`
+      en las tres tácticas. Se apunta en Mi tripulación y en cada rival, y entra
+      en todos los cálculos. `rules.js` lleva una tabla `ARMAS`, así que la
+      siguiente arma es una línea ahí y una clave de texto.
+- [ ] **Las demás armas.** El juego tiene más y aún no se conocen sus reglas:
+      a qué rol van, qué multiplican y si son una por tripulación como Yoru.
 - [ ] **Consejos** (`tips.html`) sigue siendo un esqueleto.
 - [ ] **Enlaces desde la Guía** a las páginas que profundizan: los roles a
       Data Crew, el desembarco al PvE, las guardias al PvP. Pedido por el

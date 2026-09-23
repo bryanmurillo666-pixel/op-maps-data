@@ -264,21 +264,22 @@
   /* Un toque cambia entre Caído y Sano, que es lo único que se mira
      deprisa. Los estados de en medio —Herido, Crítico— se siguen
      pudiendo poner en Mis rivales, y aquí se ven pero no estorban. */
-  function suyoHTML(m){
+  function suyoHTML(m, arma){
     const c = porNombre(m.n);
     if (!c) return '';
     const caido = m.e === RV.CAIDO;
     return `<button type="button" class="suyo-tog est-${esc(m.e)}${caido ? ' caido' : ''}"
       data-quien="${esc(m.n)}" aria-pressed="${caido}">
       <b>${esc(nameOf(c))}</b>
-      <span>${esc(t('pvp.est.' + m.e))}</span>
+      <span>${esc(t('pvp.est.' + m.e))}${
+        arma ? ' 00b7 ' + arma : ''}</span>
     </button>`;
   }
 
   /* Una guardia suya, como la enseña Mis rivales pero sin poder tocarla:
      aquí se consulta, se edita allí. Los puestos sin apuntar salen como
      huecos, que es información: te dice lo que te falta por ver. */
-  function suGuardiaHTML(g, gi, caidos){
+  function suGuardiaHTML(g, gi, caidos, armas){
     const huecos = g.map((p, i) => {
       if (!p) return `<div class="puesto-fijo vacio">
         <span class="pos">${i + 1}</span>
@@ -294,6 +295,7 @@
         <span class="pos">${i + 1}</span>
         <b>${esc(c ? nameOf(c) : p.n)}</b>
         <span class="tac-pill tac-${seg(p.t)}">${esc(t('tac.' + p.t))}</span>
+        ${armas[p.n] ? `<span class="tag-arma">${esc(armas[p.n])}</span>` : ''}
         ${fuera ? `<span class="cuenta">${esc(t('pvp.est.ko'))}</span>` : ''}
       </div>`;
     }).join('');
@@ -311,15 +313,21 @@
     const caidos = {};
     r.r.forEach(m => { if (m.e === RV.CAIDO) caidos[m.n] = true; });
 
+    /* `r.w` va de arma a portador, que es como se guarda; aqui hace falta
+       al reves, porque se pinta persona a persona. */
+    const armaDe = {};
+    Object.keys(r.w || {}).forEach(a => { armaDe[r.w[a]] = a; });
+
     const tripu = r.r.length
-      ? `<div class="suyos-tog">${r.r.map(suyoHTML).join('')}</div>`
+      ? `<div class="suyos-tog">${r.r.map(m =>
+          suyoHTML(m, RV.armaDe(r, m.n))).join('')}</div>`
       : `<p class="hint">${t('pvp.suyas.sinCrew')}</p>`;
 
     const nG = RV.nGuardias(r);
     const apuntadas = r.g.slice(0, nG).filter(g => g.some(Boolean)).length;
     const guardias = apuntadas
       ? `<div class="def-guardias">${r.g.slice(0, nG)
-          .map((g, gi) => suGuardiaHTML(g, gi, caidos)).join('')}</div>`
+          .map((g, gi) => suGuardiaHTML(g, gi, caidos, armaDe)).join('')}</div>`
       : `<p class="hint">${t('pvp.suyas.sinGuardias')}</p>`;
 
     /* Las reservas sólo si hay alguna: dos huecos vacíos no dicen nada que
