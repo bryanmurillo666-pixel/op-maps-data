@@ -2029,3 +2029,50 @@ input.isla-select::placeholder{color:var(--mist);opacity:.75}
   .arma-n{flex:1 1 100%}
   .arma-quien{flex:1 1 calc(50% - 3px);max-width:calc(50% - 3px);min-width:0;min-height:40px}
 }
+
+/* La temporada en curso, que es el contexto de toda la libreta. */
+.temporada{
+  display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;
+  margin-bottom:14px;padding:12px 14px;
+  background:var(--hull-2);border:0.5px solid var(--line);border-radius:10px;
+}
+.temporada .campo{flex:0 0 130px}
+.temporada .hint{flex:1 1 220px;margin:0;align-self:center}
+@media (max-width:640px){
+  .temporada .campo{flex:1 1 100%}
+  .temporada .hint{flex:1 1 100%}
+}
+
+/* ============================================================
+   Dónde estás y cuánto tardas en llegar
+   ============================================================ */
+
+.donde{
+  display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;
+  margin-bottom:14px;padding:12px 14px;
+  background:var(--hull-2);border:0.5px solid var(--line);border-radius:10px;
+}
+.donde .campo-corto{flex:0 0 110px}
+.donde .hint{flex:1 1 100%;margin:6px 0 0}
+.donde input[type="number"]{
+  background:var(--sea);border:0.5px solid var(--line-str);border-radius:9px;
+  color:var(--parch);font-family:var(--mono);font-size:14px;padding:9px 10px;width:100%;
+}
+
+.viaje{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.viaje .kpi-box{flex:1 1 150px}
+.viaje .hint{flex:1 1 100%;margin:0}
+
+/* las islas que el usuario marca como gordas */
+.isla-gorda{
+  margin-bottom:12px;padding:9px 12px;border-radius:9px;
+  background:rgba(193,80,75,.12);border:0.5px solid rgba(193,80,75,.5);
+  color:var(--blood);font-size:12.5px;
+}
+.isla-gorda b{color:var(--blood)}
+
+@media (max-width:640px){
+  .donde .campo,
+  .donde .campo-corto{flex:1 1 calc(50% - 6px)}
+  .donde .campo-ancho{flex:1 1 100%}
+}

@@ -272,7 +272,7 @@
       data-quien="${esc(m.n)}" aria-pressed="${caido}">
       <b>${esc(nameOf(c))}</b>
       <span>${esc(t('pvp.est.' + m.e))}${
-        arma ? ' 00b7 ' + arma : ''}</span>
+        arma ? ' · ' + R.nombreArma(arma, isES()) : ''}</span>
     </button>`;
   }
 
@@ -295,7 +295,7 @@
         <span class="pos">${i + 1}</span>
         <b>${esc(c ? nameOf(c) : p.n)}</b>
         <span class="tac-pill tac-${seg(p.t)}">${esc(t('tac.' + p.t))}</span>
-        ${armas[p.n] ? `<span class="tag-arma">${esc(armas[p.n])}</span>` : ''}
+        ${armas[p.n] ? `<span class="tag-arma">${esc(R.nombreArma(armas[p.n], isES()))}</span>` : ''}
         ${fuera ? `<span class="cuenta">${esc(t('pvp.est.ko'))}</span>` : ''}
       </div>`;
     }).join('');

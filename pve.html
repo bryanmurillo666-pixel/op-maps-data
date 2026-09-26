@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PvE — OP-MAPS DATA</title>
 <meta name="description" content="El PvE de OP-MAPS: las 159 islas con sus tres enemigos fijos, la probabilidad exacta de ganar en cada una y con qué alineación.">
-<link rel="icon" href="assets/favicon.svg?v=1.11.0" type="image/svg+xml">
+<link rel="icon" href="assets/favicon.svg?v=1.12.0" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/style.css?v=1.11.0">
+<link rel="stylesheet" href="assets/css/style.css?v=1.12.0">
 </head>
 <body data-page="pve" data-title-key="title.pve">
 
@@ -23,15 +23,9 @@
       <p data-i18n-html="pve.lead"></p>
     </header>
 
-    <!-- lo que es igual en toda isla -->
-    <section class="panel">
-      <h2 data-i18n="pve.fixed">Las reglas del desembarco</h2>
-      <div id="fijos"></div>
-    </section>
-
-    <!-- el combate concreto de cada isla -->
-    <section class="panel">
-      <h2 data-i18n="pve.isla.t">Combate al desembarcar</h2>
+    <!-- elegir isla, en su propio panel y arriba, como el «contra quién»
+         del PvP: es lo primero que se hace al llegar aquí -->
+    <section class="panel elige">
       <div class="pve-form">
         <label class="campo">
           <span data-i18n="pve.isla.sea">Mar</span>
@@ -48,6 +42,20 @@
         </label>
       </div>
       <p class="hint" id="islaHint" hidden></p>
+      <!-- de donde sales: solo sirve para el viaje, asi que vive aqui -->
+      <div id="donde"></div>
+      <div id="viaje"></div>
+    </section>
+
+    <!-- lo que es igual en toda isla -->
+    <section class="panel">
+      <h2 data-i18n="pve.fixed">Las reglas del desembarco</h2>
+      <div id="fijos"></div>
+    </section>
+
+    <!-- el combate concreto de cada isla -->
+    <section class="panel">
+      <h2 data-i18n="pve.isla.t">Combate al desembarcar</h2>
       <div id="combate"></div>
     </section>
 
@@ -70,13 +78,13 @@
 
 <div id="site-footer"></div>
 
-<script src="assets/js/i18n.js?v=1.11.0"></script>
-<script src="assets/js/site.js?v=1.11.0"></script>
-<script src="assets/js/characters.js?v=1.11.0"></script>
-<script src="assets/js/islands.js?v=1.11.0"></script>
-<script src="assets/js/islands-store.js?v=1.11.0"></script>
-<script src="assets/js/rules.js?v=1.11.0"></script>
-<script src="assets/js/crew-store.js?v=1.11.0"></script>
-<script src="assets/js/pve.js?v=1.11.0"></script>
+<script src="assets/js/i18n.js?v=1.12.0"></script>
+<script src="assets/js/site.js?v=1.12.0"></script>
+<script src="assets/js/characters.js?v=1.12.0"></script>
+<script src="assets/js/islands.js?v=1.12.0"></script>
+<script src="assets/js/islands-store.js?v=1.12.0"></script>
+<script src="assets/js/rules.js?v=1.12.0"></script>
+<script src="assets/js/crew-store.js?v=1.12.0"></script>
+<script src="assets/js/pve.js?v=1.12.0"></script>
 </body>
 </html>

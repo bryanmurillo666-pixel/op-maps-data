@@ -5,6 +5,260 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.12.0 — 25 sep 2026
+
+**Temporadas, el mapa de la 9, menos texto, tres objetos mas y el tiempo de
+viaje.** Fases `1` y `2` del plan de
+reforma. La libreta pasa a saber a qué temporada pertenece cada rival, entra el
+mapa de la temporada `9` y las páginas adelgazan dejando la Guía entera.
+
+### El fallo que había, y que no era el que parecía
+
+La guía lo dice sin rodeos:
+
+> *A crew belongs to exactly one season (...) Crew names are only unique within
+> a season, so a name you lose is a name somebody else can take next time.*
+
+O sea que una tripulación rival **no sobrevive** a un cambio de temporada, y el
+`Barbanegra` de la 7 es **otra gente** que el de la 6.
+
+La libreta emparejaba rivales **solo por nombre**. Así que entre temporadas
+juntaba dos tripulaciones distintas en una, en silencio, y mezclaba sus guardias
+y sus ataques. Aquello de «aunque borre, si actualizo se me cargan de nuevo» no
+era del todo un fallo de sincronización: era que **faltaba la dimensión
+temporada**. Las lápidas de la `1.10.2` son un parche sobre ese hueco.
+
+### La identidad pasa a ser (temporada, nombre)
+
+- Dos rivales con el mismo nombre en temporadas distintas **son dos rivales**, y
+  no se fusionan nunca.
+- Lo de temporadas pasadas **se archiva, no se borra**. Sigue ahí para mirarlo;
+  simplemente no estorba en las listas ni en el desplegable del PvP.
+- Las **lápidas también van por temporada**. Iban por nombre, así que borrar a
+  alguien esta temporada habría bloqueado al que se llame igual la siguiente —
+  un fallo que aún no había dado la cara porque las temporadas no existían.
+
+La temporada se pone **a mano**, en Mis rivales, porque el juego no la enseña en
+ningún sitio que se pueda leer. Estrenar temporada es escribir su nombre: lo
+anterior se archiva solo, sin preguntar y sin perder nada.
+
+**Mientras no pongas ninguna, todo se comporta como siempre.** El campo va
+vacío, no se filtra nada y no se te pide rellenar nada para poder empezar. La
+función está pero no molesta hasta que sirve de algo.
+
+### Compartir
+
+La temporada viaja en el código, en el **índice 9**, añadido al final como el
+`8` de las armas: los códigos de antes se siguen leyendo.
+
+Un código que llega **sin** temporada no se cuela en la que estás — sería
+exactamente el fallo que esto viene a arreglar—: se archiva. Y se cuenta, para
+poder decirlo, porque si no parecería que el compañero ha dejado de compartir.
+Pasa solo hasta que él recargue la página.
+
+### El mapa de la temporada 9
+
+Volcado de `CONTEXTO/Islas temporada 9 - Island.csv`, el export del juego. La
+lista anterior se va entera: cada temporada va fijada a su propia versión del
+mapa, así que la de la 8 ya no describe nada. Está en el historial de git.
+
+**`159` islas, `132` con enemigos y `27` pendientes.** De las que ya existían,
+**`129` cambian de enemigos** — que es lo normal al cambiar de temporada.
+
+Dos islas se renombran y una entra nueva: `Sabaody archipielago` pasa a
+`Sabaody archipelago` (así viene ahora en el juego), `Goa kingdom` pasa a
+`Dawn island`.
+
+El **orden dentro de cada mar** no se tira: el que numeró el usuario a mano se
+conserva para las islas que siguen existiendo, y las nuevas van detrás. La isla
+del **jefe final** no viene en el export —no es una isla normal— así que se
+mantiene a mano, la última del Grand Line.
+
+Y el archivo estrena `window.ISLAND_SEASON`, que dice de qué temporada es el
+mapa que tienes cargado.
+
+**Las mismas dos erratas del export de la vez pasada**, corregidas otra vez al
+volcar: `Noth Blue` por `North Blue` y `Gold D. Roger` por `Gol D. Roger`.
+
+### Menos texto en las páginas, la Guía entera
+
+Fase 2 del plan. La regla, la que pidió el usuario: **en la página lo básico, y
+la información completa en la Guía**.
+
+Lo que hizo que esto fuera barato es que la Guía ya tenía una sección **«Cómo
+calcula este sitio»** con ocho puntos, más `gd.duel.5`, `gd.pvp.2`, `gd.pvp.4`,
+`gd.pvp.11`, `gd.guards.3` y `gd.calc.7`. O sea que las notas largas de las
+páginas **estaban repitiendo la Guía**, y recortarlas no pierde nada.
+
+| | Antes | Ahora |
+|---|---|---|
+| Texto de las páginas | `34.218` bytes | **`29.007`** |
+| Notas de más de 200 bytes | `34` | **`8`** |
+| Texto de la Guía | `29.085` | `29.627` |
+
+La Guía **sube** porque lo único que de verdad no estaba en ella —el reparto de
+las `27` combinaciones de táctica entre los tres patrones— se ha mudado a
+`gd.calc.5` en vez de borrarse.
+
+La peor era `pvp.def.fam.d`, con **`961`** bytes en una sola nota bajo los
+botones de defensa: ahora son `269`. Las ocho que pasan de `200` que quedan son
+párrafos normales que explican cosas de la herramienta, no del juego, y no
+están en la Guía.
+
+### Comprobado
+
+Los nueve bancos en verde y las nueve páginas sin claves de i18n crudas. Los
+`396` nombres de enemigo de las islas existen todos en el álbum **menos
+`Mr. Pink`**, que es el caso de arriba.
+
+De paso, el banco de islas dejó de caducar: tenía los enemigos de Ohara y el
+total de islas escritos a mano, así que fallaba con cada temporada nueva. Ahora
+los lee del propio dato.
+
+### `Mr. Pink` era `Señor Pink`, y me equivoqué
+
+Dije que el álbum se había quedado corto. **No era eso.** El personaje está y
+se llama **`Senor Pink`** (`es: Señor Pink`, número `167`): el export de islas
+lo nombra de otra forma, nada más. Corregido al volcar, como las otras dos
+erratas, así que si se vuelve a volcar sale bien solo.
+
+Con eso **los `396` nombres de enemigo existen todos en el álbum**, y no hay
+nada que volver a exportar. La defensa del PvE contra un enemigo sin ficha se
+queda puesta igual: era una buena idea por razones que siguen valiendo, solo
+que el caso que la provocó no era real.
+
+### Fuera Consejos
+
+La página era un esqueleto desde el primer día. Se va entera: el archivo, la
+entrada del menú, la tarjeta de la portada, la fila del README y sus **`66`
+claves** de i18n (las de `soon.*` eran solo suyas).
+
+### Un segundo jefe final
+
+**Big Mom** en el New World, con `Charlotte Linlin` en los tres puestos, igual
+que el de Mihawk.
+
+Con dos, «Final boss» a secas ya no identifica a ninguno —y la identidad de una
+isla es su nombre en inglés—, así que los dos pasan a nombrarse:
+`Final boss: Mihawk` y `Final boss: Big Mom`. En español, `Jefe final: Dracule
+Mihawk` y `Jefe final: Big Mom`.
+
+### Tres objetos más
+
+`rules.js` pasa de una a cuatro entradas en su tabla `ARMAS`, que para eso era
+una tabla:
+
+| Objeto | Rol | En español |
+|---|---|---|
+| `Yoru` | Espadachín | Yoru |
+| `Napoleon` | Espadachín | Napoleón |
+| `Zeus` | Francotirador | Zeus |
+| `Prometheus` | Capitán | Prometeo |
+
+Las cuatro multiplican **`×1,25`** de momento, como pidió el usuario, hasta
+saber el número de verdad: cuando se sepa se cambia en la tabla y la página
+entera se entera sola.
+
+Y una regla que **antes no se cumplía**: *un objeto por miembro*. Hasta ahora
+la misma persona podía llevar Yoru y Napoleón a la vez, porque son claves
+distintas del mapa de armas. Ahora darle uno le quita el que tuviera, en tu
+tripulación y en la de un rival, y también al leer lo guardado — por si algo se
+coló antes de esto.
+
+### Dónde estás y cuánto tardas en llegar
+
+Las dos cosas están en el **PvE**, en el mismo panel que la isla, porque el
+punto de salida no sirve para nada más que para esto. Se busca **escribiendo**,
+igual que la isla de destino y en los dos idiomas, y en la lista salen las
+`160`: también las que no traen posición, marcadas como tales, porque para esas
+este es justo el sitio donde hace falta apuntarla.
+
+Mandan las coordenadas; el nombre de la isla es una etiqueta y un atajo para
+rellenarlas. Si eliges una que sí trae posición, se copian solas. Si eliges una
+que no —Sphinx, por ejemplo— se vacían, porque las que hubiera eran de otra
+isla, y se te piden; en cuanto las escribes, se guardan con su nombre. Y si
+escribes coordenadas sin isla, es un punto suelto y también vale.
+
+Al elegir la isla a la que vas sale el viaje:
+
+    turnos  = techo(distancia / velocidad de navegación)
+    minutos = turnos × 30
+
+La distancia es la línea recta entre las dos coordenadas. Con el ejemplo del
+usuario —Sphinx `960, 1509` y Elbaf `1000, 1548`— sale `55,87`, que es
+exactamente √3121. Los turnos **redondean hacia arriba**: medio turno navegando
+sigue siendo un turno que esperas entero.
+
+**Solo `66` de las `160` islas traen posición** en el export del juego. Las
+demás lo dicen en vez de inventarse un número, y se les puede poner a mano
+desde el editor de islas, que gana dos campos para eso. El editor guarda ahora
+`{e, xy}` en vez de solo la lista de enemigos, y lo que tuvieras guardado con
+la forma vieja se sube de formato al leerlo.
+
+Un fallo que salió al probarlo, y de los feos: `Number('')` es **`0`**, no
+`NaN`, así que media coordenada se guardaba como `[960, 0]` — la isla en el
+origen del mapa y un viaje absurdo. Ahora una coordenada a medias no se guarda.
+
+Y otro que salió al mudar el bloque al PvE: se repintaba entero cada vez que
+tocabas algo, así que al pasar de la `X` a la `Y` perdías el campo de debajo del
+dedo, y buscar una isla borraba unas coordenadas a medio escribir. Ahora el
+bloque se pinta una sola vez y lo único que se repinta es la línea de debajo.
+
+### El PvE se parece al PvP
+
+El selector de isla se muda a **su propio panel, arriba del todo**, como el
+«contra quién» del PvP. Sigue escribiéndose para buscar, que eso se pidió en su
+día; lo que cambia es dónde vive.
+
+Y **cinco islas van marcadas**: `Fish-man island`, `Whole Cake island`, `Zou`,
+`Wano kingdom` y `Elbaf`. Salen marcadas en la lista y con un aviso en rojo al
+elegirlas. La marca vive en `pve.js` y no en `islands.js` a propósito: no es un
+dato del juego, es una señal del usuario, y así no la pisa el siguiente volcado
+del mapa.
+
+### Comprobado, lo de esta tanda
+
+Banco nuevo **`_test-viaje.html`**, `49` comprobaciones: las cuatro armas y sus
+roles, que darle una a alguien le quite la que tuviera, la distancia con el
+ejemplo exacto del usuario, que los turnos redondeen hacia arriba —incluido el
+borde de un turno justo—, que sin coordenadas o sin velocidad no se invente
+nada, la ubicación guardada, los dos jefes y que ya no quede ningún enemigo sin
+ficha.
+
+Dos bancos más por mudar la ubicación al PvE: **`_test-donde.html`**, `33`
+comprobaciones —que el buscador sea un campo de escribir con las `160` islas y
+las de sin posición marcadas, que escribir una isla copie sus coordenadas, que
+a medio escribir no se pierda la ubicación, que una isla sin posición vacíe las
+de la anterior y las pida, que al escribirlas se guarden con su nombre, que se
+busque en español, que media coordenada no se guarde, que buscar la isla de
+destino no borre lo que estás escribiendo, que aguante una recarga y que ya no
+quede nada de esto en Mi tripulación— y **`_test-donde-movil.html`**, que mide
+el panel a `350 px` y comprueba que nada se sale ni se queda sin sitio para
+tocarlo.
+
+`_test-islas` sube a `57` con las coordenadas del editor. Los otros ocho siguen
+en verde.
+
+### Comprobado, lo de las temporadas
+
+Banco nuevo **`_test-temporadas.html`**, `33` comprobaciones. Que sin temporada
+todo siga como antes. Que nombrar la primera adopte lo que ya hay. Que cambiar
+archive en vez de borrar y que volver atrás lo recupere. Que el mismo nombre en
+otra temporada entre como otro rival. Que la lápida **no** cruce temporadas. Que
+juntar libretas no cruce temporadas **pero sí fusione dentro de la misma**. Que
+un código sin temporada se archive y se cuente. Y que todo aguante una recarga.
+
+Los otros ocho bancos siguen en verde y las nueve páginas sin claves de i18n
+crudas.
+
+### Lo que viene
+
+Fases `2` y `3` del plan: recortar el texto de las páginas de trabajo dejando la
+Guía entera, y quitarle la ceremonia a la alianza — sincronización automática,
+sin botón y sin códigos de exportación.
+
+---
+
 ## 1.11.0 — 23 sep 2026
 
 **Las armas.** El juego las ha añadido y la primera es **Yoru**: se equipa a un

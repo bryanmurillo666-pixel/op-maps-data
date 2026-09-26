@@ -39,12 +39,21 @@
     isla:    document.getElementById('isla'),
     combate: document.getElementById('combate'),
     fijos:   document.getElementById('fijos'),
+    viaje:      document.getElementById('viaje'),
+    donde:      document.getElementById('donde'),
     islaHint:   document.getElementById('islaHint'),
     islasLista: document.getElementById('islasLista'),
     pjLista:    document.getElementById('pjLista'),
     editor:     document.getElementById('editor'),
     edCount:    document.getElementById('edCount')
   };
+
+  /* Las que el usuario marca como gordas: salen en rojo en la lista y
+     al elegirlas. Van aqui y no en islands.js porque no es un dato del
+     juego, es una seniala suya. */
+  const ROJAS = ['Fish-man island', 'Whole Cake island', 'Zou',
+                 'Wano kingdom', 'Elbaf'];
+  const esRoja = isla => ROJAS.indexOf(isla.n) !== -1;
 
   const t = k => window.I18N.t(k);
   const isES = () => window.I18N.lang !== 'en';
@@ -205,13 +214,34 @@
     if (idx === -1) return '';
 
     const isla = window.ISLANDS[idx];
+    /* Las gordas se avisan antes de nada: es lo primero que quieres saber
+       al abrirlas. */
+    const aviso = esRoja(isla)
+      ? `<p class="isla-gorda">${t('pve.isla.gordaD')
+          .replace('{n}', esc(nombreIsla(isla)))}</p>`
+      : '';
     /* Sin enemigos no es una isla sin combate: es una isla que aun no se
        ha comprobado en el juego. El texto lleva negrita, asi que va sin
        escapar, como los demas mensajes con formato. */
-    if (!isla.e.length) return `<p class="hint">${t('pve.isla.base')}</p>`;
+    if (!isla.e.length) return aviso + `<p class="hint">${t('pve.isla.base')}</p>`;
 
     const enemigos = isla.e.map(n => DB.find(c => c.n === n));
-    const cabecera = `<h3 class="sub-tit">${esc(t('pve.isla.enemies'))}</h3>
+
+    /* Un enemigo que no está en el álbum. Pasa cuando el juego mete gente
+       nueva y el álbum de aquí es de antes: el export de islas ya los
+       nombra y aquí todavía no existen. Sin esto la página reventaba al
+       abrir esa isla, que es la peor forma de enterarse.
+
+       No se vacía la isla ni se le quitan los otros dos: el nombre es
+       información buena y sirve en cuanto se vuelva a exportar el álbum.
+       Lo que no se puede es calcular, así que se dice y ya. */
+    const sinFicha = isla.e.filter((n, i) => !enemigos[i]);
+    if (sinFicha.length) {
+      return `<p class="hint">${t('pve.isla.sinFicha')
+        .replace('{n}', esc(sinFicha.join(', ')))}</p>`;
+    }
+
+    const cabecera = aviso + `<h3 class="sub-tit">${esc(t('pve.isla.enemies'))}</h3>
       <div class="party">${enemigos.map((c, i) => {
         const mejor = R.bestTactic(c);
         return `<div class="party-box">
@@ -374,9 +404,11 @@
 
   /* El índice de la isla escrita, o -1. Se admite el nombre tal cual y
      también con el «· pendiente» pegado detrás, por si el navegador lo
-     copia al elegir. */
-  function islaElegida(){
-    const escrito = els.isla.value.trim().replace(/\s*·.*$/, '').trim();
+     copia al elegir. Lo usan los dos buscadores: el de a dónde vas y el
+     de dónde estás. */
+  function indiceDe(texto){
+    const escrito = String(texto == null ? '' : texto)
+      .trim().replace(/\s*·.*$/, '').trim();
     if (!escrito) return -1;
     /* Se busca por los dos nombres: el del archivo y el traducido. Si no,
        en español no encontrarías una isla escribiendo lo que la página te
@@ -391,6 +423,8 @@
     return i;
   }
 
+  const islaElegida = () => indiceDe(els.isla.value);
+
   /* Las opciones del datalist, filtradas por el mar elegido. El nombre
      va en value porque es lo que se escribe; el mar va en label, que el
      navegador enseña al lado. */
@@ -401,7 +435,8 @@
     els.islasLista.innerHTML = window.ISLANDS.map(isla => {
       if (soloMar !== null && isla.m !== soloMar) return '';
       const mar = window.ISLAND_SEAS[isla.m];
-      const marca = isla.e.length ? '' : ' · ' + t('pve.isla.pend');
+      const marca = (isla.e.length ? '' : ' · ' + t('pve.isla.pend'))
+                  + (esRoja(isla) ? ' · ' + t('pve.isla.gorda') : '');
       return `<option value="${esc(nombreIsla(isla))}" label="${esc(mar + marca)}"></option>`;
     }).join('');
 
@@ -442,6 +477,157 @@
     </div>`;
   }
 
+  /* ---------- cuánto tardas en llegar ----------
+     Línea recta entre tu ubicación y la de la isla, dividida por la
+     velocidad de tu tripulación, y los turnos redondeados hacia arriba.
+     Es una estimación sacada de las coordenadas del mapa, no una regla de
+     la guía, y por eso se dice.
+
+     Hacen falta tres cosas y cualquiera puede faltar: dónde estás, dónde
+     está la isla y una tripulación. Si falta la isla o la tripulación se
+     dice CUÁL falta, que es lo único accionable; si falta dónde estás no,
+     porque los campos para ponerlo están justo encima y ya lo piden. */
+  function viajeHTML(){
+    const i = islaElegida();
+    if (i === -1) return '';
+    const isla = window.ISLANDS[i];
+
+    const donde = C.donde();
+    /* Sin punto de salida no hay viaje que contar, y el aviso ya lo da
+       el panel de arriba: aqui solo estorbaria. */
+    if (!donde) return '';
+    if (!isla.xy) {
+      return `<p class="hint">${t('pve.viaje.sinIsla')
+        .replace('{n}', esc(nombreIsla(isla)))}</p>`;
+    }
+
+    const crew = C.personajes();
+    const nav = crew.reduce((s, c) => s + c.v, 0);
+    const timonel = crew.some(c => c.r === 'Helmsman');
+    const vel = crew.length ? R.crewSpeed(nav, timonel) : 0;
+    if (!vel) return `<p class="hint">${t('pve.viaje.sinCrew')}</p>`;
+
+    const v = R.viaje([donde.x, donde.y], isla.xy, vel);
+    if (!v) return '';
+
+    /* Ya estás ahí: no es un viaje de cero turnos, es que no hay viaje. */
+    if (v.dist < 0.5) {
+      return `<p class="hint">${t('pve.viaje.aqui')
+        .replace('{n}', esc(nombreIsla(isla)))}</p>`;
+    }
+
+    const desde = donde.isla
+      ? esc(nombreIsla(islaPorNombre(donde.isla) || { n: donde.isla }))
+      : num(donde.x) + ', ' + num(donde.y);
+
+    return `<div class="viaje">
+      <div class="kpi-box">
+        <b>${reloj(v.minutos)}</b>
+        <span>${esc(t('pve.viaje.tiempo'))}</span>
+        <em>${num(v.turnos)} ${esc(t(v.turnos === 1 ? 'pve.viaje.turno' : 'pve.viaje.turnos'))}</em>
+      </div>
+      <div class="kpi-box">
+        <b>${num(v.dist, 1)}</b>
+        <span>${esc(t('pve.viaje.dist'))}</span>
+        <em>${esc(t('pve.viaje.vel'))} ${num(vel, 1)}</em>
+      </div>
+      <p class="hint">${t('pve.viaje.desde').replace('{d}', desde)}</p>
+    </div>`;
+  }
+
+  /* «1 h 30 min», nunca «90 min»: lo que se quiere saber es si esto es un
+     rato o media tarde. */
+  function reloj(min){
+    const h = Math.floor(min / 60), m = min % 60;
+    if (!h) return m + ' ' + t('u.min');
+    return h + ' h' + (m ? ' ' + m + ' ' + t('u.min') : '');
+  }
+
+  const islaPorNombre = n => window.ISLANDS.filter(x => x.n === n)[0] || null;
+
+  /* ---------- dónde estás ----------
+     Vive aquí, pegado al viaje, porque es lo único para lo que sirve: sin
+     punto de salida no hay nada que calcular. Se busca escribiendo, igual
+     que la isla de arriba, y en la lista salen TODAS, también las que no
+     traen posición: para esas este es justo el sitio de apuntarla, porque
+     es donde te hace falta.
+
+     La verdad son las coordenadas; el nombre de la isla es una etiqueta y
+     un atajo para rellenarlas.
+
+     El bloque se pinta UNA vez y no vuelve a rehacerse mientras se usa: lo
+     único que cambia al tocarlo es la línea de debajo, y rehacerlo entero
+     te quitaría el foco de encima justo cuando pasas de la X a la Y. Por lo
+     mismo queda fuera de render(), que corre con cada tecla de la búsqueda
+     de isla. */
+  function dondeRender(){
+    if (els.donde) els.donde.innerHTML = dondeHTML();
+  }
+
+  const dondeCampo = id => els.donde ? els.donde.querySelector('#' + id) : null;
+
+  /* La isla que hay escrita ahora mismo en el buscador, o null. */
+  function dondeIsla(){
+    const campo = dondeCampo('dondeIsla');
+    if (!campo) return null;
+    const i = indiceDe(campo.value);
+    return i === -1 ? null : window.ISLANDS[i];
+  }
+
+  function dondeAviso(){
+    const h = dondeCampo('dondeHint');
+    if (h) h.innerHTML = dondeAvisoHTML(dondeIsla());
+  }
+
+  /* `pendiente` es la isla escrita cuando todavía no hay ubicación: sirve
+     para separar «no has dicho nada» de «has dicho una isla de la que no sé
+     la posición», que se arreglan de maneras distintas. */
+  function dondeAvisoHTML(pendiente){
+    const d = C.donde();
+    if (!d) {
+      return (pendiente && !pendiente.xy)
+        ? t('pve.donde.falta').replace('{n}', esc(nombreIsla(pendiente)))
+        : t('pve.donde.no');
+    }
+    /* Un punto suelto no tiene nombre de isla, y poner un guion en su hueco
+       solo hace ruido: se dice con las coordenadas y ya. */
+    const frase = d.isla
+      ? t('pve.donde.hay').replace('{d}',
+          esc(nombreIsla(islaPorNombre(d.isla) || { n: d.isla })))
+      : t('pve.donde.hayXY');
+    return frase.replace('{x}', num(d.x)).replace('{y}', num(d.y));
+  }
+
+  function dondeHTML(){
+    const d = C.donde();
+    const opciones = window.ISLANDS.map(isla => {
+      const mar = window.ISLAND_SEAS[isla.m];
+      const marca = isla.xy ? '' : ' · ' + t('pve.donde.sinXY');
+      return `<option value="${esc(nombreIsla(isla))}" label="${esc(mar + marca)}"></option>`;
+    }).join('');
+    const nombre = (d && d.isla)
+      ? nombreIsla(islaPorNombre(d.isla) || { n: d.isla }) : '';
+
+    return `<div class="donde">
+      <label class="campo campo-ancho">
+        <span>${esc(t('pve.donde.isla'))}</span>
+        <input type="text" id="dondeIsla" class="isla-select" list="dondeLista"
+               autocomplete="off" spellcheck="false"
+               placeholder="${esc(t('pve.isla.ph'))}" value="${esc(nombre)}">
+        <datalist id="dondeLista">${opciones}</datalist>
+      </label>
+      <label class="campo campo-corto">
+        <span>X</span>
+        <input type="number" id="dondeX" step="any" value="${d ? d.x : ''}">
+      </label>
+      <label class="campo campo-corto">
+        <span>Y</span>
+        <input type="number" id="dondeY" step="any" value="${d ? d.y : ''}">
+      </label>
+      <p class="hint" id="dondeHint">${dondeAvisoHTML(null)}</p>
+    </div>`;
+  }
+
   /* ---------- pintado ---------- */
 
   function render(){
@@ -452,6 +638,7 @@
     els.islaHint.hidden = !(escrito && i === -1);
     if (!els.islaHint.hidden) els.islaHint.textContent = t('pve.isla.noMatch');
 
+    if (els.viaje) els.viaje.innerHTML = viajeHTML();
     els.combate.innerHTML = combateHTML();
     els.fijos.innerHTML   = fijosHTML();
     editorRender();
@@ -505,6 +692,21 @@
         <button class="btn-add" id="edVaciar" type="button">${esc(t('pve.ed.empty'))}</button>
         ${tocada ? `<button class="btn-x" id="edDeshacer" type="button">${esc(t('pve.ed.undo'))}</button>` : ''}
       </div>
+      <h3 class="sub-tit">${esc(t('pve.ed.xy'))}</h3>
+      <div class="ed-form">
+        <label class="campo campo-corto">
+          <span>X</span>
+          <input type="number" class="ed-xy" data-k="x" step="any"
+                 value="${isla.xy ? isla.xy[0] : ''}">
+        </label>
+        <label class="campo campo-corto">
+          <span>Y</span>
+          <input type="number" class="ed-xy" data-k="y" step="any"
+                 value="${isla.xy ? isla.xy[1] : ''}">
+        </label>
+        <button class="btn-add" id="edXY" type="button">${esc(t('pve.ed.save'))}</button>
+      </div>
+      <p class="note">${t('pve.ed.xyD')}</p>
       <p class="hint" id="edHint"></p>
       ${listaEditadas()}`;
   }
@@ -540,6 +742,44 @@
   /* input y no change: al elegir del datalist con el ratón, Chrome manda
      input y el change solo llega al salir del campo. */
   els.isla.addEventListener('input', render);
+
+  /* Escribir una isla copia sus coordenadas; escribirlas a mano deja el
+     nombre puesto como etiqueta, si lo escrito es una isla de verdad. Se
+     tocan los campos uno a uno en vez de repintar el bloque, para no mover
+     el foco mientras se escribe.
+
+     `input` en el buscador y `change` en los números: al elegir del
+     desplegable con el ratón, Chrome manda input y el change solo llega al
+     salir del campo. */
+  if (els.donde) {
+    els.donde.addEventListener('input', e => {
+      if (e.target.closest('#dondeIsla')) dondeCambia(true);
+    });
+    els.donde.addEventListener('change', e => {
+      if (e.target.closest('#dondeX') || e.target.closest('#dondeY')) dondeCambia(false);
+    });
+  }
+
+  function dondeCambia(desdeElBuscador){
+    const isla = dondeIsla();
+    const x = dondeCampo('dondeX'), y = dondeCampo('dondeY');
+
+    if (desdeElBuscador && isla) {
+      if (isla.xy) {
+        x.value = isla.xy[0];
+        y.value = isla.xy[1];
+      } else {
+        /* Esas coordenadas eran de otra isla, no de esta: se van, y se
+           piden. Si ya estabas en esta, se quedan las que escribiste. */
+        const antes = C.donde();
+        if (!antes || antes.isla !== isla.n) { x.value = ''; y.value = ''; }
+      }
+    }
+
+    C.setDonde(x.value, y.value, isla ? isla.n : '');
+    dondeAviso();
+    render();
+  }
 
   // El botón se repinta con el panel, así que se escucha por delegación.
   els.combate.addEventListener('click', e => {
@@ -583,6 +823,14 @@
       els.editor.querySelectorAll('.ed-pj').forEach(x => { x.value = ''; });
       return;
     }
+    if (e.target.closest('#edXY')) {
+      const v = k => els.editor.querySelector('.ed-xy[data-k="' + k + '"]').value.trim();
+      const r = ED.guardarXY(isla.n, v('x'), v('y'));
+      if (r === 'malos') { edMensaje('pve.ed.bad', true); return; }
+      render();
+      edMensaje(r === 'igual' ? 'pve.ed.same' : 'pve.ed.saved');
+      return;
+    }
     if (e.target.closest('#edGuardar')) {
       const vals = [0, 1, 2].map(k =>
         els.editor.querySelector('.ed-pj[data-k="' + k + '"]').value.trim());
@@ -594,11 +842,12 @@
   });
 
   document.addEventListener('langchange', () => {
-    llenarMares(); llenarIslas(); llenarPersonajes(); render();
+    llenarMares(); llenarIslas(); llenarPersonajes(); dondeRender(); render();
   });
 
   llenarMares();
   llenarIslas();
   llenarPersonajes();
+  dondeRender();
   render();
 })();

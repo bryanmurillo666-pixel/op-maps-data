@@ -1,15 +1,16 @@
 # Versiones que sigue el sitio
 
-Estado a **23 de septiembre de 2026**.
+Estado a **25 de septiembre de 2026**.
 
 | Fuente | Versión | Fecha | Estado |
 |---|---|---|---|
-| Sitio OP-MAPS DATA | `1.11.0` | 23 sep 2026 | sin publicar |
+| Sitio OP-MAPS DATA | `1.12.0` | 25 sep 2026 | sin publicar |
 | Guía del jugador | `5.1` | 20 ago 2026 | ✅ aplicada |
 | Changelog del juego | `v0.44.0` | 18 ago 2026 | ✅ leído |
-| Álbum del juego (ES/EN) | export | 16 ago 2026 | ✅ 226 personajes verificados |
-| Islas | `islands.js` | 18 sep 2026 | ✅ 159 islas (con la del jefe final del Grand Line), 145 comprobadas y 14 pendientes (lista propia del usuario, `Islas actualizadas.xlsx`). Se corrigen en el PvE sin tocar el archivo, y esas correcciones son de cada navegador. |
-| Armas | `rules.js` | 23 sep 2026 | ✅ 1 de las que hay: `Yoru` (espadachín, ×1,25 en las tres tácticas, una por tripulación) |
+| Álbum del juego (ES/EN) | export | 16 ago 2026 | ✅ 226 personajes verificados. Los 396 enemigos de las islas existen todos. |
+| Islas | `islands.js` | 25 sep 2026 | ✅ mapa de la **temporada 9**: 160 islas (con los dos jefes finales), 133 con enemigos y 27 pendientes. 66 traen coordenadas; el resto se ponen desde el editor. Volcado de `Islas temporada 9 - Island.csv`. Se corrigen en el PvE sin tocar el archivo, y esas correcciones son de cada navegador. |
+| Armas | `rules.js` | 25 sep 2026 | ✅ 4: `Yoru` y `Napoleon` (espadachín), `Zeus` (francotirador), `Prometheus` (capitán). ×1,25 las cuatro, provisional. Una por miembro y una de cada por tripulación. |
+| Temporadas | a mano | 25 sep 2026 | ✅ la pone el usuario en Mis rivales; la identidad de un rival es (temporada, nombre) |
 | Tienda | export | 16 ago 2026 | ✅ 14 objetos |
 
 ## Servicios de los que depende

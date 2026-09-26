@@ -33,6 +33,9 @@
     filtros:  document.getElementById('rivFiltros'),
     buscar:   document.getElementById('rivBuscar'),
     tag:      document.getElementById('rivTag'),
+    temp:     document.getElementById('rivTemp'),
+    tempIn:   document.getElementById('tempIn'),
+    tempHint: document.getElementById('tempHint'),
     tagAyuda: document.getElementById('rivTagAyuda'),
     tagsLista:document.getElementById('tagsUsados')
   };
@@ -99,7 +102,7 @@
         data-arma="${esc(nombre)}" data-quien="${esc(c.n)}"
         aria-pressed="${c.n === lleva}">${esc(nameOf(c))}</button>`).join('');
       return `<div class="arma">
-        <span class="arma-n">${esc(nombre)} <em>×${num(R.ARMAS[nombre].mult, 2)}</em></span>
+        <span class="arma-n">${esc(R.nombreArma(nombre, isES()))} <em>×${num(R.ARMAS[nombre].mult, 2)}</em></span>
         <div class="arma-quienes">${botones}</div>
       </div>`;
     }).join('');
@@ -114,7 +117,7 @@
     if (!c) return '';
     return `<div class="suyo est-${m.e}" data-quien="${esc(m.n)}">
       <span class="suyo-n"><b>${esc(nameOf(c))}</b>${
-        arma ? `<span class="tag-arma">${esc(arma)}</span>` : ''}</span>
+        arma ? `<span class="tag-arma">${esc(R.nombreArma(arma, isES()))}</span>` : ''}</span>
       <select class="suyo-e" aria-label="${esc(t('pvp.riv.state'))}">${opcionesEstado(m.e)}</select>
       <button type="button" class="btn-x suyo-del" aria-label="${esc(t('pvp.riv.del'))}">×</button>
     </div>`;
@@ -312,7 +315,12 @@
     orden.forEach((id, i) => { sitio[id] = i; });
     // RV.lista() ya viene por fecha, así que los que no estaban (recién
     // importados) conservan ese orden entre ellos y salen delante
-    return RV.lista().sort((a, b) => {
+    /* Con el filtro en la temporada en curso se mira RV.lista(), que ya
+       la filtra. Para ver una pasada hace falta RV.todas(), porque lo
+       archivado no sale en lista(). */
+    const cual = els.temp ? els.temp.value : '';
+    const fuente = cual === '' ? RV.lista() : RV.todas();
+    return fuente.sort((a, b) => {
       const ia = sitio[a.id], ib = sitio[b.id];
       if (ia === undefined && ib === undefined) return 0;
       if (ia === undefined) return -1;
@@ -325,8 +333,10 @@
   function filtrados(){
     const texto = fold(els.buscar ? els.buscar.value.trim() : '');
     const tag   = els.tag ? els.tag.value : '';
+    const cual  = els.temp ? els.temp.value : '';
     return enOrden().filter(r =>
       (!tag   || r.tag === tag) &&
+      (cual === '' || cual === '*' || (r.temp || '') === cual) &&
       (!texto || fold(r.n).indexOf(texto) !== -1)
     );
   }
@@ -385,6 +395,7 @@
     els.count.textContent = !total ? ''
       : (vistos === total ? total : vistos + ' / ' + total);
     pintaBorrados();
+    pintaTemporada();
   }
 
   function rellenarDatalist(){
@@ -561,6 +572,9 @@
       .replace('{n}', res.nuevos).replace('{a}', res.actualizados)
       + (res.enterrados
           ? ' ' + t('riv.borrados.saltados').replace('{n}', res.enterrados)
+          : '')
+      + (res.sinTemporada
+          ? ' ' + t('riv.temp.viejo').replace('{n}', res.sinTemporada)
           : '');
     els.impIn.value = '';
     congelaOrden();
@@ -583,6 +597,57 @@
       RV.olvidarBorrados();
       pintaBorrados();
     });
+  }
+
+  /* ---------- la temporada ----------
+     Se pone a mano porque el juego no la enseña en ningún sitio que se
+     pueda leer. Mientras no haya ninguna, el campo va vacío y todo se
+     comporta como siempre: no se obliga a rellenar nada para empezar. */
+  function pintaTemporada(){
+    if (!els.tempIn) return;
+    const ahora = RV.temporada();
+    if (document.activeElement !== els.tempIn) els.tempIn.value = ahora;
+
+    const viejos = RV.archivados();
+    els.tempHint.innerHTML = ahora
+      ? (viejos
+          ? t('riv.temp.hay').replace('{t}', esc(ahora)).replace('{n}', viejos)
+          : t('riv.temp.sola').replace('{t}', esc(ahora)))
+      : t('riv.temp.no');
+
+    // el filtro solo tiene sentido si hay más de una temporada apuntada
+    if (!els.temp) return;
+    const cuantas = RV.temporadas();
+    const otras = Object.keys(cuantas).filter(k => k !== ahora).sort();
+    els.temp.hidden = !otras.length;
+    if (els.temp.hidden) { els.temp.value = ''; return; }
+
+    const antes = els.temp.value;
+    els.temp.innerHTML =
+      `<option value="">${esc(t('riv.temp.actual'))}</option>` +
+      `<option value="*">${esc(t('riv.temp.todas'))}</option>` +
+      otras.map(k => `<option value="${esc(k)}">${
+        esc(k || t('riv.temp.sin'))} · ${cuantas[k]}</option>`).join('');
+    els.temp.value = antes;
+    if (els.temp.selectedIndex === -1) els.temp.value = '';
+  }
+
+  if (els.tempIn) {
+    /* Al salir del campo, no a cada tecla: escribiendo «7» pasarías por
+       una temporada llamada «» y otra «7», y se archivaría medio mundo
+       por el camino. */
+    els.tempIn.addEventListener('change', () => {
+      RV.setTemporada(els.tempIn.value);
+      congelaOrden();
+      render();
+    });
+    els.tempIn.addEventListener('keydown', e => {
+      if (e.key === 'Enter') els.tempIn.blur();
+    });
+  }
+
+  if (els.temp) {
+    els.temp.addEventListener('change', () => { congelaOrden(); render(); });
   }
 
   /* ---------- buscar y filtrar ---------- */

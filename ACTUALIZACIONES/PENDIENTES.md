@@ -1,5 +1,38 @@
 # Pendientes
 
+## El plan de reforma (25 sep 2026)
+
+Decidido con el usuario: se queda en GitHub Pages + Firebase. Nada de servidor
+propio — lo que quería era que «se viera más bonito», y eso lo da un dominio,
+no un servidor. La alianza no se quita: se le quita la ceremonia. El grupo son
+los mismos ~10 de siempre, así que no hace falta moderación.
+
+- [x] **Fase 1 — temporadas** (25 sep 2026). Identidad (temporada, nombre). Lo
+      de temporadas pasadas se archiva. Las lápidas también van por temporada.
+- [x] **Fase 2 — recortar texto** (25 sep 2026). Las páginas bajan de `34.218` a
+      `29.007` bytes y las notas de más de 200 bytes, de `34` a `8`. La Guía se
+      queda entera: de hecho sube, porque el reparto de las 27 combinaciones se
+      mudó a `gd.calc.5` en vez de borrarse.
+- [x] **Consejos** quitado (25 sep 2026). Era un esqueleto desde el principio.
+- [x] **Tres objetos más** (25 sep 2026): `Napoleon` (espadachín), `Zeus`
+      (francotirador) y `Prometheus` (capitán). `×1,25` provisional los tres.
+- [ ] **El daño de verdad de Napoleon, Zeus y Prometheus.** Están puestos igual
+      que Yoru hasta saberlo; es cambiar un número en la tabla `ARMAS`.
+- [x] **Dónde estás y cuánto tardas en llegar** (25 sep 2026). Las dos cosas en
+      el PvE, en el mismo panel que la isla.
+- [ ] **Las coordenadas que faltan.** El export del juego solo trae la posición
+      de `66` de las `160` islas; las demás se ponen a mano desde el editor del
+      PvE, o se vuelve a exportar cuando el juego las dé todas.
+- [ ] **Fase 3 — sincronización automática.** Quitar el botón «Actualizar
+      rivales», los códigos de exportación y el entrar por código. Un grupo
+      fijo que sincroniza solo al abrir y al cambiar algo, escribiendo rival a
+      rival en vez de subir la libreta entera. Cuentas básicas con Firebase
+      Auth. Antes de eso, meter un `api.js` que aísle a las páginas de dónde
+      viven los datos: así cambiar de servidor algún día es tocar un archivo.
+- [ ] **Fase 4 (opcional) — dominio propio.** Unos `10 €/año`. Un `CNAME` y dos
+      registros DNS; GitHub Pages lo sirve gratis y con HTTPS. Es lo que hace
+      que deje de verse `bryanmurillo666-pixel.github.io/op-maps-data`.
+
 ## Pedido por el usuario
 
 - [x] **Ordenar las islas en el PvE.** Hecho el 8 sep 2026: el usuario numeró cada

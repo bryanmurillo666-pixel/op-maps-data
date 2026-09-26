@@ -21,7 +21,6 @@ listo. Todo es HTML, CSS y JavaScript sin dependencias.
 | `pvp.html` | Tu plan de ataque y qué guardias montar contra cada rival |
 | `rivals.html` | Tu libreta de rivales, con código para compartirla |
 | `alianza.html` | Compartir la libreta con hasta 10 compañeros |
-| `tips.html` | Consejos |
 | `guide.html` | Toda la información del juego, en 19 pliegues |
 
 ```

@@ -20,7 +20,6 @@
     { id:'rivals',href:'rivals.html',key:'nav.rivals', corto:'nav.rivals.s' },
     { id:'pve',   href:'pve.html',   key:'nav.pve'   },
     { id:'pvp',   href:'pvp.html',   key:'nav.pvp'   },
-    { id:'tips',  href:'tips.html',  key:'nav.tips'  },
     { id:'guide', href:'guide.html', key:'nav.guide' }
   ];
 

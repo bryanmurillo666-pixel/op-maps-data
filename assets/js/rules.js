@@ -48,6 +48,38 @@ window.RULES = (function () {
   // Lo que aporta a la probabilidad de encontrar un poneglifo.
   function searchShare(c){ return c.i * 0.001; }
 
+  /* ---------- navegar de una isla a otra ----------
+     La distancia es la línea recta entre las dos coordenadas del mapa
+     —Pitágoras y ya— y cada turno recorre la velocidad de tu tripulación.
+     Los turnos se redondean hacia ARRIBA: medio turno de navegación sigue
+     siendo un turno que esperas entero.
+
+       turnos  = techo(distancia / velocidad)
+       minutos = turnos × 30
+
+     No está en la guía del jugador: sale de comparar coordenadas del mapa,
+     así que es una estimación y la página lo dice. */
+  const MINUTOS_TURNO = 30;
+
+  function distancia(a, b){
+    if (!a || !b) return null;
+    const dx = Number(b[0]) - Number(a[0]);
+    const dy = Number(b[1]) - Number(a[1]);
+    if (!isFinite(dx) || !isFinite(dy)) return null;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  /* Devuelve {dist, turnos, minutos} o null si falta algún dato. Con
+     velocidad 0 no se llega nunca, así que tampoco se inventa un número. */
+  function viaje(a, b, velocidad){
+    const d = distancia(a, b);
+    if (d === null) return null;
+    const v = Number(velocidad);
+    if (!(v > 0)) return null;
+    const turnos = Math.ceil(d / v);
+    return { dist: d, turnos: turnos, minutos: turnos * MINUTOS_TURNO };
+  }
+
   /* ---------- armas ----------
      Un arma se equipa a UN personaje de una tripulación y le sube el
      score en las tres tácticas. Dos detalles que mandan en cómo está
@@ -67,12 +99,28 @@ window.RULES = (function () {
      exactamente igual: `base` es lineal en los stats, así que subirlos
      un 25 % sube el score un 25 %. Sobre el score se lee mejor y no
      ensucia ni la vida, ni el precio, ni el poder de la tripulación. */
+  /* Cada arma va a UN rol, solo se lleva una de cada por tripulación y
+     nadie puede llevar dos a la vez. El multiplicador de las tres últimas
+     está puesto igual que el de Yoru a petición del usuario, hasta saber
+     el de verdad: cuando se sepa se cambia el número aquí y toda la
+     página se entera sola. */
   const ARMAS = {
-    // ×1.25 en Asalto, Maniobra y Emboscada. Una por tripulación.
-    Yoru: { rol: 'Swordsman', mult: 1.25 }
+    Yoru:       { rol: 'Swordsman', mult: 1.25 },
+    Napoleon:   { rol: 'Swordsman', mult: 1.25, es: 'Napoleón' },
+    Zeus:       { rol: 'Sniper',    mult: 1.25 },
+    Prometheus: { rol: 'Captain',   mult: 1.25, es: 'Prometeo' }
   };
 
+
   const armaDe = c => (c && c.arma) ? (ARMAS[c.arma] || null) : null;
+
+  /* El nombre del arma como se escribe en cada idioma. Napoleon lleva
+     tilde en espanol y Prometheus se llama Prometeo, y eso no deberia
+     obligar a cada pagina a saberlo. */
+  function nombreArma(k, es){
+    const a = ARMAS[k];
+    return (a && es && a.es) ? a.es : k;
+  }
 
   /* ¿Puede este personaje llevar esta arma? Yoru es de espadachines. */
   function puedeArma(c, nombre){
@@ -234,7 +282,8 @@ window.RULES = (function () {
     TACTICS, BEATS, ROLE_FOR, USEFUL_ROLES, PASSIVE_ROLES,
     total, power, health, price, speedShare, searchShare,
     score, scores, bestTactic, hasAffinity,
-    ARMAS, armaDe, puedeArma, conArma,
+    ARMAS, armaDe, puedeArma, conArma, nombreArma,
+    MINUTOS_TURNO, distancia, viaje,
     crewSpeed, crewPower, rpChance, conquestTime, supplies, SUPPORT_ROLES,
     beats, duelWin, isUsefulRole, hasPassiveRole, isReader
   };

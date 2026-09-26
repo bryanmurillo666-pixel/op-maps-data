@@ -279,7 +279,7 @@
             <span class="ch-name">${esc(nameOf(c))} ${readerMark(c)}</span>
             <span class="ch-sub">
               <span class="ch-role">${esc(roleOf(c))}</span>
-              ${c.arma ? `<span class="tag-arma">${esc(c.arma)} ×${num(R.ARMAS[c.arma].mult, 2)}</span>` : ''}
+              ${c.arma ? `<span class="tag-arma">${esc(R.nombreArma(c.arma, isES()))} ×${num(R.ARMAS[c.arma].mult, 2)}</span>` : ''}
               ${sobra ? `<span class="tag-rojo">${esc(t('crew.tag'))}</span>` : ''}
             </span>
           </span>
@@ -314,7 +314,7 @@
         data-arma="${esc(nombre)}" data-quien="${esc(c.n)}"
         aria-pressed="${c.n === lleva}">${esc(nameOf(c))}</button>`).join('');
       return `<div class="arma">
-        <span class="arma-n">${esc(nombre)} <em>×${num(R.ARMAS[nombre].mult, 2)}</em></span>
+        <span class="arma-n">${esc(R.nombreArma(nombre, isES()))} <em>×${num(R.ARMAS[nombre].mult, 2)}</em></span>
         <div class="arma-quienes">${botones}</div>
       </div>`;
     }).join('');
@@ -401,7 +401,6 @@
       render();
     });
   }
-
 
 
   els.addBtn.addEventListener('click', añadir);
