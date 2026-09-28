@@ -5,6 +5,127 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.12.1 — 27 sep 2026
+
+**Tres cosas de la alianza, que se parecían entre ellas**: lo que se comparte
+llegaba y no se veía, desde algunos países no se llega al servidor, y la
+alianza que acababas de crear no existía todavía para nadie más.
+
+### La alianza compartía, pero no se veía nada
+
+«La alianza no comparte los rivales; solo dice que si hay nuevos registros».
+Las dos mitades de esa frase son la pista entera: **sí compartía**. Los rivales
+llegaban, se guardaban, y el resumen los contaba. Lo que no hacían era
+**aparecer en la libreta**.
+
+La culpa es de la temporada, y del sitio donde vive. Un rival pertenece a la
+temporada de quien lo apuntó, y *Mis rivales* solo enseña la que tú tienes
+puesta. Pero **la temporada la escribe cada uno en su navegador, a mano y en
+texto libre**. Así que basta con que un compañero no la haya escrito nunca, o
+la haya escrito `T9` en vez de `9`, para que todo lo suyo te llegue y se te
+archive en silencio.
+
+Reproducido con cuatro miembros contra el servidor de verdad:
+
+| Quién | Temporada | Lo que ve |
+|---|---|---|
+| UNO | *sin escribir* | lo suyo |
+| DOS | `9` | lo suyo. Shanks, de UNO, llega y no sale |
+| TRES | `T9` | solo lo suyo: los otros tres no salen |
+| CUATRO | `9` | lo suyo **y lo de DOS**, que lleva su misma temporada |
+
+O sea que compartir funciona perfectamente **cuando la temporada coincide**, y
+no hay forma de enterarse de cuándo no coincide.
+
+**Lo que se ha arreglado es lo segundo**, que es lo que convertía un ajuste en
+un misterio:
+
+- **Cada uno sube qué temporada tiene puesta**, y en la lista de la alianza sale
+  marcada en rojo la de quien no lleva la tuya. De un vistazo se ve quién está
+  desalineado.
+- **El resumen deja de mentir.** Si han llegado rivales que no vas a ver, lo
+  dice, con cuántos son y de qué temporada vienen: *«2 han llegado pero NO
+  salen en tu libreta… Tú tienes puesta 9 y llegan de «sin temporada» (1),
+  «T9» (1). No se pierden, están guardados»*.
+
+Un fallo mío por el camino, que cazó el banco: contaba **llegadas** en vez de
+**rivales**. Como en una alianza el mismo rival te llega de todos los que lo
+tengan, con cuatro miembros decía el triple de los que eran. Ahora va por
+nombre.
+
+Lo que **no** se ha tocado: los rivales de otra temporada siguen sin salir en
+la libreta. Eso es lo correcto —un `Barbanegra` de la `8` es otra gente que el
+de la `9`— y cambiarlo sería volver al fallo que arregló la `1.12.0`.
+
+Banco nuevo **`_test-compartir.html`**: monta los cuatro miembros contra el
+servidor de verdad, comprueba que lo que no se ve se avisa y se cuenta bien,
+que con la misma temporada sí se comparte, abre la página y comprueba que el
+aviso y la marca llegan a la pantalla, y borra lo que ha creado.
+
+### Desde algunos países no se llega al servidor
+
+El síntoma: «un amigo no puede entrar cuando yo creo la alianza, y al revés
+tampoco». **Era el país**: el amigo se conecta desde Cuba, y a Cuba Google no
+le sirve Firebase. No es el operador quien corta, es el servidor quien no
+contesta a esas IP. Con una **VPN** entró a la primera.
+
+Eso **no se arregla desde aquí** mientras los datos vivan en Firebase: lo único
+que se puede hacer es que la página lo diga en vez de quedarse pensando, y que
+apunte a la VPN, que es lo que funciona. Queda escrito en `PENDIENTES.md`
+porque condiciona la fase `3`, que mete más Firebase todavía.
+
+### Y, de paso, no se podía entrar en una alianza recién creada
+
+Buscando lo de arriba salió un fallo de verdad, este sí de la página, que daba
+exactamente el mismo síntoma y en los dos sentidos. No era lo que le pasaba al
+amigo, pero le pasaba **a todo el mundo**, siempre.
+
+`ALIANZA.crear()` no tocaba el servidor. Solo sorteaba un código y te apuntaba
+dentro **en tu navegador**. La alianza no existía para nadie más hasta que
+alguien escribía su hueco, y eso pasaba en el primer *Actualizar rivales*.
+Mientras tanto, quien recibía el código y lo escribía se llevaba un
+`noExiste` y en pantalla:
+
+> *No hay ninguna alianza con ese código. Repásalo con quien te lo pasó.*
+
+Que es el peor mensaje posible, porque manda a los dos a buscar una errata que
+no existe. Y la página lo provocaba ella sola: nada más crear decía *«Reparte
+el código y pulsa Actualizar rivales»*, en ese orden.
+
+Reproducido tal cual contra el servidor de verdad: crear, e intentar entrar
+antes de sincronizar. `{"ok":false,"error":"noExiste"}`.
+
+Ahora **crear sube en el mismo gesto**. La alianza existe desde el segundo en
+que aparece el código, sin acordarse de nada. Si la subida falla, el aviso lo
+dice en rojo y con lo que hay que hacer: *«La alianza NO ha llegado al
+servidor: … No repartas el código hasta que Actualizar rivales funcione»*, que
+es lo contrario de repartir un código muerto.
+
+El arreglo va en la página y no en `crear()`, que sigue siendo lo que era: el
+trozo local, sin red, del que tiran los bancos de prueba. Lo que se le ha
+puesto es un aviso en mayúsculas de que **quien lo llame tiene que subir antes
+de repartir el código**, para que no vuelva a pasar por otro sitio.
+
+De paso, dos cosas del mismo tema:
+
+- **Los `fetch` no se rendían nunca.** Si la red se traga la petición sin
+  contestar —y eso sí depende de desde dónde te conectes— la página se quedaba
+  en «buscando…» para siempre, que es la peor manera de fallar porque parece
+  que va. Ahora cortan a los `15 s` y dicen *«No se ha podido conectar»*.
+- **El «no existe» tenía una sola explicación** y hay dos: ahora añade que, si
+  el código es el bueno, puede que ya no quede nadie dentro.
+
+Banco nuevo **`_test-unirse.html`**, que hace el camino entero contra el
+servidor de verdad: crea desde la página, comprueba que la alianza está
+**antes** de tocar nada más, entra con el código recién dado, comprueba que un
+código inventado sigue sin colar, y borra lo que ha creado.
+
+Para que quede claro en el registro: cuando escribí esto la primera vez di por
+hecho que el país no tenía nada que ver, y sí lo tenía. El fallo de crear es
+real y está reproducido, pero no era el que se estaba sufriendo.
+
+---
+
 ## 1.12.0 — 25 sep 2026
 
 **Temporadas, el mapa de la 9, menos texto, tres objetos mas y el tiempo de

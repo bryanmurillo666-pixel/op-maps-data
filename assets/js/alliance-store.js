@@ -84,12 +84,27 @@ window.ALIANZA = (function () {
 
   /* ---------- hablar con el servidor ---------- */
 
+  /* Un fetch no se rinde solo. Si la red se traga la petición sin
+     contestar —pasa cuando el operador bloquea el dominio, y no es raro
+     según desde qué país se abra— la página se queda en «buscando…» para
+     siempre, que es la peor manera de fallar: parece que va. A los 15
+     segundos se corta y se dice que no se ha podido conectar. */
+  const ESPERA = 15000;
+
   function pedir(metodo, camino, cuerpo){
     const opciones = { method: metodo, cache: 'no-store' };
     if (cuerpo !== undefined) {
       opciones.headers = { 'Content-Type': 'application/json' };
       opciones.body = JSON.stringify(cuerpo);
     }
+
+    let corta = 0;
+    if (window.AbortController) {
+      const freno = new AbortController();
+      opciones.signal = freno.signal;
+      corta = setTimeout(() => freno.abort(), ESPERA);
+    }
+
     return fetch(DB + camino, opciones).then(res => {
       if (res.status === 401 || res.status === 403) return { ok: false, error: 'permiso' };
       if (!res.ok) return { ok: false, error: 'servidor' };
@@ -97,7 +112,8 @@ window.ALIANZA = (function () {
         d => ({ ok: true, data: d }),
         () => ({ ok: true, data: null })
       );
-    }).catch(() => ({ ok: false, error: 'red' }));
+    }).catch(() => ({ ok: false, error: 'red' }))
+      .then(r => { if (corta) clearTimeout(corta); return r; });
   }
 
   const ruta = (codigo, resto) => '/alianzas/' + encodeURIComponent(codigo) + resto;
@@ -125,8 +141,11 @@ window.ALIANZA = (function () {
     return true;
   }
 
-  /* Crear no toca el servidor: la alianza nace en el primer
-     "actualizar rivales", cuando se escribe el primer hueco. */
+  /* Crear no toca el servidor: solo reparte un código y te apunta
+     dentro aquí. La alianza no existe para nadie más hasta que se
+     escribe el primer hueco, o sea hasta el primer sincronizar().
+     QUIEN LLAME A ESTO TIENE QUE SUBIR ANTES DE REPARTIR EL CÓDIGO:
+     si no, a quien lo reciba le dirá que esa alianza no existe. */
   function crear(nombre){
     const n = String(nombre || '').trim().slice(0, 24);
     if (!n) return { ok: false, error: 'sinNombre' };
@@ -197,16 +216,27 @@ window.ALIANZA = (function () {
      4. si he aprendido algo, lo vuelvo a subir, para que lo que me ha
         contado uno le llegue también al resto sin tener que coincidir */
 
+  /* De {temporada: {nombre: true}} a {temporada: cuantos}. */
+  function cuenta(bolsas){
+    const r = {};
+    Object.keys(bolsas).forEach(k => { r[k] = Object.keys(bolsas[k]).length; });
+    return r;
+  }
+
   function sincronizar(){
     if (!dentro()) return Promise.resolve({ ok: false, error: 'fuera' });
 
     const miCamino = ruta(est.codigo, '/miembros/' + encodeURIComponent(est.miId) + '.json');
     const mios     = window.RIVALES.lista();
 
+    /* La temporada va con cada uno a proposito: es lo unico que decide
+       si los rivales de un companiero se te van a ver o no, y hasta ahora
+       no habia forma de saber que el de al lado tenia otra escrita. */
     const subir = () => pedir('PUT', miCamino, {
       nombre:  est.miNombre || '?',
       ts:      Date.now(),
       n:       window.RIVALES.lista().length,
+      temp:    window.RIVALES.temporada(),
       rivales: window.RIVALES.exportar() || ''
     });
 
@@ -218,6 +248,12 @@ window.ALIANZA = (function () {
 
         const miembros = (g.data && g.data.miembros) || {};
         let nuevos = 0, actualizados = 0, enterrados = 0;
+        /* Cuales han llegado que no se van a ver, y de que temporada.
+           Sin esto el resumen dice "3 nuevos" y en la libreta no hay
+           ninguno nuevo, que es exactamente lo que se estaba viendo.
+           Van por nombre y no por veces: el mismo rival te llega de
+           todos los companieros que lo tengan. */
+        const fuera = {};
         const filas = [];
         const deQuien = [];
 
@@ -228,6 +264,7 @@ window.ALIANZA = (function () {
             nombre: String(m.nombre || '?').slice(0, 24),
             ts:     Number(m.ts) || 0,
             n:      Number(m.n) || 0,
+            temp:   String(m.temp || '').slice(0, 24),
             yo:     id === est.miId
           };
           filas.push(fila);
@@ -235,6 +272,12 @@ window.ALIANZA = (function () {
 
           const res = window.RIVALES.importar(m.rivales || '');
           if (res) enterrados += res.enterrados || 0;
+          if (res && res.fuera) {
+            Object.keys(res.fuera).forEach(k => {
+              const bolsa = fuera[k] || (fuera[k] = {});
+              res.fuera[k].forEach(n => { bolsa[n] = true; });
+            });
+          }
           if (res && (res.nuevos || res.actualizados)) {
             nuevos       += res.nuevos;
             actualizados += res.actualizados;
@@ -255,6 +298,9 @@ window.ALIANZA = (function () {
           actualizados: actualizados,
           // los que un compañero sigue teniendo y tú borraste a propósito
           enterrados: enterrados,
+          // cuantos han llegado a otra temporada, por temporada
+          fuera: cuenta(fuera),
+          temporada: window.RIVALES.temporada(),
           deQuien: deQuien,
           miembros: filas,
           antes: mios.length,

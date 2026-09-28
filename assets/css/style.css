@@ -1639,6 +1639,14 @@ details.sub-plegable > summary .bloque-tit{
 .ali-m-r{font-family:var(--mono);font-size:11.5px;color:var(--foam);white-space:nowrap}
 .ali-m-t{font-family:var(--mono);font-size:10.5px;color:var(--mist);white-space:nowrap}
 .ali-m-x{flex:0 0 auto}
+/* la temporada de un companiero, cuando no es la tuya: mientras no
+   coincidan, sus rivales no se te van a ver */
+.ali-m-n i.ali-m-otra{
+  color:var(--blood);font-family:var(--mono);font-size:10px;
+  letter-spacing:.04em;
+}
+.ali-res-nota.mal{color:var(--blood)}
+.ali-res-nota.mal b{color:var(--blood)}
 @media (max-width:520px){
   .ali-m{flex-wrap:wrap;gap:6px 10px}
   .ali-m-n{flex:1 0 100%}

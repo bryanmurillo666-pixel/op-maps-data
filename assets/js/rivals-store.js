@@ -719,6 +719,14 @@ window.RIVALES = (function () {
     if (!Array.isArray(datos)) return null;
 
     let nuevos = 0, actualizados = 0, enterrados = 0, sinTemporada = 0;
+    /* Los que entran pero NO se van a ver, porque son de otra temporada
+       que la que tienes puesta. Se guardan igual —no se pierde nada—,
+       pero quien mire la libreta no los va a encontrar, y callarselo es
+       lo que hace que parezca que la alianza no comparte nada.
+       Se apuntan por temporada para poder decir DE CUAL vienen, y por
+       NOMBRE y no por veces: en una alianza el mismo rival te llega de
+       todos los que lo tengan, y contar llegadas diría el triple. */
+    const fuera = {};
 
     datos.forEach(d => {
       const suyo = deCodigo(d);
@@ -737,6 +745,11 @@ window.RIVALES = (function () {
          queda fuera. Si alguien se lo ha encontrado después, su fecha le
          gana a la lápida y vuelve, que es lo que quieres. */
       if (!ya && estaEnterrado(suyo.n, suyo.ts, suyo.temp)) { enterrados++; return; }
+      if (temporada && (suyo.temp || '') !== temporada) {
+        const suya = suyo.temp || '';
+        const bolsa = fuera[suya] || (fuera[suya] = []);
+        if (bolsa.indexOf(suyo.n) === -1) bolsa.push(suyo.n);
+      }
       if (ya) {
         if (fusionaRival(ya, suyo)) actualizados++;
       } else {
@@ -747,7 +760,7 @@ window.RIVALES = (function () {
 
     guardar();
     return { nuevos: nuevos, actualizados: actualizados, enterrados: enterrados,
-             sinTemporada: sinTemporada };
+             sinTemporada: sinTemporada, fuera: fuera };
   }
 
   cargarTemporada();

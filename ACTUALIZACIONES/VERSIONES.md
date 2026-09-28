@@ -1,10 +1,10 @@
 # Versiones que sigue el sitio
 
-Estado a **25 de septiembre de 2026**.
+Estado a **27 de septiembre de 2026**.
 
 | Fuente | Versión | Fecha | Estado |
 |---|---|---|---|
-| Sitio OP-MAPS DATA | `1.12.0` | 25 sep 2026 | sin publicar |
+| Sitio OP-MAPS DATA | `1.12.1` | 27 sep 2026 | sin publicar. La `1.12.0` sí está publicada. |
 | Guía del jugador | `5.1` | 20 ago 2026 | ✅ aplicada |
 | Changelog del juego | `v0.44.0` | 18 ago 2026 | ✅ leído |
 | Álbum del juego (ES/EN) | export | 16 ago 2026 | ✅ 226 personajes verificados. Los 396 enemigos de las islas existen todos. |

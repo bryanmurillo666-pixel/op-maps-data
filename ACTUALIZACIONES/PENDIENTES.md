@@ -18,11 +18,30 @@ los mismos ~10 de siempre, así que no hace falta moderación.
       (francotirador) y `Prometheus` (capitán). `×1,25` provisional los tres.
 - [ ] **El daño de verdad de Napoleon, Zeus y Prometheus.** Están puestos igual
       que Yoru hasta saberlo; es cambiar un número en la tabla `ARMAS`.
+- [x] **La alianza compartía sin que se notara** (27 sep 2026). Los rivales
+      llegaban y se archivaban en silencio si el compañero tenía otra
+      temporada escrita. Ahora cada uno sube la suya, sale marcada en la
+      lista, y el resumen dice cuántos no vas a ver y de dónde vienen.
+- [x] **No se podía entrar en una alianza recién creada** (27 sep 2026).
+      Crear no tocaba el servidor, así que el código no valía hasta el primer
+      Actualizar rivales. Ahora crear sube en el mismo gesto.
 - [x] **Dónde estás y cuánto tardas en llegar** (25 sep 2026). Las dos cosas en
       el PvE, en el mismo panel que la isla.
 - [ ] **Las coordenadas que faltan.** El export del juego solo trae la posición
       de `66` de las `160` islas; las demás se ponen a mano desde el editor del
       PvE, o se vuelve a exportar cuando el juego las dé todas.
+- [ ] **Firebase no se abre desde algunos países.** Confirmado desde Cuba el
+      `27` sep `2026`: Google no sirve a esas IP y la única salida es una VPN.
+      La página ya lo dice en el aviso, pero **no se arregla desde aquí**
+      mientras los datos vivan en Firebase. Condiciona la fase `3`: si eso
+      pesa, hay que mirar otro sitio donde vivan los datos, y por eso lo de
+      meter `api.js` antes que nada vale doble.
+- [ ] **¿La temporada debería ser de la alianza y no de cada navegador?**
+      Ahora la escribe cada uno a mano, en texto libre, y si no coinciden no
+      se comparte nada. Ya se avisa, pero el aviso no es el arreglo: mientras
+      siga siendo de cada uno, esto volverá a pasar cada vez que entre
+      alguien nuevo o empiece una temporada. Lo decide el usuario, que
+      pidió ponerla a mano.
 - [ ] **Fase 3 — sincronización automática.** Quitar el botón «Actualizar
       rivales», los códigos de exportación y el entrar por código. Un grupo
       fijo que sincroniza solo al abrir y al cambiar algo, escribiendo rival a

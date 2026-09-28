@@ -88,16 +88,31 @@
 
   /* ---------- pintar ---------- */
 
+  /* Como se llama una temporada en pantalla. La vacia tiene nombre
+     porque "" no se puede ensenniar. */
+  const nombreTemp = s => s ? s : t('ali.temp.sin');
+
   function pintaMiembros(filas){
     if (!filas.length) {
       els.miembros.innerHTML = '<p class="hint">' + esc(t('ali.sinDatos')) + '</p>';
       return;
     }
+    /* Quien tenga otra temporada escrita no te va a compartir nada, por
+       mucho que aparezca en la lista con sus rivales. Se marca aqui, que
+       es donde se mira quien hay dentro. */
+    const mia = window.RIVALES.temporada();
     els.miembros.innerHTML = filas.map(m => {
       const nRiv = m.n + ' ' + t(m.n === 1 ? 'ali.rival' : 'ali.rivales');
+      /* «temporada sin temporada» no lo dice nadie: la vacia se nombra sola. */
+      const suya = m.temp
+        ? t('ali.m.temp').replace('{t}', m.temp)
+        : t('ali.temp.sin');
+      const otra = (m.temp || '') !== mia
+        ? ' <i class="ali-m-otra">' + esc(suya) + '</i>'
+        : '';
       return '<div class="ali-m' + (m.yo ? ' yo' : '') + '">' +
         '<span class="ali-m-n">' + esc(m.nombre) +
-          (m.yo ? ' <i>' + esc(t('ali.tu')) + '</i>' : '') + '</span>' +
+          (m.yo ? ' <i>' + esc(t('ali.tu')) + '</i>' : '') + otra + '</span>' +
         '<span class="ali-m-r">' + esc(nRiv) + '</span>' +
         '<span class="ali-m-t">' + esc(hace(m.ts)) + '</span>' +
         (m.yo ? '<span class="ali-m-x"></span>'
@@ -129,13 +144,30 @@
 
   /* ---------- acciones ---------- */
 
+  /* Crear y subir van juntos a propósito, y por eso esto no es una línea.
+     ALIANZA.crear() solo reparte un código: la alianza no existe en el
+     servidor hasta que alguien escribe su hueco. Si aquí no subiéramos
+     enseguida, repartirías un código que a tus compañeros les contesta
+     «no hay ninguna alianza con ese código» hasta que te acordaras de
+     pulsar Actualizar rivales. Que es justo lo que pasaba. */
   function crear(){
     const r = A.crear(els.apodoNuevo.value);
     if (!r.ok) { aviso(els.fueraHint, porQue(r.error), true); els.apodoNuevo.focus(); return; }
+
     aviso(els.fueraHint, '');
     els.resumen.innerHTML = '';
-    aviso(els.syncHint, t('ali.creada'));
+    aviso(els.syncHint, t('ali.creando'));
     render();
+
+    ocupado(true);
+    A.sincronizar().then(s => {
+      ocupado(false);
+      /* Si no ha subido, el código que se ve en pantalla todavía no vale
+         para nadie más. Se dice, en rojo, y con lo que hay que hacer. */
+      if (s.ok) aviso(els.syncHint, t('ali.creada'));
+      else      aviso(els.syncHint, t('ali.creada.mal').replace('{e}', porQue(s.error)), true);
+      render();
+    });
   }
 
   function unir(){
@@ -161,9 +193,28 @@
           esc(t('riv.borrados.saltados').replace('{n}', r.enterrados)) + '</p>'
       : '';
 
+    /* Lo que ha llegado pero no se va a ver, porque viene de otra
+       temporada. Callarselo era lo que hacia que la alianza pareciera
+       rota: contaba los rivales como nuevos y en la libreta no aparecia
+       ninguno. */
+    const otras = Object.keys(r.fuera || {});
+    let fueraHTML = '';
+    if (otras.length) {
+      const cuantos = otras.reduce((s, k) => s + r.fuera[k], 0);
+      const cuales = otras
+        .map(k => '\u00ab' + esc(nombreTemp(k)) + '\u00bb (' + r.fuera[k] + ')')
+        .join(', ');
+      fueraHTML = '<p class="ali-res-nota mal">' +
+        t('ali.res.fuera')
+          .replace('{n}', cuantos)
+          .replace('{mia}', esc(nombreTemp(r.temporada)))
+          .replace('{cuales}', cuales) +
+        '</p>';
+    }
+
     if (!r.nuevos && !r.actualizados) {
       els.resumen.innerHTML = '<p class="ali-res vacio">' + esc(t('ali.res.nada')) + '</p>'
-        + saltados;
+        + saltados + fueraHTML;
       return;
     }
     const lineas = r.deQuien.map(d => {
@@ -180,7 +231,7 @@
           esc(t(r.ahora === 1 ? 'ali.rival' : 'ali.rivales')) +
         '</p>' +
         '<ul class="ali-res-l">' + lineas + '</ul>' +
-        saltados +
+        saltados + fueraHTML +
       '</div>';
   }
 
