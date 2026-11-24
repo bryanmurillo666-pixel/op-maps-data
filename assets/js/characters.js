@@ -253,3 +253,157 @@ window.CHARACTERS = [
   {a:225, n:"Ryuboshi", r:"Musician", ch:15, rd:0, f:72, v:50, i:65},
   {a:226, n:"Manboshi", r:"Commander", ch:15, rd:0, f:72, v:50, i:60}
 ];
+
+/* ============================================================
+   Personajes AÑADIDOS por el usuario desde Data Crew
+   ------------------------------------------------------------
+   Para cuando el juego saca a alguien nuevo y este archivo aun no lo
+   trae. Se guardan SOLO en este navegador (localStorage) y se meten
+   aqui, al final de la lista oficial, antes de que cargue ninguna otra
+   pagina: asi la tripulacion, el PvE, el PvP y los rivales los ven como
+   a cualquier otro sin tener que saber que existen.
+
+   Dos reglas para que nunca pisen lo oficial:
+     - un nombre que ya este en la lista oficial no entra
+     - un numero de album ya ocupado tampoco
+   Si un dia el archivo trae a ese personaje de verdad, el oficial manda
+   y el anadido se queda fuera solo (y Data Crew lo dice).
+
+   Van con `x: 1` para distinguirlos. Un capitulo propio, el ultimo del
+   album, recoge a los que no se sabe donde van.
+   ============================================================ */
+window.ALBUM_CHAPTERS.en.push("Added by you");
+window.ALBUM_CHAPTERS.es.push("Añadidos por ti");
+window.CAP_EXTRA = window.ALBUM_CHAPTERS.en.length - 1;
+
+window.PJ_EXTRA = (function () {
+
+  const KEY = 'opmaps-personajes-extra';
+  const OFICIALES = window.CHARACTERS.slice();   // la lista tal como viene
+  const ROLES = OFICIALES.map(c => c.r).filter((r, i, a) => a.indexOf(r) === i);
+  const STAT_MAX = 100;
+
+  const plano = s => String(s || '').toLowerCase().normalize('NFD')
+    .replace(/[̀-ͯ]/g, '').trim();
+  const oficialPorNombre = n => OFICIALES.find(c =>
+    plano(c.n) === plano(n) || (c.es && plano(c.es) === plano(n)));
+  const oficialPorNumero = a => OFICIALES.find(c => c.a === a);
+
+  let mios = [];        // los que entran
+  let tapados = [];     // los guardados que ya trae el archivo oficial
+
+  /* Devuelve el personaje limpio o un codigo de error. `antes` es el
+     nombre con el que estaba guardado, si se esta editando. */
+  function valida(p, antes){
+    const n = String(p.n || '').trim().replace(/\s+/g, ' ');
+    if (n.length < 2 || n.length > 40) return 'nombre';
+    if (oficialPorNombre(n)) return 'oficial';
+    const otro = mios.find(c => plano(c.n) === plano(n));
+    if (otro && plano(otro.n) !== plano(antes)) return 'repetido';
+
+    if (ROLES.indexOf(p.r) === -1) return 'rol';
+
+    const st = {};
+    for (const k of ['f', 'v', 'i']) {
+      const v = Number(p[k]);
+      if (String(p[k]).trim() === '' || !isFinite(v) || v < 0 || v > STAT_MAX || v % 1) return 'stats';
+      st[k] = v;
+    }
+
+    let ch = String(p.ch == null ? '' : p.ch).trim() === '' ? -1 : Number(p.ch);
+    if (!isFinite(ch) || ch < 0 || ch >= window.ALBUM_CHAPTERS.en.length) ch = window.CAP_EXTRA;
+
+    /* El numero de album: el que diga el usuario si lo sabe, y si no el
+       siguiente libre despues de todos. */
+    let a = String(p.a == null ? '' : p.a).trim() === '' ? 0 : Number(p.a);
+    if (a) {
+      if (!isFinite(a) || a < 1 || a % 1) return 'numero';
+      if (oficialPorNumero(a)) return 'numero';
+      const ocupa = mios.find(c => c.a === a);
+      if (ocupa && plano(ocupa.n) !== plano(antes)) return 'numero';
+    } else {
+      const previo = mios.find(c => plano(c.n) === plano(antes));
+      a = previo ? previo.a
+        : 1 + Math.max.apply(null, OFICIALES.concat(mios).map(c => c.a));
+    }
+
+    const es = String(p.es || '').trim().replace(/\s+/g, ' ');
+    // El lector: por rol el Arqueologo; por sangre, si se marca Kozuki.
+    const rd = p.r === 'Archaeologist' ? 1 : (p.kozuki ? 2 : 0);
+
+    const c = { a: a, n: n, r: p.r, ch: ch, rd: rd, f: st.f, v: st.v, i: st.i, x: 1 };
+    if (es && plano(es) !== plano(n)) c.es = es;
+    return c;
+  }
+
+  function leer(){
+    try {
+      const g = JSON.parse(localStorage.getItem(KEY) || '[]');
+      return Array.isArray(g) ? g : [];
+    } catch(e){ return []; }
+  }
+
+  function escribir(){
+    try { localStorage.setItem(KEY, JSON.stringify(mios.concat(tapados))); }
+    catch(e){ /* si el navegador lo bloquea, dura la sesion */ }
+  }
+
+  /* La lista viva es window.CHARACTERS y todas las paginas la tienen
+     guardada en una constante, asi que se toca EN SU SITIO: vaciarla y
+     volver a llenarla, nunca sustituirla por otra. */
+  function aplicar(){
+    const todos = window.CHARACTERS;
+    todos.length = 0;
+    OFICIALES.forEach(c => todos.push(c));
+    mios.forEach(c => todos.push(c));
+  }
+
+  function cargar(){
+    mios = []; tapados = [];
+    let renumerados = 0;
+    leer().forEach(g => {
+      if (!g || typeof g !== 'object') return;
+      // Si el archivo ya lo trae, se aparta: manda el oficial.
+      if (oficialPorNombre(g.n)) { tapados.push(g); return; }
+      /* Si solo le han ocupado el NUMERO (el archivo trae a otro con el
+         suyo), no se esconde: se le da el siguiente libre. */
+      const a = oficialPorNumero(Number(g.a)) ? '' : g.a;
+      if (a === '') renumerados++;
+      const c = valida({ n: g.n, es: g.es, r: g.r, f: g.f, v: g.v, i: g.i,
+                         ch: g.ch, a: a, kozuki: g.rd === 2 }, null);
+      if (typeof c === 'object') mios.push(c);
+    });
+    if (renumerados) escribir();
+    aplicar();
+  }
+
+  /* Anade o, si `antes` es el nombre de uno tuyo, lo sustituye.
+     Devuelve { ok: personaje } o { error: codigo }. */
+  function guardar(p, antes){
+    const c = valida(p, antes);
+    if (typeof c === 'string') return { error: c };
+    const i = antes ? mios.findIndex(x => plano(x.n) === plano(antes)) : -1;
+    if (i === -1) mios.push(c); else mios[i] = c;
+    escribir();
+    aplicar();
+    return { ok: c };
+  }
+
+  function borrar(n){
+    mios = mios.filter(c => c.n !== n);
+    escribir();
+    aplicar();
+  }
+
+  cargar();
+
+  return {
+    ROLES: ROLES.slice(),
+    STAT_MAX: STAT_MAX,
+    lista:   () => mios.slice(),
+    tapados: () => tapados.map(c => c.n),
+    es:      n => mios.some(c => c.n === n),
+    guardar: guardar,
+    borrar:  borrar
+  };
+})();

@@ -140,51 +140,11 @@ window.CREW = (function () {
     });
   }
 
-  /* ---------- dónde estás ----------
-     Para poder decir cuánto tardas en llegar a una isla hace falta saber
-     de dónde sales. Se guarda como coordenadas del mapa, y se pueden
-     poner de dos maneras: a mano, o eligiendo una isla y quedándose con
-     las suyas. Por dentro es lo mismo, así que la página no tiene que
-     distinguir.
-
-     Se guarda también DE QUÉ isla salieron, si vino de elegir una: es lo
-     que permite enseñar «estás en Elbaf» en vez de dos números. */
-  const KEY_DONDE = 'opmaps-donde';
-
-  let donde = null;
-
-  function cargarDonde(){
-    try {
-      const g = JSON.parse(localStorage.getItem(KEY_DONDE) || 'null');
-      donde = (g && isFinite(g.x) && isFinite(g.y))
-        ? { x: Number(g.x), y: Number(g.y), isla: String(g.isla || '') }
-        : null;
-    } catch(e){ donde = null; }
-    return donde;
-  }
-
-  function guardarDonde(){
-    try {
-      if (donde) localStorage.setItem(KEY_DONDE, JSON.stringify(donde));
-      else localStorage.removeItem(KEY_DONDE);
-    } catch(e){ /* si el navegador lo bloquea, dura la sesión */ }
-  }
-
-  /* Con `isla` se guarda de dónde salió el dato; sin ella son coordenadas
-     sueltas. Con x o y que no sean números se borra la ubicación, que es
-     lo que uno espera al vaciar los campos. */
-  function setDonde(x, y, isla){
-    const nx = Number(x), ny = Number(y);
-    donde = (isFinite(nx) && isFinite(ny) && String(x).trim() !== '' && String(y).trim() !== '')
-      ? { x: nx, y: ny, isla: String(isla || '') }
-      : null;
-    guardarDonde();
-    return donde;
-  }
+  /* Lo que quedaba guardado de «dónde estás», que se quitó en la 1.13.0. */
+  try { localStorage.removeItem('opmaps-donde'); } catch(e){ /* da igual */ }
 
   cargar();
   cargarArmas();
-  cargarDonde();
 
   return {
     MAX: MAX,
@@ -195,11 +155,9 @@ window.CREW = (function () {
     portador: portador,
     armaDe:   armaDe,
     armas:    () => JSON.parse(JSON.stringify(armas)),
-    donde:    () => donde ? { x: donde.x, y: donde.y, isla: donde.isla } : null,
-    setDonde: setDonde,
     añadir: añadir,
     quitar: quitar,
     vaciar: vaciar,
-    recargar: () => { const l = cargar(); cargarArmas(); cargarDonde(); return l; }
+    recargar: () => { const l = cargar(); cargarArmas(); return l; }
   };
 })();

@@ -7,9 +7,7 @@
    quedan guardados.
 
    SOLO EN TU NAVEGADOR. Vive en localStorage, igual que la
-   tripulación, y no lo toca la alianza: lo que se sincroniza con los
-   compañeros son los rivales, nada más. Si abres la página en otro
-   equipo, ahí no están.
+   tripulación. Si abres la página en otro equipo, ahí no están.
 
    Se guarda por NOMBRE de isla, no por posición, para que siga
    valiendo cuando el archivo se regenere y las islas cambien de sitio.
@@ -57,42 +55,22 @@ window.ISLAS_EDIT = (function () {
     return window.ISLANDS.filter(i => i.n === n)[0] || null;
   }
 
-  /* Una corrección guardada es ahora un objeto:
-
-       { e: [tres nombres] | null, xy: [x, y] | null }
-
-     `null` en un campo significa «esta parte no la he tocado», y entonces
-     manda el archivo. Antes era solo la lista de enemigos, a secas, así
-     que lo que ya esté guardado con la forma vieja se sube de formato al
-     leerlo: nadie pierde sus correcciones por esto. */
+  /* Una corrección guardada es { e: [tres nombres] }. Se leen también
+     las formas de antes: la lista a secas (las primeras versiones) y
+     { e, xy } (cuando se guardaban coordenadas para el tiempo de viaje,
+     que se quitó en la 1.13.0: las coordenadas se ignoran y desaparecen
+     al volver a guardar). Nadie pierde sus correcciones por esto. */
   function subeFormato(v){
-    if (Array.isArray(v)) return { e: valida(v), xy: null };
-    if (!v || typeof v !== 'object') return null;
-    return { e: valida(v.e), xy: validaXY(v.xy) };
-  }
-
-  /* Dos números y nada más. Sin esto una coordenada a medias dejaría el
-     viaje calculando con basura, que es peor que no calcular. */
-  function validaXY(xy){
-    if (!Array.isArray(xy) || xy.length !== 2) return null;
-    /* Ojo con la cadena vacia: Number('') es 0, no NaN. Sin esta
-       comprobacion, media coordenada se guardaba como [960, 0] y la
-       isla acababa en el origen del mapa con un viaje absurdo. */
-    if (String(xy[0]).trim() === '' || String(xy[1]).trim() === '') return null;
-    const x = Number(xy[0]), y = Number(xy[1]);
-    return (isFinite(x) && isFinite(y)) ? [x, y] : null;
+    if (Array.isArray(v)) return valida(v);
+    if (v && typeof v === 'object') return valida(v.e);
+    return null;
   }
 
   function aplicar(){
     window.ISLANDS.forEach(isla => {
-      if (!(isla.n in original)) {
-        original[isla.n] = { e: isla.e.slice(), xy: isla.xy ? isla.xy.slice() : null };
-      }
+      if (!(isla.n in original)) original[isla.n] = isla.e.slice();
       const mio = mios[isla.n];
-      const base = original[isla.n];
-      isla.e = (mio && mio.e) ? mio.e.slice() : base.e.slice();
-      const xy = (mio && mio.xy) ? mio.xy : base.xy;
-      if (xy) isla.xy = xy.slice(); else delete isla.xy;
+      isla.e = mio ? mio.e.slice() : original[isla.n].slice();
     });
   }
 
@@ -102,48 +80,24 @@ window.ISLAS_EDIT = (function () {
     Object.keys(crudo).forEach(nombre => {
       // Islas que ya no existen en el archivo: fuera, no sirven de nada.
       if (!islaPorNombre(nombre)) return;
-      const v = subeFormato(crudo[nombre]);
-      if (v && (v.e || v.xy)) mios[nombre] = v;
+      const e = subeFormato(crudo[nombre]);
+      if (e) mios[nombre] = { e: e };
     });
     aplicar();
     return mios;
   }
 
-  const mioDe = n => mios[n] || { e: null, xy: null };
-
   /* Guarda los tres enemigos de una isla. Devuelve 'ok', 'noExiste'
      (la isla), 'malos' (algún nombre no está en el álbum o no son ni
-     0 ni 3) o 'igual' (coincide con el archivo, así que se borra esa
-     parte de la corrección en vez de guardarla). */
+     0 ni 3) o 'igual' (coincide con el archivo, así que se borra la
+     corrección en vez de guardarla). */
   function guardar(nombre, enemigos){
     if (!islaPorNombre(nombre)) return 'noExiste';
     const e = valida(enemigos);
     if (!e) return 'malos';
-    const mio = mioDe(nombre);
-    const base = original[nombre] || { e: [], xy: null };
-    const igual = e.join('\u0000') === (base.e || []).join('\u0000');
-    mios[nombre] = { e: igual ? null : e, xy: mio.xy };
-    if (!mios[nombre].e && !mios[nombre].xy) delete mios[nombre];
-    escribir();
-    aplicar();
-    return igual ? 'igual' : 'ok';
-  }
-
-  /* Y sus coordenadas. El export del juego solo trae las de algunas
-     islas, así que el resto se rellenan a mano aquí y con eso el PvE ya
-     puede calcular el viaje. Con los dos campos vacíos se quita la
-     corrección y vuelve lo del archivo, si lo había. */
-  function guardarXY(nombre, x, y){
-    if (!islaPorNombre(nombre)) return 'noExiste';
-    const mio = mioDe(nombre);
-    const vacio = String(x).trim() === '' && String(y).trim() === '';
-    const xy = vacio ? null : validaXY([x, y]);
-    if (!vacio && !xy) return 'malos';
-
-    const base = original[nombre] || { e: [], xy: null };
-    const igual = xy && base.xy && xy[0] === base.xy[0] && xy[1] === base.xy[1];
-    mios[nombre] = { e: mio.e, xy: igual ? null : xy };
-    if (!mios[nombre].e && !mios[nombre].xy) delete mios[nombre];
+    const base = original[nombre] || [];
+    const igual = e.join('\u0000') === base.join('\u0000');
+    if (igual) delete mios[nombre]; else mios[nombre] = { e: e };
     escribir();
     aplicar();
     return igual ? 'igual' : 'ok';
@@ -165,16 +119,12 @@ window.ISLAS_EDIT = (function () {
   return {
     cargar:   cargar,
     guardar:  guardar,
-    guardarXY: guardarXY,
     deshacer: deshacer,
     limpiar:  limpiar,
     editada:  nombre => nombre in mios,
     cuantas:  () => Object.keys(mios).length,
     nombres:  () => Object.keys(mios).slice().sort(),
-    delArchivo: nombre => {
-      const b = original[nombre] || { e: [], xy: null };
-      return { e: b.e.slice(), xy: b.xy ? b.xy.slice() : null };
-    }
+    delArchivo: nombre => ({ e: (original[nombre] || []).slice() })
   };
 })();
 

@@ -1,7 +1,7 @@
 /* ============================================================
    OP-MAPS DATA — las reglas del juego, en un solo sitio
    ------------------------------------------------------------
-   Todas las fórmulas salen de la guía del jugador v5.1. Si el juego
+   Todas las fórmulas salen de la guía del jugador v7.7. Si el juego
    cambia un número, se cambia AQUÍ y se corrige en todas las páginas
    a la vez (Data, Mi tripulación, PvP…).
    ============================================================ */
@@ -45,40 +45,6 @@ window.RULES = (function () {
   // Lo que ese personaje aporta a la velocidad de la tripulación.
   function speedShare(c){ return c.v * 0.04; }
 
-  // Lo que aporta a la probabilidad de encontrar un poneglifo.
-  function searchShare(c){ return c.i * 0.001; }
-
-  /* ---------- navegar de una isla a otra ----------
-     La distancia es la línea recta entre las dos coordenadas del mapa
-     —Pitágoras y ya— y cada turno recorre la velocidad de tu tripulación.
-     Los turnos se redondean hacia ARRIBA: medio turno de navegación sigue
-     siendo un turno que esperas entero.
-
-       turnos  = techo(distancia / velocidad)
-       minutos = turnos × 30
-
-     No está en la guía del jugador: sale de comparar coordenadas del mapa,
-     así que es una estimación y la página lo dice. */
-  const MINUTOS_TURNO = 30;
-
-  function distancia(a, b){
-    if (!a || !b) return null;
-    const dx = Number(b[0]) - Number(a[0]);
-    const dy = Number(b[1]) - Number(a[1]);
-    if (!isFinite(dx) || !isFinite(dy)) return null;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  /* Devuelve {dist, turnos, minutos} o null si falta algún dato. Con
-     velocidad 0 no se llega nunca, así que tampoco se inventa un número. */
-  function viaje(a, b, velocidad){
-    const d = distancia(a, b);
-    if (d === null) return null;
-    const v = Number(velocidad);
-    if (!(v > 0)) return null;
-    const turnos = Math.ceil(d / v);
-    return { dist: d, turnos: turnos, minutos: turnos * MINUTOS_TURNO };
-  }
 
   /* ---------- armas ----------
      Un arma se equipa a UN personaje de una tripulación y le sube el
@@ -99,11 +65,16 @@ window.RULES = (function () {
      exactamente igual: `base` es lineal en los stats, así que subirlos
      un 25 % sube el score un 25 %. Sobre el score se lee mejor y no
      ensucia ni la vida, ni el precio, ni el poder de la tripulación. */
-  /* Cada arma va a UN rol, solo se lleva una de cada por tripulación y
-     nadie puede llevar dos a la vez. El multiplicador de las tres últimas
-     está puesto igual que el de Yoru a petición del usuario, hasta saber
-     el de verdad: cuando se sepa se cambia el número aquí y toda la
-     página se entera sola. */
+  /* Cada arma va a UN rol y nadie puede llevar dos a la vez. La guía v7.7
+     confirma el ×1,25 de las cuatro, en cualquier duelo (PvP, islas y
+     jefes), y que se acumula con la afinidad: un Espadachín con Yoru en
+     Asalto puntúa ×1,375, que es justo 1,25 × 1,10 — lo que ya sale de
+     multiplicar aquí abajo. Prometheus es de Capitán, que no tiene
+     afinidad, así que es un ×1,25 plano.
+
+     Una de cada por tripulación: el jefe no le da un arma a quien ya la
+     tiene mientras quede alguien que no. Solo podría pasar si TODOS los
+     que le pegaron la tienen ya, y eso no se modela. */
   const ARMAS = {
     Yoru:       { rol: 'Swordsman', mult: 1.25 },
     Napoleon:   { rol: 'Swordsman', mult: 1.25, es: 'Napoleón' },
@@ -174,10 +145,17 @@ window.RULES = (function () {
     return Math.min(60, 20 + totalNav * 0.04 + (hasHelmsman ? 8 : 0));
   }
 
-  // Probabilidad de encontrar un poneglifo, con tope en 0.9.
-  function rpChance(totalInt){
-    return Math.min(0.9, 0.3 + totalInt * 0.001);
+  /* Probabilidad de que salga el poneglifo en la tirada. Desde la guía
+     v7.7 va por la INT MEDIA de los que siguen en pie, no por la total:
+     una tripulación más grande no lee mejor, una más lista sí. Suelo del
+     20 % (media 45 o menos) y techo del 75 % (media 95 o más).
+
+     Ojo, que también cambió el ritmo: ya no es una tirada por turno, sino
+     3 turnos buscando y UNA tirada al final. */
+  function rpChance(avgInt){
+    return Math.min(0.75, Math.max(0.20, 0.26 + (avgInt - 50) * 0.012));
   }
+  const RP_TURNOS = 3;
 
   // Poder total de la tripulación. Un Musician en pie suma +10%.
   function crewPower(crew, hasMusician){
@@ -241,7 +219,7 @@ window.RULES = (function () {
   function hasPassiveRole(role){ return PASSIVE_ROLES.indexOf(role) !== -1; }
 
   /* ---------- lo que cuesta un combate ----------
-     Guía v5.1: el daño al casco depende SOLO del marcador, y es una parte
+     Guía v7.7 (igual desde la v5.1): el daño al casco depende SOLO del marcador, y es una parte
      del casco MÁXIMO (1500), no del que te quede. O sea cantidades fijas
      que no se van achicando según pierdes.
 
@@ -280,11 +258,10 @@ window.RULES = (function () {
     COUNTER, AFFINITY, HULL, MAX_CREW,
     CASCO, AMPLIO, VACIO_EXTRA, KIT_EMERGENCIA, KIT_REPARA,
     TACTICS, BEATS, ROLE_FOR, USEFUL_ROLES, PASSIVE_ROLES,
-    total, power, health, price, speedShare, searchShare,
+    total, power, health, price, speedShare,
     score, scores, bestTactic, hasAffinity,
     ARMAS, armaDe, puedeArma, conArma, nombreArma,
-    MINUTOS_TURNO, distancia, viaje,
-    crewSpeed, crewPower, rpChance, conquestTime, supplies, SUPPORT_ROLES,
+    crewSpeed, crewPower, rpChance, RP_TURNOS, conquestTime, supplies, SUPPORT_ROLES,
     beats, duelWin, isUsefulRole, hasPassiveRole, isReader
   };
 })();

@@ -1,7 +1,7 @@
 /* ============================================================
    OP-MAPS DATA — página PvE
    ------------------------------------------------------------
-   Los números fijos salen de la guía v5.1; los de "tu situación"
+   Los números fijos salen de la guía v7.7; los de "tu situación"
    se calculan con lo que escribas y con tu tripulación guardada.
    ============================================================ */
 (function () {
@@ -9,7 +9,7 @@
   const R = window.RULES;
   const C = window.CREW;
 
-  /* Las constantes del PvE, de la guía v5.1. Están aquí y no en rules.js
+  /* Las constantes del PvE, de la guía v7.7 (iguales que en la v5.1). Están aquí y no en rules.js
      porque solo las usa esta página; si algún día las necesita otra, se
      mudan. */
   const PVE = {
@@ -26,6 +26,22 @@
 
   const DB = window.CHARACTERS;
 
+  /* Los jefes del mundo (guía v7.7). En el mapa salen como dos islas con
+     el jefe en los tres puestos, y se calculan aparte porque no son un
+     desembarco: cada duelo ganado le quita 150 de vida, el casco no sufre
+     y perder no aturde. Lo que interesa no es ganar 2 de 3, sino ganar
+     cuantos más duelos mejor. */
+  const JEFES = {
+    'Dracule Mihawk':   { vida: 30000, oro: 300000 },
+    'Charlotte Linlin': { vida: 45000, oro: 450000 }
+  };
+  const JEFE_DUELO = 150;
+  function jefeDe(isla){
+    if (!/^Final boss/i.test(isla.n) || isla.e.length !== 3) return null;
+    if (isla.e[0] !== isla.e[1] || isla.e[1] !== isla.e[2]) return null;
+    return JEFES[isla.e[0]] ? Object.assign({ n: isla.e[0] }, JEFES[isla.e[0]]) : null;
+  }
+
   /* Los mares en orden de viaje: primero los cuatro Blues, luego Grand Line
      y al final el New World. En los datos van en otro orden, así que aquí
      se traduce a índices. */
@@ -39,8 +55,6 @@
     isla:    document.getElementById('isla'),
     combate: document.getElementById('combate'),
     fijos:   document.getElementById('fijos'),
-    viaje:      document.getElementById('viaje'),
-    donde:      document.getElementById('donde'),
     islaHint:   document.getElementById('islaHint'),
     islasLista: document.getElementById('islasLista'),
     pjLista:    document.getElementById('pjLista'),
@@ -147,7 +161,7 @@
   /* La mejor alineación: como cada posición solo pelea contra su enemigo,
      se calcula la mejor táctica de cada uno contra cada puesto y luego se
      prueban todas las formas de repartir tres personajes distintos. */
-  function mejorAlineacion(crew, enemigos){
+  function mejorAlineacion(crew, enemigos, porDuelos){
     /* La mejor táctica de cada uno contra cada enemigo. A igualdad de
        tácticas ganadas se queda con la de más puntuación: si no, ganaba
        siempre Asalto por ser la primera de la lista. */
@@ -192,12 +206,15 @@
           const pareo = trio[0].punto * duro[0]
                       + trio[1].punto * duro[1]
                       + trio[2].punto * duro[2];
+          /* Contra un jefe no hay «ganar el combate»: cada duelo vale lo
+             mismo, así que manda cuántos se ganan de media. */
+          const k1 = porDuelos ? duelos : p, k0 = salida ? (porDuelos ? salida.duelos : salida.prob) : 0;
           const mejorQue =
             !salida ||
-            p > salida.prob + 1e-12 ||
-            (p > salida.prob - 1e-12 &&
-              (duelos > salida.duelos ||
-                (duelos === salida.duelos &&
+            k1 > k0 + 1e-12 ||
+            (k1 > k0 - 1e-12 &&
+              ((!porDuelos && duelos > salida.duelos) ||
+                ((porDuelos || duelos === salida.duelos) &&
                   (fuerza > salida.fuerza ||
                     (fuerza === salida.fuerza && pareo > salida.pareo)))));
           if (mejorQue) {
@@ -257,8 +274,9 @@
       return cabecera + `<p class="hint">${esc(t(crew.length ? 'pve.isla.few' : 'pve.isla.noCrew'))}</p>`;
     }
 
-    const ali = mejorAlineacion(crew, enemigos);
-    ultimaAlineacion = { crew: crew, enemigos: enemigos, ali: ali };
+    const jefe = jefeDe(isla);
+    const ali = mejorAlineacion(crew, enemigos, !!jefe);
+    ultimaAlineacion = { crew: crew, enemigos: enemigos, ali: ali, jefe: jefe };
 
     /* Misma forma que el plan de ataque del PvP: la táctica como pastilla
        de color al lado del nombre, el rol debajo, y a la derecha contra
@@ -285,6 +303,27 @@
       </div>`;
     }).join('');
 
+    if (jefe) {
+      // duelos ganados de media en un ataque, y lo que eso le quita
+      const media = ali.duelos / 3;
+      const dano = media * JEFE_DUELO;
+      const ataques = dano > 0 ? Math.ceil(jefe.vida / dano) : 0;
+      const clase = media >= 2 ? 'win-hi' : (media >= 1 ? 'win-mid' : 'win-lo');
+      return `${cabecera}
+      <p class="isla-jefe">${t('pve.jefe.d').replace('{v}', num(jefe.vida)).replace('{o}', num(jefe.oro))}</p>
+      <h3 class="sub-tit">${esc(t('pve.jefe.dmg'))}</h3>
+      <p class="gran-prob ${clase}">${num(dano)}</p>
+      <p class="hint">${t('pve.jefe.media').replace('{m}', num(media, 2)).replace('{a}', ataques ? num(ataques) : '—')}</p>
+      <h3 class="sub-tit">${esc(t('pve.isla.line'))}</h3>
+      <div class="alineacion">${filas}</div>
+
+      <button class="btn-calc" id="simBtn" type="button">${esc(t('pve.sim.btn'))}</button>
+      <div id="simOut"></div>
+
+      <p class="note">${t('pve.jefe.how')}</p>
+`;
+    }
+
     return `${cabecera}
       <h3 class="sub-tit">${esc(t('pve.isla.prob'))}</h3>
       <p class="gran-prob ${ali.prob >= 0.6 ? 'win-hi' : (ali.prob >= 0.34 ? 'win-mid' : 'win-lo')}">${num(ali.prob * 100)} %</p>
@@ -309,11 +348,35 @@
 
   let ultimaAlineacion = null;   // la que se está enseñando
 
+  /* Un ataque a un jefe: cada duelo ganado le quita 150. No hay oro, ni
+     casco, ni aturdimiento, ni oferta de tripulante. */
+  function simJefeHTML(duelos, ganados){
+    const filas = duelos.map((d, i) => `<div class="duelo ${d.gano ? 'gano' : 'perdio'}">
+      <span class="pos">${i + 1}</span>
+      <span class="lado">
+        <b>${esc(nameOf(d.mio))}</b>
+        <i>${esc(t('tac.' + d.miTac))} · −${num(d.dmg, 1)}${d.contra ? ' ×' + num(PVE.CONTRA, 1) : ''}</i>
+      </span>
+      <span class="marca">${d.gano ? '▸' : '◂'}</span>
+      <span class="lado der">
+        <b>${esc(nameOf(d.suyo))}</b><i>${esc(t('tac.' + d.suTac))}</i>
+      </span>
+    </div>`).join('');
+    const vidaTot = duelos.reduce((s, d) => s + d.dmg, 0);
+    return `<div class="sim-caja">
+      <p class="sim-res ${ganados >= 2 ? 'win-hi' : (ganados ? 'win-mid' : 'win-lo')}">
+        ${ganados}/3 · ${esc(t('pve.sim.jefe').replace('{n}', num(ganados * JEFE_DUELO)))}
+      </p>
+      <div class="duelos">${filas}</div>
+      <p class="botin neutro">−${num(vidaTot, 1)} ${esc(t('pve.sim.health'))}</p>
+    </div>`;
+  }
+
   const alAzar = lista => lista[Math.floor(Math.random() * lista.length)];
 
   function simularHTML(){
     if (!ultimaAlineacion) return '';
-    const { crew, enemigos, ali } = ultimaAlineacion;
+    const { crew, enemigos, ali, jefe } = ultimaAlineacion;
 
     let ganados = 0;
     const duelos = ali.idx.map((k, i) => {
@@ -328,6 +391,8 @@
     });
 
     const gana = ganados >= 2;
+
+    if (jefe) return simJefeHTML(duelos, ganados);
 
     // La oferta solo se tira si has ganado.
     let oferta = null, hayOferta = false;
@@ -404,8 +469,7 @@
 
   /* El índice de la isla escrita, o -1. Se admite el nombre tal cual y
      también con el «· pendiente» pegado detrás, por si el navegador lo
-     copia al elegir. Lo usan los dos buscadores: el de a dónde vas y el
-     de dónde estás. */
+     copia al elegir. */
   function indiceDe(texto){
     const escrito = String(texto == null ? '' : texto)
       .trim().replace(/\s*·.*$/, '').trim();
@@ -477,157 +541,6 @@
     </div>`;
   }
 
-  /* ---------- cuánto tardas en llegar ----------
-     Línea recta entre tu ubicación y la de la isla, dividida por la
-     velocidad de tu tripulación, y los turnos redondeados hacia arriba.
-     Es una estimación sacada de las coordenadas del mapa, no una regla de
-     la guía, y por eso se dice.
-
-     Hacen falta tres cosas y cualquiera puede faltar: dónde estás, dónde
-     está la isla y una tripulación. Si falta la isla o la tripulación se
-     dice CUÁL falta, que es lo único accionable; si falta dónde estás no,
-     porque los campos para ponerlo están justo encima y ya lo piden. */
-  function viajeHTML(){
-    const i = islaElegida();
-    if (i === -1) return '';
-    const isla = window.ISLANDS[i];
-
-    const donde = C.donde();
-    /* Sin punto de salida no hay viaje que contar, y el aviso ya lo da
-       el panel de arriba: aqui solo estorbaria. */
-    if (!donde) return '';
-    if (!isla.xy) {
-      return `<p class="hint">${t('pve.viaje.sinIsla')
-        .replace('{n}', esc(nombreIsla(isla)))}</p>`;
-    }
-
-    const crew = C.personajes();
-    const nav = crew.reduce((s, c) => s + c.v, 0);
-    const timonel = crew.some(c => c.r === 'Helmsman');
-    const vel = crew.length ? R.crewSpeed(nav, timonel) : 0;
-    if (!vel) return `<p class="hint">${t('pve.viaje.sinCrew')}</p>`;
-
-    const v = R.viaje([donde.x, donde.y], isla.xy, vel);
-    if (!v) return '';
-
-    /* Ya estás ahí: no es un viaje de cero turnos, es que no hay viaje. */
-    if (v.dist < 0.5) {
-      return `<p class="hint">${t('pve.viaje.aqui')
-        .replace('{n}', esc(nombreIsla(isla)))}</p>`;
-    }
-
-    const desde = donde.isla
-      ? esc(nombreIsla(islaPorNombre(donde.isla) || { n: donde.isla }))
-      : num(donde.x) + ', ' + num(donde.y);
-
-    return `<div class="viaje">
-      <div class="kpi-box">
-        <b>${reloj(v.minutos)}</b>
-        <span>${esc(t('pve.viaje.tiempo'))}</span>
-        <em>${num(v.turnos)} ${esc(t(v.turnos === 1 ? 'pve.viaje.turno' : 'pve.viaje.turnos'))}</em>
-      </div>
-      <div class="kpi-box">
-        <b>${num(v.dist, 1)}</b>
-        <span>${esc(t('pve.viaje.dist'))}</span>
-        <em>${esc(t('pve.viaje.vel'))} ${num(vel, 1)}</em>
-      </div>
-      <p class="hint">${t('pve.viaje.desde').replace('{d}', desde)}</p>
-    </div>`;
-  }
-
-  /* «1 h 30 min», nunca «90 min»: lo que se quiere saber es si esto es un
-     rato o media tarde. */
-  function reloj(min){
-    const h = Math.floor(min / 60), m = min % 60;
-    if (!h) return m + ' ' + t('u.min');
-    return h + ' h' + (m ? ' ' + m + ' ' + t('u.min') : '');
-  }
-
-  const islaPorNombre = n => window.ISLANDS.filter(x => x.n === n)[0] || null;
-
-  /* ---------- dónde estás ----------
-     Vive aquí, pegado al viaje, porque es lo único para lo que sirve: sin
-     punto de salida no hay nada que calcular. Se busca escribiendo, igual
-     que la isla de arriba, y en la lista salen TODAS, también las que no
-     traen posición: para esas este es justo el sitio de apuntarla, porque
-     es donde te hace falta.
-
-     La verdad son las coordenadas; el nombre de la isla es una etiqueta y
-     un atajo para rellenarlas.
-
-     El bloque se pinta UNA vez y no vuelve a rehacerse mientras se usa: lo
-     único que cambia al tocarlo es la línea de debajo, y rehacerlo entero
-     te quitaría el foco de encima justo cuando pasas de la X a la Y. Por lo
-     mismo queda fuera de render(), que corre con cada tecla de la búsqueda
-     de isla. */
-  function dondeRender(){
-    if (els.donde) els.donde.innerHTML = dondeHTML();
-  }
-
-  const dondeCampo = id => els.donde ? els.donde.querySelector('#' + id) : null;
-
-  /* La isla que hay escrita ahora mismo en el buscador, o null. */
-  function dondeIsla(){
-    const campo = dondeCampo('dondeIsla');
-    if (!campo) return null;
-    const i = indiceDe(campo.value);
-    return i === -1 ? null : window.ISLANDS[i];
-  }
-
-  function dondeAviso(){
-    const h = dondeCampo('dondeHint');
-    if (h) h.innerHTML = dondeAvisoHTML(dondeIsla());
-  }
-
-  /* `pendiente` es la isla escrita cuando todavía no hay ubicación: sirve
-     para separar «no has dicho nada» de «has dicho una isla de la que no sé
-     la posición», que se arreglan de maneras distintas. */
-  function dondeAvisoHTML(pendiente){
-    const d = C.donde();
-    if (!d) {
-      return (pendiente && !pendiente.xy)
-        ? t('pve.donde.falta').replace('{n}', esc(nombreIsla(pendiente)))
-        : t('pve.donde.no');
-    }
-    /* Un punto suelto no tiene nombre de isla, y poner un guion en su hueco
-       solo hace ruido: se dice con las coordenadas y ya. */
-    const frase = d.isla
-      ? t('pve.donde.hay').replace('{d}',
-          esc(nombreIsla(islaPorNombre(d.isla) || { n: d.isla })))
-      : t('pve.donde.hayXY');
-    return frase.replace('{x}', num(d.x)).replace('{y}', num(d.y));
-  }
-
-  function dondeHTML(){
-    const d = C.donde();
-    const opciones = window.ISLANDS.map(isla => {
-      const mar = window.ISLAND_SEAS[isla.m];
-      const marca = isla.xy ? '' : ' · ' + t('pve.donde.sinXY');
-      return `<option value="${esc(nombreIsla(isla))}" label="${esc(mar + marca)}"></option>`;
-    }).join('');
-    const nombre = (d && d.isla)
-      ? nombreIsla(islaPorNombre(d.isla) || { n: d.isla }) : '';
-
-    return `<div class="donde">
-      <label class="campo campo-ancho">
-        <span>${esc(t('pve.donde.isla'))}</span>
-        <input type="text" id="dondeIsla" class="isla-select" list="dondeLista"
-               autocomplete="off" spellcheck="false"
-               placeholder="${esc(t('pve.isla.ph'))}" value="${esc(nombre)}">
-        <datalist id="dondeLista">${opciones}</datalist>
-      </label>
-      <label class="campo campo-corto">
-        <span>X</span>
-        <input type="number" id="dondeX" step="any" value="${d ? d.x : ''}">
-      </label>
-      <label class="campo campo-corto">
-        <span>Y</span>
-        <input type="number" id="dondeY" step="any" value="${d ? d.y : ''}">
-      </label>
-      <p class="hint" id="dondeHint">${dondeAvisoHTML(null)}</p>
-    </div>`;
-  }
-
   /* ---------- pintado ---------- */
 
   function render(){
@@ -638,9 +551,12 @@
     els.islaHint.hidden = !(escrito && i === -1);
     if (!els.islaHint.hidden) els.islaHint.textContent = t('pve.isla.noMatch');
 
-    if (els.viaje) els.viaje.innerHTML = viajeHTML();
     els.combate.innerHTML = combateHTML();
     els.fijos.innerHTML   = fijosHTML();
+    /* Contra un jefe del mundo las reglas del desembarco no valen (ni oro,
+       ni casco, ni aturdimiento): el panel se esconde y lo explica el aviso. */
+    const caja = els.fijos.closest('section');
+    if (caja) caja.hidden = !!(i !== -1 && jefeDe(window.ISLANDS[i]));
     editorRender();
   }
 
@@ -648,7 +564,7 @@
      EDITOR DE ISLAS
      Corrige los tres enemigos de la isla elegida arriba. Lo que se
      escriba se guarda SOLO en este navegador (islands-store.js): no
-     sube a ningún sitio ni lo ve la alianza, que solo comparte rivales.
+     sube a ningún sitio ni se comparte con nadie.
      ============================================================ */
 
   const ED = window.ISLAS_EDIT;
@@ -692,21 +608,6 @@
         <button class="btn-add" id="edVaciar" type="button">${esc(t('pve.ed.empty'))}</button>
         ${tocada ? `<button class="btn-x" id="edDeshacer" type="button">${esc(t('pve.ed.undo'))}</button>` : ''}
       </div>
-      <h3 class="sub-tit">${esc(t('pve.ed.xy'))}</h3>
-      <div class="ed-form">
-        <label class="campo campo-corto">
-          <span>X</span>
-          <input type="number" class="ed-xy" data-k="x" step="any"
-                 value="${isla.xy ? isla.xy[0] : ''}">
-        </label>
-        <label class="campo campo-corto">
-          <span>Y</span>
-          <input type="number" class="ed-xy" data-k="y" step="any"
-                 value="${isla.xy ? isla.xy[1] : ''}">
-        </label>
-        <button class="btn-add" id="edXY" type="button">${esc(t('pve.ed.save'))}</button>
-      </div>
-      <p class="note">${t('pve.ed.xyD')}</p>
       <p class="hint" id="edHint"></p>
       ${listaEditadas()}`;
   }
@@ -742,44 +643,6 @@
   /* input y no change: al elegir del datalist con el ratón, Chrome manda
      input y el change solo llega al salir del campo. */
   els.isla.addEventListener('input', render);
-
-  /* Escribir una isla copia sus coordenadas; escribirlas a mano deja el
-     nombre puesto como etiqueta, si lo escrito es una isla de verdad. Se
-     tocan los campos uno a uno en vez de repintar el bloque, para no mover
-     el foco mientras se escribe.
-
-     `input` en el buscador y `change` en los números: al elegir del
-     desplegable con el ratón, Chrome manda input y el change solo llega al
-     salir del campo. */
-  if (els.donde) {
-    els.donde.addEventListener('input', e => {
-      if (e.target.closest('#dondeIsla')) dondeCambia(true);
-    });
-    els.donde.addEventListener('change', e => {
-      if (e.target.closest('#dondeX') || e.target.closest('#dondeY')) dondeCambia(false);
-    });
-  }
-
-  function dondeCambia(desdeElBuscador){
-    const isla = dondeIsla();
-    const x = dondeCampo('dondeX'), y = dondeCampo('dondeY');
-
-    if (desdeElBuscador && isla) {
-      if (isla.xy) {
-        x.value = isla.xy[0];
-        y.value = isla.xy[1];
-      } else {
-        /* Esas coordenadas eran de otra isla, no de esta: se van, y se
-           piden. Si ya estabas en esta, se quedan las que escribiste. */
-        const antes = C.donde();
-        if (!antes || antes.isla !== isla.n) { x.value = ''; y.value = ''; }
-      }
-    }
-
-    C.setDonde(x.value, y.value, isla ? isla.n : '');
-    dondeAviso();
-    render();
-  }
 
   // El botón se repinta con el panel, así que se escucha por delegación.
   els.combate.addEventListener('click', e => {
@@ -823,14 +686,6 @@
       els.editor.querySelectorAll('.ed-pj').forEach(x => { x.value = ''; });
       return;
     }
-    if (e.target.closest('#edXY')) {
-      const v = k => els.editor.querySelector('.ed-xy[data-k="' + k + '"]').value.trim();
-      const r = ED.guardarXY(isla.n, v('x'), v('y'));
-      if (r === 'malos') { edMensaje('pve.ed.bad', true); return; }
-      render();
-      edMensaje(r === 'igual' ? 'pve.ed.same' : 'pve.ed.saved');
-      return;
-    }
     if (e.target.closest('#edGuardar')) {
       const vals = [0, 1, 2].map(k =>
         els.editor.querySelector('.ed-pj[data-k="' + k + '"]').value.trim());
@@ -842,12 +697,11 @@
   });
 
   document.addEventListener('langchange', () => {
-    llenarMares(); llenarIslas(); llenarPersonajes(); dondeRender(); render();
+    llenarMares(); llenarIslas(); llenarPersonajes(); render();
   });
 
   llenarMares();
   llenarIslas();
   llenarPersonajes();
-  dondeRender();
   render();
 })();

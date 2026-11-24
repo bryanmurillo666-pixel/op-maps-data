@@ -833,11 +833,31 @@ input[type=search]:focus,.toolbar select:focus{outline:2px solid var(--brass);ou
 .ch.simple .ch-head{padding:10px 4px;gap:8px}
 /* el nombre con su marca de lector arriba y, debajo, el rol */
 .ch.simple .ch-name{font-size:13px}
+/* Con el puesto a la izquierda el nombre tiene menos sitio: mejor que baje
+   a una segunda línea que cortarlo en «Drac…». */
+.ch.simple .ch-head.static .ch-name{
+  white-space:normal;line-height:1.2;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+}
 .ch.simple .ch-sub{
   display:flex;align-items:center;gap:7px;
   margin-top:2px;min-width:0;
 }
 .ch.simple .ch-role{font-size:8px;margin-top:0}
+/* Su puesto entre todos los del juego en su táctica más fuerte, a la
+   izquierda del nombre, del color de esa táctica. Ancho fijo para que los
+   nombres empiecen todos a la misma altura, sea el 1 o el 187. */
+.ch-rank,.lc-rank{flex:0 0 30px;width:30px;text-align:center}
+.ch-rank{display:flex;flex-direction:column;align-items:center;line-height:1}
+.ch-rank b{font-family:var(--mono);font-size:13px;font-weight:700}
+.ch-rank i{
+  font-style:normal;font-family:var(--mono);font-size:7px;
+  letter-spacing:.08em;color:var(--mist);margin-top:3px;
+}
+.ch-rank.f b{color:var(--blood)}
+.ch-rank.v b{color:var(--foam)}
+.ch-rank.i b{color:var(--brass)}
+.lc-rank{font-family:var(--mono);font-size:10px;color:var(--mist)}
 .ch.simple .rd-badge{font-size:7px;padding:1px 5px;margin-left:4px}
 /* Las tres puntuaciones de la fila, cada una del color de la stat con la
    que puntúa esa táctica, igual que las barras de Data Crew. La etiqueta
@@ -1592,89 +1612,6 @@ details.sub-plegable > summary .bloque-tit{
 /* el pie que manda a la Guía desde cada pestaña */
 .ver-guia{text-align:center;margin-top:18px;padding-top:14px;border-top:0.5px solid var(--line)}
 
-/* ============================================================
-   Mi alianza
-   ============================================================ */
-
-.ali-apodo{margin:14px 0 4px;max-width:340px}
-/* la descripcion de cada puerta: a la izquierda, y con la misma altura
-   en las dos columnas para que los botones queden en linea */
-.ali-d{text-align:left;margin:6px 0 11px;min-height:34px}
-
-/* el código, que es lo que se copia y se reparte */
-.ali-cod{
-  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-  background:var(--hull-2);border:0.5px solid var(--line-str);
-  border-radius:11px;padding:11px 13px;margin-top:4px;
-}
-.ali-cod-lab{
-  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
-  text-transform:uppercase;color:var(--mist);
-}
-.ali-cod .btn-mini{width:auto;flex:0 0 auto}
-.ali-cod code{
-  font-family:var(--mono);font-size:19px;font-weight:700;
-  letter-spacing:.16em;color:var(--brass);
-  word-break:break-all;flex:1;min-width:0;
-}
-
-/* el botón grande de juntar libretas */
-.ali-sync{margin-top:18px}
-.ali-sync .btn-calc{width:100%}
-.ali-sync .hint{margin-top:8px}
-
-/* quién más hay dentro */
-.ali-m{
-  display:flex;align-items:center;gap:10px;
-  padding:9px 11px;border-radius:10px;
-  border:0.5px solid var(--line);background:var(--hull-2);
-  margin-bottom:6px;
-}
-.ali-m.yo{border-color:var(--line-str)}
-.ali-m-n{
-  flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--parch);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
-.ali-m-n i{font-style:normal;font-size:11px;color:var(--brass);font-weight:400}
-.ali-m-r{font-family:var(--mono);font-size:11.5px;color:var(--foam);white-space:nowrap}
-.ali-m-t{font-family:var(--mono);font-size:10.5px;color:var(--mist);white-space:nowrap}
-.ali-m-x{flex:0 0 auto}
-/* la temporada de un companiero, cuando no es la tuya: mientras no
-   coincidan, sus rivales no se te van a ver */
-.ali-m-n i.ali-m-otra{
-  color:var(--blood);font-family:var(--mono);font-size:10px;
-  letter-spacing:.04em;
-}
-.ali-res-nota.mal{color:var(--blood)}
-.ali-res-nota.mal b{color:var(--blood)}
-@media (max-width:520px){
-  .ali-m{flex-wrap:wrap;gap:6px 10px}
-  .ali-m-n{flex:1 0 100%}
-}
-
-/* qué ha cambiado en tu libreta al actualizar */
-.ali-res{
-  margin-top:12px;padding:11px 13px;border-radius:11px;
-  border:0.5px solid var(--line-str);background:rgba(88,180,166,.07);
-}
-.ali-res.vacio{
-  border-color:var(--line);background:var(--hull-2);
-  color:var(--mist);font-size:12.5px;
-}
-.ali-res-tit{font-size:13px;color:var(--parch)}
-.ali-res-tit b{font-family:var(--mono);color:var(--foam)}
-.ali-res-l{margin:7px 0 0;padding-left:17px;color:var(--mist);font-size:12.5px;line-height:1.75}
-.ali-res-l b{font-family:var(--mono);color:var(--brass)}
-
-/* el pie: tu nombre a un lado, salirte al otro */
-.ali-pie{
-  display:flex;align-items:flex-end;justify-content:space-between;
-  gap:14px;flex-wrap:wrap;
-  margin-top:20px;padding-top:15px;border-top:0.5px solid var(--line);
-}
-.ali-pie .campo{max-width:340px}
-.ali-salir{padding:7px 14px;font-size:9.5px}
-
 /* El banquillo del rival. Punteado a propósito: no es una guardia, es
    quien entra si cae alguien. `.guardia` no lleva borde, así que hay que
    darlo entero — con solo border-style saldría grueso y del color del
@@ -1904,6 +1841,38 @@ details.sub-plegable > summary .bloque-tit{
 input.isla-select{cursor:text}
 input.isla-select::placeholder{color:var(--mist);opacity:.75}
 
+/* Data Crew: añadir un personaje. Una rejilla de cuatro columnas iguales:
+   nombre y rol arriba, las tres stats y el número de álbum en una fila, y
+   el capítulo con la casilla Kozuki debajo. En móvil, de dos en dos. */
+.nuevo-form{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px 10px;align-items:end;margin:6px 0 12px;
+}
+.nuevo-form .campo{min-width:0}
+.nuevo-form .campo span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nuevo-form .campo input,.nuevo-form .isla-select{height:40px}
+.nf-nombre,.nf-rol,.nf-cap,.nf-koz{grid-column:span 2}
+.chk{
+  display:flex;align-items:center;gap:8px;height:40px;
+  font-size:12.5px;color:var(--parch);cursor:pointer;
+}
+.chk input{width:16px;height:16px;accent-color:var(--brass);margin:0;flex:0 0 auto}
+@media (max-width:640px){
+  .nuevo-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .nf-stat{grid-column:span 1}
+}
+.nuevo-prev{
+  min-height:18px;margin:0 0 12px;font-family:var(--mono);font-size:11.5px;color:var(--mist);
+}
+.nuevo-prev b{color:var(--brass);font-weight:700}
+.tag-extra{
+  display:inline-block;vertical-align:1px;margin-left:4px;
+  font-family:var(--mono);font-size:7.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--foam);border:0.5px dashed rgba(88,180,166,.55);border-radius:999px;padding:1px 6px;
+}
+.extra-btns{margin-top:14px;padding-top:12px;border-top:0.5px solid var(--line)}
+.extra-btns .tag-extra{margin-left:0}
+
 .ed-form{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 14px}
 .ed-form .campo{flex:1 1 170px}
 
@@ -1991,10 +1960,9 @@ input.isla-select::placeholder{color:var(--mist);opacity:.75}
   background:var(--hull-2);border:0.5px solid var(--line);border-radius:10px;
 }
 .borrados .hint{flex:1 1 220px;margin:0}
-.ali-res-nota{
-  margin-top:8px;font-size:11.5px;color:var(--mist);
-  padding-top:8px;border-top:0.5px solid var(--line);
-}
+/* el display:flex de arriba le ganaba al atributo hidden: sin esto la caja
+   salía vacía aunque no hubieras borrado nada */
+.borrados[hidden]{display:none}
 
 /* ============================================================
    Armas: quién lleva cada una
@@ -2038,38 +2006,9 @@ input.isla-select::placeholder{color:var(--mist);opacity:.75}
   .arma-quien{flex:1 1 calc(50% - 3px);max-width:calc(50% - 3px);min-width:0;min-height:40px}
 }
 
-/* La temporada en curso, que es el contexto de toda la libreta. */
-.temporada{
-  display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;
-  margin-bottom:14px;padding:12px 14px;
-  background:var(--hull-2);border:0.5px solid var(--line);border-radius:10px;
-}
-.temporada .campo{flex:0 0 130px}
-.temporada .hint{flex:1 1 220px;margin:0;align-self:center}
-@media (max-width:640px){
-  .temporada .campo{flex:1 1 100%}
-  .temporada .hint{flex:1 1 100%}
-}
-
 /* ============================================================
-   Dónde estás y cuánto tardas en llegar
+   PvE: islas gordas y jefes
    ============================================================ */
-
-.donde{
-  display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;
-  margin-bottom:14px;padding:12px 14px;
-  background:var(--hull-2);border:0.5px solid var(--line);border-radius:10px;
-}
-.donde .campo-corto{flex:0 0 110px}
-.donde .hint{flex:1 1 100%;margin:6px 0 0}
-.donde input[type="number"]{
-  background:var(--sea);border:0.5px solid var(--line-str);border-radius:9px;
-  color:var(--parch);font-family:var(--mono);font-size:14px;padding:9px 10px;width:100%;
-}
-
-.viaje{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-.viaje .kpi-box{flex:1 1 150px}
-.viaje .hint{flex:1 1 100%;margin:0}
 
 /* las islas que el usuario marca como gordas */
 .isla-gorda{
@@ -2079,8 +2018,11 @@ input.isla-select::placeholder{color:var(--mist);opacity:.75}
 }
 .isla-gorda b{color:var(--blood)}
 
-@media (max-width:640px){
-  .donde .campo,
-  .donde .campo-corto{flex:1 1 calc(50% - 6px)}
-  .donde .campo-ancho{flex:1 1 100%}
+/* y los jefes del mundo, que no son un desembarco */
+.isla-jefe{
+  margin-bottom:12px;padding:10px 12px;border-radius:9px;
+  background:rgba(212,162,83,.10);border:0.5px solid rgba(212,162,83,.45);
+  color:var(--parch);font-size:12.5px;line-height:1.55;
 }
+.isla-jefe b{color:var(--brass)}
+

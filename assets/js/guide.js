@@ -13,7 +13,7 @@
 
 /* La guía que sigue el sitio ahora mismo. Al llegar una nueva:
    se cambia aquí, se revisa el sitio y se apunta en ACTUALIZACIONES. */
-window.GUIA = { v: '5.1', fecha: '2026-08-20' };
+window.GUIA = { v: '7.7', fecha: '2026-11-02' };
 
 (function () {
 
@@ -85,10 +85,21 @@ window.GUIA = { v: '5.1', fecha: '2026-08-20' };
       { k: 'gd.n.upkeep',     v: num(3000) + ' / ' + num(5000) },
 
       { g: 'gd.g.rp' },
-      { k: 'gd.n.rp',         v: 'mín(0,9 @ 0,3 + INT × 0,001)', raw: true },
-      { k: 'gd.n.rpTry',      v: '1' },
+      { k: 'gd.n.rp',         v: t('gd.n.rpV') },
+      { k: 'gd.n.rpTry',      v: t('gd.n.rpTryV') },
       { k: 'gd.n.rpEnd',      v: t('gd.n.rpEndV') },
       { k: 'gd.n.yonko',      v: t('gd.n.yonkoV') },
+
+      { g: 'gd.g.boss' },
+      { k: 'gd.n.bossHp',     v: num(30000) + ' / ' + num(45000) },
+      { k: 'gd.n.bossDuel',   v: '−' + num(150) },
+      { k: 'gd.n.aura',       v: t('gd.n.auraV') },
+      { k: 'gd.n.bossSleep',  v: t('gd.n.bossSleepV') },
+      { k: 'gd.n.bossGold',   v: num(300000) + ' / ' + num(450000) },
+      { k: 'gd.n.weapon',     v: t('gd.n.weaponV') },
+      { k: 'gd.n.fruit',      v: t('gd.n.fruitV') },
+      { k: 'gd.n.fruitS',     v: t('gd.n.fruitSV') },
+      { k: 'gd.n.fruitP',     v: t('gd.n.fruitPV') },
 
       { g: 'gd.g.crew' },
       { k: 'gd.n.start',      v: t('gd.n.startV') },
@@ -102,7 +113,9 @@ window.GUIA = { v: '5.1', fecha: '2026-08-20' };
 
       { g: 'gd.g.other' },
       { k: 'gd.n.market',     v: t('gd.n.marketV') },
-      { k: 'gd.n.ally',       v: t('gd.n.allyV') }
+      { k: 'gd.n.ally',       v: t('gd.n.allyV') },
+      { k: 'gd.n.war',        v: t('gd.n.warV') },
+      { k: 'gd.n.trade',      v: t('gd.n.tradeV') }
     ];
   }
 

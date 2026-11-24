@@ -75,6 +75,9 @@
     const poder     = R.crewPower(crew, musico);
     const navTotal  = crew.reduce((a, c) => a + c.v, 0);
     const intTotal  = crew.reduce((a, c) => a + c.i, 0);
+    /* El poneglifo va por la INT MEDIA (guía v7.7) de los que estén en
+       pie. Aquí no se sabe quién está caído, así que cuentan todos. */
+    const intMedia  = crew.length ? intTotal / crew.length : 0;
     const vidaTotal = crew.reduce((a, c) => a + R.health(c), 0);
     const precio    = crew.reduce((a, c) => a + R.price(c), 0);
     const velocidad = R.crewSpeed(navTotal, timonel);
@@ -86,8 +89,8 @@
       <div class="kpi">
         ${kpi(num(poder), t('sum.power'), musico ? t('sum.musician') : '')}
         ${kpi(num(velocidad, velocidad % 1 ? 1 : 0), t('sum.speed'), velocidad >= 60 ? t('sum.speedCap') : '')}
-        ${kpi(num(intTotal), t('sum.int'))}
-        ${kpi(num(R.rpChance(intTotal) * 100) + ' %', t('sum.rp'), lector ? '' : t('sum.noReader'))}
+        ${kpi(num(intTotal), t('sum.int'), t('sum.intAvg').replace('{n}', num(intMedia, 1)))}
+        ${kpi(num(R.rpChance(intMedia) * 100) + ' %', t('sum.rp'), lector ? t('sum.rpHow') : t('sum.noReader'))}
         ${kpi(tieneRol('Commander') ? '2' : '1', t('sum.attacks'))}
         ${kpi(tieneRol('Sniper') ? '90' : '60', t('sum.range'))}
         ${kpi(num(R.supplies(crew)), t('sum.supplies'))}
@@ -251,6 +254,7 @@
      recupera el orden en que los añadiste. */
   function cabeceraHTML(){
     return `<div class="lista-cab">
+      <span class="lc-rank" title="${esc(t('crew.rank.h'))}">#</span>
       <span class="lc-hueco"></span>
       <span class="ch-tri">${R.TACTICS.map(tac => `
         <button class="tri-sort${orden === tac ? ' on' : ''}" type="button" data-tac="${tac}"
@@ -259,6 +263,42 @@
         </button>`).join('')}</span>
       <span class="lc-rm"></span>
     </div>`;
+  }
+
+  /* ---------- su puesto en el roster ----------
+     A la izquierda del nombre va en qué puesto queda ese personaje, entre
+     todos los del juego, en la táctica en la que MEJOR queda: Mihawk es
+     el 1 en Asalto, Tsuru el 1 en Emboscada.
+
+     Ojo, que no es la táctica en la que más puntúa: Maniobra infla la
+     puntuación de casi todo el mundo (las otras dos stats cuentan ×45), así
+     que por puntuación a secas Tsuru saldría «5.º en Maniobra» y Roger
+     «20.º en Maniobra», que no dice nada de para qué valen. A igualdad de
+     puesto, la de más puntuación.
+
+     Se mide con el personaje DEL ÁLBUM, sin el arma: el arma es de tu
+     tripulación y no del personaje. Los empates comparten puesto (Roger y
+     Xebec son los dos 3.º en Asalto) y el siguiente se salta. */
+  function puesto(c){
+    const base = DB.find(x => x.n === c.n) || c;
+    let mejor = null;
+    for (const tac of R.TACTICS) {
+      const suyo = R.score(base, tac);
+      const n = 1 + DB.filter(x => R.score(x, tac) > suyo).length;
+      if (!mejor || n < mejor.n || (n === mejor.n && suyo > mejor.punto)) {
+        mejor = { n: n, tac: tac, punto: suyo };
+      }
+    }
+    return mejor;
+  }
+
+  function puestoHTML(c){
+    const p = puesto(c);
+    const titulo = t('crew.rank.t')
+      .replace('{n}', p.n).replace('{de}', DB.length).replace('{tac}', t('tac.' + p.tac));
+    return `<span class="ch-rank ${COLOR_TAC[p.tac]}" title="${esc(titulo)}" aria-label="${esc(titulo)}">
+      <b>${p.n}</b><i>${esc(t('ta.' + p.tac))}</i>
+    </span>`;
   }
 
   function miembrosHTML(crew, rec){
@@ -275,6 +315,7 @@
       const sobra = rec && rec.quien.n === c.n;
       return `<article class="ch simple${sobra ? ' sobra' : ''}">
         <div class="ch-head static">
+          ${puestoHTML(c)}
           <span class="ch-id">
             <span class="ch-name">${esc(nameOf(c))} ${readerMark(c)}</span>
             <span class="ch-sub">

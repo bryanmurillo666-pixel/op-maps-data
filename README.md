@@ -1,7 +1,7 @@
 # OP-MAPS DATA
 
 Compendio no oficial del juego [op-maps.com](https://op-maps.com/): los 226
-personajes, tu tripulación, el combate PvE y PvP, consejos y la guía.
+personajes, tu tripulación, tus rivales, el combate PvE y PvP, y la guía.
 
 Hecho por **ElBryan98**. ¿Ves un error o algo que falte? Discord: `ElBryan98`.
 
@@ -14,14 +14,13 @@ listo. Todo es HTML, CSS y JavaScript sin dependencias.
 
 | Página | Qué hace |
 |---|---|
-| `index.html` | Portada con los ocho menús |
-| `data.html` | Los 226 personajes, en lista o en álbum por capítulos |
+| `index.html` | Portada con los seis menús |
+| `data.html` | Los 226 personajes, en lista o en álbum, y añadir los que falten |
 | `crew.html` | Tu tripulación: poder, velocidad, bonus de rol y a quién sobra |
-| `pve.html` | Las 159 islas con sus enemigos, y qué alineación gana en cada una |
+| `pve.html` | Las 158 islas con sus enemigos, los dos jefes del mundo, y qué alineación gana en cada una |
 | `pvp.html` | Tu plan de ataque y qué guardias montar contra cada rival |
 | `rivals.html` | Tu libreta de rivales, con código para compartirla |
-| `alianza.html` | Compartir la libreta con hasta 10 compañeros |
-| `guide.html` | Toda la información del juego, en 19 pliegues |
+| `guide.html` | Toda la información del juego (guía v7.7), en 20 pliegues |
 
 ```
 assets/css/style.css     una sola hoja de estilo para todo el sitio
@@ -29,7 +28,7 @@ assets/js/i18n.js        los textos en español e inglés
 assets/js/site.js        cabecera y pie compartidos
 assets/js/rules.js       las fórmulas del juego, en un solo sitio
 assets/js/characters.js  los 226 personajes
-assets/js/islands.js     las 159 islas y sus enemigos
+assets/js/islands.js     las 158 islas (más las 2 de jefe) y sus enemigos
 assets/js/items.js       los 14 objetos de la tienda
 ```
 
@@ -52,5 +51,6 @@ cada idioma.
 
 ## Privacidad
 
-Tu tripulación se guarda solo en tu navegador (`localStorage`). No hay servidor,
+Tu tripulación, tus rivales y los personajes que añadas se guardan solo en tu
+navegador (`localStorage`). No hay servidor,
 ni cuentas, ni nada que se envíe a ninguna parte.

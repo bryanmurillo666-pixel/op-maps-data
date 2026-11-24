@@ -258,7 +258,7 @@
         marcarlo tiene que costar un toque, no un viaje.
 
      Se toca lo mismo que en Mis rivales (RIVALES.setEstado), así que
-     lo que marques aquí está allí, y viaja por la alianza igual.
+     lo que marques aquí está allí, y viaja en el código de Mis rivales igual.
      ============================================================ */
 
   /* Un toque cambia entre Caído y Sano, que es lo único que se mira

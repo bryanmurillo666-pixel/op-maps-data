@@ -1,5 +1,24 @@
 # Pendientes
 
+## De la 1.13.0 (24 nov 2026), para que el usuario revise
+
+- [ ] **Revisar los cambios** antes de publicar: fuera «dónde estás», guía
+      `v7.7`, el puesto en Mi tripulación, añadir personajes en Data Crew, fuera
+      Mi alianza. Cada uno se puede deshacer por separado.
+- [ ] **Nombres en español sin comprobar en el juego**: «Jefes del mundo», los
+      títulos «Matajefes» y «Azote de …», «colíder». Son traducción mía de la guía,
+      que solo está en inglés; si el juego los llama de otra forma, se cambian en
+      `i18n.js`.
+- [ ] **¿Puesto por táctica donde mejor queda, o por la de más puntuación?** Ahora
+      es la primera (Tsuru: 1 en Emboscada). Con la segunda Tsuru saldría «5 en
+      Maniobra». Se cambia en `puesto()` de `crew.js`.
+- [ ] **Las islas de jefe** siguen siendo las dos `Final boss:` del export. La guía
+      dice que Mihawk vive en Kuraigana Island y Big Mom en Whole Cake Island; si en
+      el mapa nuevo dejan de ser islas aparte, `jefeDe()` de `pve.js` es lo que
+      hay que tocar.
+- [ ] **Firebase**: la base de la alianza sigue existiendo. Borrarla desde la consola
+      si ya no se va a usar.
+
 ## El plan de reforma (25 sep 2026)
 
 Decidido con el usuario: se queda en GitHub Pages + Firebase. Nada de servidor
@@ -16,8 +35,8 @@ los mismos ~10 de siempre, así que no hace falta moderación.
 - [x] **Consejos** quitado (25 sep 2026). Era un esqueleto desde el principio.
 - [x] **Tres objetos más** (25 sep 2026): `Napoleon` (espadachín), `Zeus`
       (francotirador) y `Prometheus` (capitán). `×1,25` provisional los tres.
-- [ ] **El daño de verdad de Napoleon, Zeus y Prometheus.** Están puestos igual
-      que Yoru hasta saberlo; es cambiar un número en la tabla `ARMAS`.
+- [x] **El daño de verdad de Napoleon, Zeus y Prometheus** (24 nov 2026). La
+      guía `v7.7` confirma `×1,25` para las cuatro.
 - [x] **La alianza compartía sin que se notara** (27 sep 2026). Los rivales
       llegaban y se archivaban en silencio si el compañero tenía otra
       temporada escrita. Ahora cada uno sube la suya, sale marcada en la
@@ -25,24 +44,24 @@ los mismos ~10 de siempre, así que no hace falta moderación.
 - [x] **No se podía entrar en una alianza recién creada** (27 sep 2026).
       Crear no tocaba el servidor, así que el código no valía hasta el primer
       Actualizar rivales. Ahora crear sube en el mismo gesto.
-- [x] **Dónde estás y cuánto tardas en llegar** (25 sep 2026). Las dos cosas en
-      el PvE, en el mismo panel que la isla.
-- [ ] **Las coordenadas que faltan.** El export del juego solo trae la posición
+- [x] ~~**Dónde estás y cuánto tardas en llegar**~~ (25 sep 2026). **Quitado** el
+      24 nov 2026 a petición del usuario, con las coordenadas de `islands.js`.
+- [x] ~~**Las coordenadas que faltan.**~~ Ya no hacen falta (24 nov 2026). El export del juego solo trae la posición
       de `66` de las `160` islas; las demás se ponen a mano desde el editor del
       PvE, o se vuelve a exportar cuando el juego las dé todas.
-- [ ] **Firebase no se abre desde algunos países.** Confirmado desde Cuba el
+- [x] ~~**Firebase no se abre desde algunos países.**~~ Se va con *Mi alianza* (24 nov 2026). Confirmado desde Cuba el
       `27` sep `2026`: Google no sirve a esas IP y la única salida es una VPN.
       La página ya lo dice en el aviso, pero **no se arregla desde aquí**
       mientras los datos vivan en Firebase. Condiciona la fase `3`: si eso
       pesa, hay que mirar otro sitio donde vivan los datos, y por eso lo de
       meter `api.js` antes que nada vale doble.
-- [ ] **¿La temporada debería ser de la alianza y no de cada navegador?**
+- [x] ~~**¿La temporada debería ser de la alianza y no de cada navegador?**~~ Sin alianza, ya no aplica.
       Ahora la escribe cada uno a mano, en texto libre, y si no coinciden no
       se comparte nada. Ya se avisa, pero el aviso no es el arreglo: mientras
       siga siendo de cada uno, esto volverá a pasar cada vez que entre
       alguien nuevo o empiece una temporada. Lo decide el usuario, que
       pidió ponerla a mano.
-- [ ] **Fase 3 — sincronización automática.** Quitar el botón «Actualizar
+- [x] ~~**Fase 3 — sincronización automática.**~~ Descartada: *Mi alianza* se quitó el 24 nov 2026. Quitar el botón «Actualizar
       rivales», los códigos de exportación y el entrar por código. Un grupo
       fijo que sincroniza solo al abrir y al cambiar algo, escribiendo rival a
       rival en vez de subir la libreta entera. Cuentas básicas con Firebase
@@ -90,7 +109,7 @@ los mismos ~10 de siempre, así que no hace falta moderación.
       en las tres tácticas. Se apunta en Mi tripulación y en cada rival, y entra
       en todos los cálculos. `rules.js` lleva una tabla `ARMAS`, así que la
       siguiente arma es una línea ahí y una clave de texto.
-- [ ] **Las demás armas.** El juego tiene más y aún no se conocen sus reglas:
+- [x] **Las demás armas.** Resuelto por la guía `v7.7` (24 nov 2026). El juego tiene más y aún no se conocen sus reglas:
       a qué rol van, qué multiplican y si son una por tripulación como Yoru.
 - [ ] **Consejos** (`tips.html`) sigue siendo un esqueleto.
 - [ ] **Enlaces desde la Guía** a las páginas que profundizan: los roles a

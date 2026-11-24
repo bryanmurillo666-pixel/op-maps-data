@@ -3,7 +3,7 @@
    ------------------------------------------------------------
    Nombres, precios y descripciones en español: CONTEXTO/Tienda.txt,
    que es la tienda del juego tal cual. Los nombres y efectos en inglés
-   salen de la guía v5.1 (la tienda solo la tenemos en español).
+   salen de la guía v7.7 (la tienda solo la tenemos en español).
 
      id    = identificador interno
      es/en = nombre en cada idioma
@@ -21,13 +21,13 @@
 
      · sobrevives, SIN daño y sin perder oro ni poneglifos
      · el recubrimiento se gasta pase lo que pase
-     · si salta contra el rayo, te deja sumergido 120 min: ahí no navegas y
-       solo puedes pelear contra otras tripulaciones sumergidas
-     · si ya estabas sumergido cuando cayó el rayo, se gasta en absorberlo
-       y sales a flote enseguida
+     · CAMBIA en la v7.7: ya no te deja sumergido 120 min. Absorbe el
+       rayo y sales a flote en el mismo turno, sigas lo que siguieras
+       haciendo (navegando, anclado o descansando, con su temporizador)
      · NO salta si sigues aturdido cuando cae el rayo; si el aturdimiento
        ya se te había pasado, salta con normalidad
-     · sumergirte rompe una conquista en curso
+     · pero la inmersión sí rompe una conquista o una búsqueda en curso
+       (de poneglifo o de fruta), y la búsqueda pierde los turnos hechos
    ============================================================ */
 window.ITEMS = [
   { id:'ration', es:'Ración', en:'Ration', p:100, auto:false, cd:0,
@@ -67,8 +67,8 @@ window.ITEMS = [
     de:'Auto-triggers when you become stunned.' },
 
   { id:'coating', es:'Recubrimiento de Submarino', en:'Submarine Coating', p:1000, auto:true, cd:4,
-    ds:'Salta solo cuando te cae un rayo de Imu: sobrevives sin daño y sin perder oro ni poneglifos. Te deja sumergido 120 min, y ahí ni navegas ni puedes pelear con nadie que no esté sumergido. No salta si sigues aturdido cuando cae el rayo.',
-    de:'Auto-triggers against an IMU strike: you survive with no damage and lose no gold or poneglyphs. It leaves you submerged for 120 min, where you cannot sail and can only fight other submerged crews. It does not fire if you are still stunned when the strike lands.' },
+    ds:'Salta solo cuando te cae un rayo de Imu: absorbe el golpe, sobrevives sin daño y sin perder oro ni poneglifos, y sales a flote en el mismo turno. Eso sí, corta una conquista o una búsqueda que tuvieras en marcha. No salta si sigues aturdido cuando cae el rayo.',
+    de:'Auto-triggers against an IMU strike: it absorbs the strike, you survive with no damage, lose no gold or poneglyphs, and surface in the same turn. It does cancel a conquest or a search you had running. It does not fire if you are still stunned when the strike lands.' },
 
   { id:'coating-manual', es:'Recubrimiento de Submarino (Manual)', en:'Submarine Coating (Manual)', p:500, auto:false, cd:0,
     ds:'Recubrimiento de uso manual: te sumerges 60 min cuando tú quieras. Si el rayo te pilla ya sumergido, se gasta en absorberlo y sales a flote enseguida.',

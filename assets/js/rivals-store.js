@@ -26,7 +26,7 @@
      tag  la ETIQUETA de 3 letras de su alianza (`PAL`, `RKS`...). Es dato
         del juego, no algo que te inventes: una alianza se crea con una, y
         se ve en pantalla. Sirve para agrupar y filtrar cuando la libreta
-        crece, y viaja por la alianza como todo lo demás.
+        crece, y viaja en el código como todo lo demás.
 
    Vive en el navegador (localStorage): es tuyo y no se sube a ningún
    sitio.
@@ -150,10 +150,7 @@ window.RIVALES = (function () {
       // cuándo apuntaste su salud, para saber cuándo dejar de creértela
       tsE: Number(r.tsE) || 0,
       // sus armas: { Yoru: 'nombre' }. Una por arma, como en la tuya.
-      w:  limpiaArmas(r.w, rr),
-      /* La temporada a la que pertenece esta tripulacion. Vacia = de
-         antes de que esto existiera; se rellena al nombrar la primera. */
-      temp: limpiaTemp(r.temp)
+      w:  limpiaArmas(r.w, rr)
     };
   }
 
@@ -164,6 +161,7 @@ window.RIVALES = (function () {
     } catch(e){
       lista = [];
     }
+    if (juntaRepetidos()) guardar();
     return lista;
   }
 
@@ -204,79 +202,45 @@ window.RIVALES = (function () {
   }
 
   /* ============================================================
-     TEMPORADAS
+     SIN TEMPORADAS (1.13.0)
      ------------------------------------------------------------
-     De la guía, y esto manda sobre todo lo demás de aquí:
+     Hasta la 1.12 un rival era (temporada, nombre), y el mismo nombre
+     en dos temporadas eran dos rivales. El usuario pidió quitarlo: la
+     identidad vuelve a ser SOLO EL NOMBRE.
 
-       «A crew belongs to exactly one season, so when a new one opens
-        you start again from scratch (...) Crew names are only unique
-        within a season, so a name you lose is a name somebody else
-        can take next time.»
-
-     O sea que una tripulación rival NO sobrevive a un cambio de
-     temporada, y el mismo nombre en la temporada siguiente es OTRA
-     gente. La libreta emparejaba rivales solo por nombre, así que
-     entre temporadas juntaba cosas que no tienen nada que ver.
-
-     Desde ahora la identidad de un rival es (TEMPORADA, NOMBRE):
-
-       - dos rivales con el mismo nombre en temporadas distintas son
-         dos rivales, y no se fusionan nunca
-       - lo de temporadas pasadas no se borra: se archiva. Sigue ahí
-         para mirarlo, pero no estorba en las listas
-       - las lápidas también van por temporada: borrar a alguien esta
-         temporada no puede bloquear a quien se llame igual en la
-         siguiente
-
-     La temporada la pone el usuario a mano, porque el juego no la
-     expone en ningún sitio que podamos leer. Mientras no ponga
-     ninguna, el campo va vacío y todo se comporta como antes: la
-     función está pero no molesta hasta que sirve de algo.
+     Lo que quedara guardado con temporadas distintas y el mismo nombre
+     se junta al cargar, con la misma regla que al importar un código:
+     se complementa puesto a puesto y, si se contradicen, manda lo más
+     reciente. No se tira nada.
      ============================================================ */
 
-  const KEY_TEMP = 'opmaps-temporada';
+  // lo que quedaba de la temporada escrita a mano
+  try { localStorage.removeItem('opmaps-temporada'); } catch(e){ /* da igual */ }
 
-  let temporada = '';
+  const mismoNombre = (a, b) =>
+    String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
 
-  const limpiaTemp = s => String(s || '').trim().slice(0, 24);
-
-  function cargarTemporada(){
-    try { temporada = limpiaTemp(localStorage.getItem(KEY_TEMP) || ''); }
-    catch(e){ temporada = ''; }
-    return temporada;
-  }
-
-  /* Cambiar de temporada NO toca lo que ya hay: los rivales de antes
-     conservan la suya y pasan a estar archivados. Los nuevos nacen en
-     la nueva. Así estrenar temporada es escribir su nombre, y nada más
-     que eso. */
-  function setTemporada(t){
-    temporada = limpiaTemp(t);
-    try { localStorage.setItem(KEY_TEMP, temporada); }
-    catch(e){ /* si el navegador lo bloquea, dura la sesión */ }
-    /* Los que no tienen temporada son de antes de que esto existiera.
-       Se quedan con la primera que se ponga: es donde estaban. */
+  /* Junta en uno los rivales que se llamen igual. Devuelve si ha
+     cambiado algo, para guardar solo entonces. */
+  function juntaRepetidos(){
+    const quedan = [];
     let cambio = false;
-    lista.forEach(r => { if (!r.temp) { r.temp = temporada; cambio = true; } });
-    if (cambio) guardar();
-    return temporada;
+    // del más reciente al más viejo: el que se queda es el último tocado
+    lista.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)).forEach(r => {
+      const ya = quedan.find(x => mismoNombre(x.n, r.n));
+      if (ya) { fusionaRival(ya, r); cambio = true; }
+      else quedan.push(r);
+    });
+    if (cambio) lista = lista.filter(r => quedan.indexOf(r) !== -1);
+    return cambio;
   }
-
-  // ¿Es de la temporada en curso? Sin temporada puesta, todo lo es.
-  const esDeAhora = r => !temporada || (r && r.temp === temporada);
 
   /* ============================================================
      LO QUE HAS BORRADO, Y POR QUÉ HAY QUE RECORDARLO
      ------------------------------------------------------------
-     Borrar un rival era un acto que no salía de tu navegador, y eso
-     chocaba de frente con la alianza: al sincronizar te bajas la lista
-     ENTERA de cada compañero, y el que acabas de borrar sigue en la
-     suya. Lo juntabas y volvía. Lo mismo con un hueco tuyo de una
-     temporada pasada —al volver a entrar con el código estrenas hueco y
-     el viejo se queda ahí para siempre, sirviendo lo de entonces—.
-
-     No era la caché: lo borrado volvía porque no había forma de decir
-     «esto lo he borrado a propósito».
+     Al importar un código de Mis rivales te llega la libreta ENTERA de
+     quien te lo pasó, y el rival que acabas de borrar sigue en la suya.
+     Sin recordar que lo borraste, volvería con cada código.
 
      La solución son LÁPIDAS: al borrar se apunta el nombre y la hora.
      Al juntar, un rival que venga de fuera se salta si lo borraste
@@ -285,7 +249,7 @@ window.RIVALES = (function () {
        borrado después  → lo tiraste tú sabiendo lo que había: sigue fuera
        tocado después   → alguien se lo ha vuelto a encontrar: vuelve
 
-     Así una temporada vieja no resucita, pero un rival de verdad sí.
+     Así lo que tiraste no resucita, pero un rival de verdad sí.
      Se guarda por NOMBRE porque es lo que empareja las libretas: los
      ids son de cada navegador.
      ============================================================ */
@@ -295,21 +259,28 @@ window.RIVALES = (function () {
 
   let lapidas = {};
 
-  /* La lapida va por (temporada, nombre), no solo por nombre: si no,
-     borrar a alguien esta temporada bloquearia al que se llame igual la
-     que viene, que es otra gente. */
-  const clave = (n, t) => (t === undefined ? temporada : (t || ''))
-    + '\u0000' + String(n || '').trim().toLowerCase();
+  /* La lápida va por nombre. Las de antes llevaban delante la temporada
+     y un separador; al cargar se les quita, quedándose con la más nueva. */
+  const clave = n => String(n || '').trim().toLowerCase();
 
   function cargarLapidas(){
     try {
       const g = JSON.parse(localStorage.getItem(BORRADOS) || '{}');
       lapidas = (g && typeof g === 'object' && !Array.isArray(g)) ? g : {};
     } catch(e){ lapidas = {}; }
-    // por si el archivo viene tocado a mano
+    // por si el archivo viene tocado a mano, y las de antes, sin temporada
+    const limpias = {};
+    let viejas = false;
     Object.keys(lapidas).forEach(k => {
-      if (!(Number(lapidas[k]) > 0)) delete lapidas[k];
+      const t = Number(lapidas[k]);
+      if (!(t > 0)) { viejas = true; return; }
+      const sep = k.indexOf('\u0000');
+      const n = sep === -1 ? k : k.slice(sep + 1);
+      if (sep !== -1) viejas = true;
+      if (!limpias[n] || limpias[n] < t) limpias[n] = t;
     });
+    lapidas = limpias;
+    if (viejas) guardarLapidas();
     return lapidas;
   }
 
@@ -324,24 +295,24 @@ window.RIVALES = (function () {
     catch(e){ /* si el navegador lo bloquea, dura la sesión */ }
   }
 
-  function enterrar(nombre, temp){
-    const k = clave(nombre, temp);
+  function enterrar(nombre){
+    const k = clave(nombre);
     if (k) { lapidas[k] = ahora(); guardarLapidas(); }
   }
 
   /* Al volver a apuntar a alguien con ese nombre, la lápida se levanta:
      lo has traído de vuelta a propósito, y lo que sepan tus compañeros de
      él vuelve a interesarte. */
-  function desenterrar(nombre, temp){
-    const k = clave(nombre, temp);
+  function desenterrar(nombre){
+    const k = clave(nombre);
     if (k && (k in lapidas)) { delete lapidas[k]; guardarLapidas(); }
   }
 
   /* ¿Me lo salto al juntar? Sólo si lo borré después de su último cambio.
      Sin fecha suya se cuenta como viejo: quien no trae fecha no puede
      ganarle a una decisión con hora. */
-  function estaEnterrado(nombre, ts, temp){
-    const t = lapidas[clave(nombre, temp)];
+  function estaEnterrado(nombre, ts){
+    const t = lapidas[clave(nombre)];
     return !!t && t >= (Number(ts) || 0);
   }
 
@@ -350,25 +321,21 @@ window.RIVALES = (function () {
   function añadir(nombre){
     const n = String(nombre || '').trim().slice(0, 40);
     if (!n) return null;
-    // repetido SOLO dentro de la misma temporada: el mismo nombre en otra
-    // es otra tripulacion
-    if (lista.some(r => r.n.toLowerCase() === n.toLowerCase()
-                        && (r.temp || '') === temporada)) return null;
+    if (lista.some(r => mismoNombre(r.n, n))) return null;
     const r = {
       id: 'r' + Date.now() + Math.random().toString(36).slice(2, 7),
       n: n, tag: '', r: [], a: [], ts: ahora(), tsE: 0, res: [null, null], w: {},
-      temp: temporada,
       g: [guardiaVacia(), guardiaVacia(), guardiaVacia()]
     };
     lista.push(r);
-    desenterrar(n, temporada);     // lo has traído de vuelta a propósito
+    desenterrar(n);                // lo has traído de vuelta a propósito
     guardar();
     return r.id;
   }
 
   function borrar(id){
     const r = lista.filter(x => x.id === id)[0];
-    if (r) enterrar(r.n, r.temp);  // que no vuelva por la alianza
+    if (r) enterrar(r.n);          // que no vuelva al importar un código
     lista = lista.filter(x => x.id !== id);
     guardar();
   }
@@ -596,10 +563,9 @@ window.RIVALES = (function () {
       /* Índice 8, nuevo. Se AÑADE al final a propósito: un código viejo
          no lo trae, y al leerlo sale `undefined`, que se queda en {}.
          Así los códigos de antes se siguen leyendo sin tocar nada. */
-      r.w || {},
-      // indice 9: la temporada. Igual que el 8, anadido al final para que
-      // los codigos de antes se sigan leyendo.
-      r.temp || ''
+      r.w || {}
+      /* El índice 9 era la temporada, que ya no existe. Un código viejo
+         que la traiga se lee igual: simplemente se ignora. */
     ]);
     return CABECERA + b64(JSON.stringify(datos));
   }
@@ -702,8 +668,7 @@ window.RIVALES = (function () {
       res: (Array.isArray(d[5]) ? d[5] : []).map(dePuesto),
       tag: d[6] || '',
       tsE: d[7] || 0,
-      w:   d[8] || {},
-      temp: d[9] || ''
+      w:   d[8] || {}
     });
   }
 
@@ -718,38 +683,17 @@ window.RIVALES = (function () {
     catch(e){ return null; }
     if (!Array.isArray(datos)) return null;
 
-    let nuevos = 0, actualizados = 0, enterrados = 0, sinTemporada = 0;
-    /* Los que entran pero NO se van a ver, porque son de otra temporada
-       que la que tienes puesta. Se guardan igual —no se pierde nada—,
-       pero quien mire la libreta no los va a encontrar, y callarselo es
-       lo que hace que parezca que la alianza no comparte nada.
-       Se apuntan por temporada para poder decir DE CUAL vienen, y por
-       NOMBRE y no por veces: en una alianza el mismo rival te llega de
-       todos los que lo tengan, y contar llegadas diría el triple. */
-    const fuera = {};
+    let nuevos = 0, actualizados = 0, enterrados = 0;
 
     datos.forEach(d => {
       const suyo = deCodigo(d);
       if (!suyo) return;
-      /* Un codigo de una version anterior no trae temporada. NO se le
-         pone la actual: seria justo el fallo que esto viene a arreglar
-         —meter gente de otra temporada en la de ahora—. Se archiva, y se
-         cuenta para poder decirlo, que si no parece que no ha llegado. */
-      if (temporada && !suyo.temp) sinTemporada++;
-      /* Se empareja por (temporada, nombre). Un rival de otra temporada
-         con el mismo nombre NO es el mismo, asi que entra como nuevo en
-         vez de fusionarse con el tuyo. */
-      const ya = lista.find(r => r.n.toLowerCase() === suyo.n.toLowerCase()
-                                 && (r.temp || '') === (suyo.temp || ''));
+      // se empareja por nombre, como antes de las temporadas
+      const ya = lista.find(r => mismoNombre(r.n, suyo.n));
       /* Lo borraste tú y nadie lo ha vuelto a tocar desde entonces: se
          queda fuera. Si alguien se lo ha encontrado después, su fecha le
          gana a la lápida y vuelve, que es lo que quieres. */
-      if (!ya && estaEnterrado(suyo.n, suyo.ts, suyo.temp)) { enterrados++; return; }
-      if (temporada && (suyo.temp || '') !== temporada) {
-        const suya = suyo.temp || '';
-        const bolsa = fuera[suya] || (fuera[suya] = []);
-        if (bolsa.indexOf(suyo.n) === -1) bolsa.push(suyo.n);
-      }
+      if (!ya && estaEnterrado(suyo.n, suyo.ts)) { enterrados++; return; }
       if (ya) {
         if (fusionaRival(ya, suyo)) actualizados++;
       } else {
@@ -757,13 +701,14 @@ window.RIVALES = (function () {
         nuevos++;
       }
     });
+    /* Un código de antes puede traer al mismo rival dos veces, una por
+       temporada: se juntan aquí. */
+    juntaRepetidos();
 
     guardar();
-    return { nuevos: nuevos, actualizados: actualizados, enterrados: enterrados,
-             sinTemporada: sinTemporada, fuera: fuera };
+    return { nuevos: nuevos, actualizados: actualizados, enterrados: enterrados };
   }
 
-  cargarTemporada();
   cargar();
   cargarLapidas();
 
@@ -776,22 +721,8 @@ window.RIVALES = (function () {
     CAIDO:    CAIDO,
     /* Sale ordenada por lo último que se tocó. Con la libreta llena, lo que
        acabas de averiguar es lo que quieres tener delante. */
-    /* Solo la temporada en curso: lo de antes esta archivado, no borrado.
-       Sin temporada puesta salen todos, como siempre. */
     lista:     () => { caducaEstados();
-                       return lista.filter(esDeAhora)
-                                   .sort((a, b) => (b.ts || 0) - (a.ts || 0)); },
-    // todos, incluidas las temporadas pasadas
-    todas:     () => { caducaEstados();
                        return lista.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)); },
-    temporada:    () => temporada,
-    setTemporada: setTemporada,
-    temporadas:   () => {
-      const vistas = {};
-      lista.forEach(r => { vistas[r.temp || ''] = (vistas[r.temp || ''] || 0) + 1; });
-      return vistas;
-    },
-    archivados:   () => lista.filter(r => !esDeAhora(r)).length,
     porId:     porId,
     nGuardias: nGuardias,
     añadir:    añadir,
@@ -819,6 +750,6 @@ window.RIVALES = (function () {
     /* Vuelve a leerlo TODO del navegador, libreta y lapidas. Si solo
        releyera la libreta, lo borrado quedaria a medias: la lista al dia
        y las lapidas de antes. */
-    recargar:  () => { cargarTemporada(); cargarLapidas(); return cargar(); }
+    recargar:  () => { cargarLapidas(); return cargar(); }
   };
 })();

@@ -437,7 +437,7 @@ window.PVP_MODEL = (function () {
     /* --- se prueban todos los planes ---
        Cuatro objetivos, y no son "ganar o perder": son cuatro marcadores
        concretos, cada uno con su precio y su daño (la tabla está en
-       rules.js, sacada de la guía v5.1):
+       rules.js, sacada de la guía v7.7):
 
          g30  ganas 3-0    le haces 35 % y te cuesta  5 %
          g21  ganas 2-1    le haces 25/18 % y te cuesta 10/12 %

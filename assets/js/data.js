@@ -67,13 +67,23 @@
     vList:    document.getElementById('vList'),
     vAlbum:   document.getElementById('vAlbum'),
     count:    document.getElementById('count'),
-    list:     document.getElementById('list')
+    list:     document.getElementById('list'),
+    nuevo:      document.getElementById('nuevoPj'),
+    nuevoForm:  document.getElementById('nuevoForm'),
+    nuevoCount: document.getElementById('nuevoCount')
   };
 
+  const X = window.PJ_EXTRA;
+
   // Cuántos personajes tiene cada capítulo en total, para el contador
-  // de la página cuando hay filtros puestos.
+  // de la página cuando hay filtros puestos. Se rehace al añadir o
+  // borrar uno de los tuyos.
   const POR_CAPITULO = {};
-  DB.forEach(c => { POR_CAPITULO[c.ch] = (POR_CAPITULO[c.ch] || 0) + 1; });
+  function contarCapitulos(){
+    Object.keys(POR_CAPITULO).forEach(k => { delete POR_CAPITULO[k]; });
+    DB.forEach(c => { POR_CAPITULO[c.ch] = (POR_CAPITULO[c.ch] || 0) + 1; });
+  }
+  contarCapitulos();
 
   /* ---------- utilidades ---------- */
 
@@ -186,7 +196,7 @@
         <div><b>${num(R.total(c))}</b><span>${esc(t('lbl.total'))}</span></div>
         <div><b>${num(R.price(c))}</b><span>${esc(t('lbl.price'))} · ${esc(t('lbl.gold'))}</span></div>
         <div><b>+${num(R.speedShare(c), 1)}</b><span>${esc(t('lbl.speed'))}</span></div>
-        <div><b>+${num(R.searchShare(c) * 100, 1)} %</b><span>${esc(t('lbl.search'))}</span></div>
+        <div><b>${num(R.rpChance(c.i) * 100)} %</b><span>${esc(t('lbl.search'))}</span></div>
       </div>
 
       <div class="sc-block">
@@ -201,6 +211,11 @@
         ${R.isUsefulRole(c.r) ? `<p class="note">${esc(t('lbl.roleNote'))}</p>` : ''}
         ${c.rd ? `<p class="note">◈ ${esc(c.rd === 1 ? t('data.reader.role') : t('data.reader.kozuki'))}</p>` : ''}
       </div>
+      ${c.x ? `<div class="ed-btns extra-btns">
+        <span class="tag-extra">${esc(t('data.new.tag'))}</span>
+        <button class="btn-add" type="button" data-editar="${esc(c.n)}">${esc(t('data.new.edit'))}</button>
+        <button class="btn-x" type="button" data-borrar="${esc(c.n)}">${esc(t('data.new.del'))}</button>
+      </div>` : ''}
     </div>`;
   }
 
@@ -224,7 +239,7 @@
           <span class="ch-idx">${pad3(c.a)}</span>
           <span class="ch-id">
             <span class="ch-name">${esc(nameOf(c))} ${readerMark(c)}</span>
-            <span class="ch-role">${esc(roleOf(c))}</span>
+            <span class="ch-role">${esc(roleOf(c))}${c.x ? ` <span class="tag-extra">${esc(t('data.new.tag'))}</span>` : ''}</span>
           </span>
           <span class="ch-metric"><b>${m.v}</b><i>${esc(m.label)}</i></span>
         </button>
@@ -354,7 +369,7 @@
     els.vList.setAttribute('aria-pressed', album ? 'false' : 'true');
     els.vAlbum.setAttribute('aria-pressed', album ? 'true' : 'false');
 
-    els.count.innerHTML = `<b>${rows.length}</b> ${esc(t('data.shown'))}`;
+    els.count.innerHTML = `<b>${rows.length}</b> ${esc(t('data.shown').replace('{n}', DB.length))}`;
 
     if (!rows.length) {
       els.list.innerHTML = `<p class="empty">${esc(t('data.empty'))}</p>`;
@@ -387,6 +402,204 @@
       `<option value="${o}"${state.sort === o ? ' selected' : ''}>${esc(t('sort.' + o))}</option>`
     ).join('');
   }
+
+  /* ============================================================
+     AÑADIR UN PERSONAJE
+     Para cuando el juego saca a alguien que characters.js todavía no
+     trae. Lo que se guarda vive en este navegador (characters.js,
+     PJ_EXTRA) y entra en todas las páginas como uno más.
+
+     El formulario se pinta entero solo al abrirlo, al cambiar de idioma
+     o al empezar/acabar de editar. Mientras se escribe solo se toca la
+     línea de la vista previa: repintarlo todo te quitaría el foco a
+     media palabra.
+     ============================================================ */
+
+  let editando = null;   // nombre del tuyo que se está editando, o null
+
+  function opciones(lista, elegido){
+    return lista.map(([v, txt]) =>
+      `<option value="${esc(v)}"${String(v) === String(elegido) ? ' selected' : ''}>${esc(txt)}</option>`
+    ).join('');
+  }
+
+  function nuevoFormHTML(){
+    const c = editando ? DB.find(x => x.n === editando) : null;
+    const v = k => c ? (c[k] == null ? '' : c[k]) : '';
+
+    const roles = X.ROLES.slice()
+      .sort((a, b) => roleOf({ r:a }).localeCompare(roleOf({ r:b })))
+      .map(r => [r, roleOf({ r:r })]);
+    const caps = window.ALBUM_CHAPTERS[isES() ? 'es' : 'en'].map((n, i) => [i, (i + 1) + ' · ' + n]);
+    const capElegido = c ? c.ch : window.CAP_EXTRA;
+    const rolElegido = c ? c.r : 'Captain';
+
+    const campo = (k, etiqueta, tipo, extra) => `<label class="campo${extra || ''}">
+        <span>${esc(t(etiqueta))}</span>
+        <input type="${tipo}" data-k="${k}" value="${esc(v(k))}" autocomplete="off" spellcheck="false"
+               ${tipo === 'number' ? `min="${k === 'a' ? 1 : 0}"${k === 'a' ? '' : ` max="${X.STAT_MAX}"`} step="1" inputmode="numeric"` : ''}>
+      </label>`;
+
+    const mios = X.lista();
+    const chips = mios.length
+      ? `<div class="ed-mias">
+          <h3 class="sub-tit">${esc(t('data.new.mine'))}</h3>
+          <p class="ed-chips">${mios.map(m =>
+            `<button type="button" class="ed-chip" data-ir="${esc(m.n)}">${esc(nameOf(m))}</button>`).join('')}</p>
+        </div>`
+      : '';
+    const tapados = X.tapados();
+    const avisoTapados = tapados.length
+      ? `<p class="note">${t('data.new.tapados').replace('{n}', esc(tapados.join(', ')))}</p>`
+      : '';
+
+    return `
+      ${c ? `<h3 class="sub-tit">${esc(t('data.new.editing'))} · ${esc(nameOf(c))}</h3>` : ''}
+      <div class="nuevo-form">
+        ${campo('n',  'data.new.n',  'text', ' nf-nombre')}
+        <label class="campo nf-rol">
+          <span>${esc(t('lbl.role'))}</span>
+          <select class="isla-select" data-k="r">${opciones(roles, rolElegido)}</select>
+        </label>
+        ${campo('f', 'st.f', 'number', ' nf-stat')}
+        ${campo('v', 'st.v', 'number', ' nf-stat')}
+        ${campo('i', 'st.i', 'number', ' nf-stat')}
+        ${campo('a', 'data.new.a', 'number', ' nf-stat')}
+        <label class="campo nf-cap">
+          <span>${esc(t('data.new.ch'))}</span>
+          <select class="isla-select" data-k="ch">${opciones(caps, capElegido)}</select>
+        </label>
+        <label class="chk nf-koz">
+          <input type="checkbox" data-k="kozuki"${c && c.rd === 2 ? ' checked' : ''}>
+          <span>${esc(t('data.new.kozuki'))}</span>
+        </label>
+      </div>
+      <p class="nuevo-prev" id="nuevoPrev"></p>
+      <div class="ed-btns">
+        <button class="btn-calc" type="button" id="nuevoGuardar">${esc(t(c ? 'data.new.save' : 'data.new.add'))}</button>
+        ${c ? `<button class="btn-add" type="button" id="nuevoCancelar">${esc(t('data.new.cancel'))}</button>` : ''}
+      </div>
+      <p class="hint" id="nuevoHint"></p>
+      ${chips}
+      ${avisoTapados}`;
+  }
+
+  // Lo escrito en el formulario, tal cual, para pasárselo a PJ_EXTRA.
+  function leerForm(){
+    const f = els.nuevoForm;
+    const val = k => { const e = f.querySelector('[data-k="' + k + '"]'); return e ? e.value : ''; };
+    const koz = f.querySelector('[data-k="kozuki"]');
+    return { n: val('n'), r: val('r'), f: val('f'), v: val('v'), i: val('i'),
+             ch: val('ch'), a: val('a'), kozuki: !!(koz && koz.checked) };
+  }
+
+  /* La vista previa: lo que saldría en su ficha con esos stats. Solo
+     cuando los tres son números de verdad; si no, se calla. */
+  function pintaPrevia(){
+    const p = document.getElementById('nuevoPrev');
+    if (!p) return;
+    const d = leerForm();
+    const ok = ['f', 'v', 'i'].every(k => String(d[k]).trim() !== '' && isFinite(Number(d[k])));
+    if (!ok) { p.innerHTML = ''; return; }
+    const c = { n: d.n, r: d.r, f: Number(d.f), v: Number(d.v), i: Number(d.i) };
+    const best = R.bestTactic(c);
+    p.innerHTML = [
+      `${esc(t('lbl.power'))} <b>${num(R.power(c))}</b>`,
+      `${esc(t('lbl.health'))} <b>${num(R.health(c), R.health(c) % 1 ? 1 : 0)}</b>`,
+      `${esc(t('lbl.price'))} <b>${num(R.price(c))}</b>`,
+      `${esc(t('tac.' + best))} <b>${num(R.score(c, best))}</b>`
+    ].join(' · ');
+  }
+
+  function pintaNuevo(){
+    if (!els.nuevoForm) return;
+    const n = X.lista().length;
+    els.nuevoCount.textContent = n ? num(n) : '';
+    els.nuevoCount.hidden = !n;
+    els.nuevoForm.innerHTML = nuevoFormHTML();
+    pintaPrevia();
+  }
+
+  function avisoNuevo(clave, malo, nombre){
+    const h = document.getElementById('nuevoHint');
+    if (!h) return;
+    h.innerHTML = t(clave).replace('{n}', esc(nombre || ''));
+    h.className = 'hint' + (malo ? ' err' : '');
+  }
+
+  /* Tras añadir, editar o borrar cambia el roster entero: los contadores
+     de rol y de capítulo, y la lista. */
+  function rosterCambia(){
+    contarCapitulos();
+    fillRoles();
+    render();
+  }
+
+  function abrirFicha(nombre){
+    // que se vea aunque haya filtros puestos que lo dejarían fuera
+    state.q = ''; els.search.value = '';
+    state.role = ''; state.readers = false;
+    els.readers.classList.remove('on');
+    els.readers.setAttribute('aria-pressed', 'false');
+    state.open = nombre;
+    if (state.view === 'album') irAPaginaDe(nombre);
+    else {
+      const i = filtered().findIndex(c => c.n === nombre);
+      if (i >= state.limit) state.limit = Math.ceil((i + 1) / TANDA) * TANDA;
+    }
+    syncHash();
+    fillRoles();
+    render();
+    const card = els.list.querySelector('.ch.is-open, .cromo.is-open');
+    if (card) card.scrollIntoView({ block: 'nearest' });
+  }
+
+  if (els.nuevoForm) {
+    els.nuevoForm.addEventListener('input', pintaPrevia);
+    els.nuevoForm.addEventListener('change', pintaPrevia);
+    els.nuevoForm.addEventListener('click', e => {
+      const ir = e.target.closest('[data-ir]');
+      if (ir) { abrirFicha(ir.dataset.ir); return; }
+
+      if (e.target.closest('#nuevoCancelar')) { editando = null; pintaNuevo(); return; }
+
+      if (!e.target.closest('#nuevoGuardar')) return;
+      const r = X.guardar(leerForm(), editando);
+      if (r.error) { avisoNuevo('data.new.err.' + r.error, true); return; }
+      const eraEdicion = !!editando;
+      editando = null;
+      rosterCambia();
+      pintaNuevo();
+      avisoNuevo(eraEdicion ? 'data.new.saved' : 'data.new.added', false, nameOf(r.ok));
+      abrirFicha(r.ok.n);
+    });
+  }
+
+  /* Editar y borrar viven en la ficha del personaje, en la lista. */
+  els.list.addEventListener('click', e => {
+    const ed = e.target.closest('[data-editar]');
+    if (ed) {
+      e.stopPropagation();
+      editando = ed.dataset.editar;
+      if (els.nuevo) els.nuevo.open = true;
+      pintaNuevo();
+      els.nuevo.scrollIntoView({ block: 'start' });
+      return;
+    }
+    const bo = e.target.closest('[data-borrar]');
+    if (bo) {
+      e.stopPropagation();
+      const n = bo.dataset.borrar;
+      const c = DB.find(x => x.n === n);
+      if (!confirm(t('data.new.delSure').replace('{n}', c ? nameOf(c) : n))) return;
+      X.borrar(n);
+      if (editando === n) editando = null;
+      state.open = null;
+      syncHash();
+      rosterCambia();
+      pintaNuevo();
+    }
+  }, true);
 
   /* ---------- eventos ---------- */
 
@@ -487,6 +700,7 @@
     fillRoles();
     fillSorts();
     render();
+    pintaNuevo();
   });
 
   // Al cambiar entre móvil y escritorio cambian los cromos por página.
@@ -523,6 +737,7 @@
   fillRoles();
   fillSorts();
   render();
+  pintaNuevo();
 
   // Si se ha entrado con un enlace directo, acercamos la ficha a la vista.
   // 'nearest' hace el mínimo movimiento: si ya se ve, no salta nada.

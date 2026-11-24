@@ -5,6 +5,118 @@ mira [VERSIONES.md](VERSIONES.md).
 
 ---
 
+## 1.13.0 — 24 nov 2026
+
+Cinco cambios pedidos juntos y hechos **por separado**, para poder quedarse con
+unos y deshacer otros.
+
+### 1. Fuera «dónde estás y cuánto tardas en llegar»
+
+No gustó. Se quita del PvE el panel, el cálculo del viaje (`R.viaje`,
+`R.distancia`), lo que se guardaba (`opmaps-donde`, que se borra solo al
+abrir la página), las coordenadas del editor de islas y las `66` coordenadas
+de `islands.js`. Las correcciones de enemigos que ya tuviera cada uno siguen
+valiendo.
+
+### 2. Guía del jugador v7.7
+
+La guía salta de la `5.1` a la `7.7` (2 nov 2026). Lo que cambia en el sitio:
+
+- **Poneglifos**: ya no es una tirada por turno, sino `3` turnos buscando y
+  **una** tirada, y la probabilidad va por la **INT media** de los que siguen en
+  pie: `mín(0,75 ; máx(0,20 ; 0,26 + (media − 50) × 0,012))`. Cambia en
+  `rules.js`, en el resumen de Mi tripulación (que ahora enseña también la
+  media) y en la ficha de Data Crew, que pasa a decir qué probabilidad tendría
+  una tripulación con su INT de media.
+- **Recubrimiento de Submarino**: ya **no** te deja sumergido `120 min`; absorbe
+  el rayo y sales a flote en el mismo turno. Sigue cortando conquistas y
+  búsquedas. Cambiado en la tienda y en la Guía.
+- **Armas**: la guía confirma el `×1,25` de las cuatro y que se suma a la
+  afinidad (`×1,375`). Ya no es provisional.
+- **Jefes del mundo**: las dos islas «Jefe final» del PvE ya no se calculan como
+  un desembarco. Enseñan la vida que le quitas por ataque (`150` por duelo
+  ganado), cuántos ataques harían falta, y la alineación busca ganar el máximo
+  de duelos, no 2 de 3. El panel de reglas del desembarco se esconde ahí.
+- **Guía del sitio**: dos pliegues nuevos, **Jefes del mundo** y **Frutas del
+  diablo**; comercio entre barcos en el mercado; colíder, expulsiones, guerras y
+  objetivo de jefe en alianzas; nuevos pesos del ranking de alianzas; ranking de
+  daño a jefes; el escudo de novato y la bandera propia en temporadas. La tabla
+  de números gana un grupo de jefes y frutas. Quedan `20` pliegues.
+
+### 3. El puesto de cada tripulante, a la izquierda de su nombre
+
+En Mi tripulación, cada uno lleva el puesto que ocupa **entre todos los
+personajes del juego** en la táctica donde mejor queda, del color de esa
+táctica: Mihawk `1` en Asalto, Jinbe `1` en Maniobra, Tsuru `1` en Emboscada,
+Roger y Xebec `3` en Asalto (los empates comparten puesto). Va sin arma: el
+arma es de tu tripulación, no del personaje.
+
+Se eligió «donde mejor queda» y no «donde más puntúa» porque Maniobra infla la
+puntuación de casi todos: por puntuación a secas Tsuru sería «5 en Maniobra» y
+Roger «20 en Maniobra». Es una línea de `crew.js` si se prefiere lo otro.
+
+### 4. Añadir personajes en Data Crew
+
+Un desglose nuevo, **Añadir un personaje**, para cuando el juego saca a alguien
+que `characters.js` aún no trae: nombre en los dos idiomas, rol, FUE/NAV/INT,
+capítulo, número de álbum (si no se pone, el siguiente libre) y sangre Kozuki.
+Con vista previa de poder, vida, precio y mejor táctica.
+
+Se guarda **solo en ese navegador** (`opmaps-personajes-extra`) y se mete al
+final de `window.CHARACTERS` antes de que cargue nada más, así que sale en
+todas las páginas como uno más. Lleva la marca **Añadido** y, en su ficha,
+**Editar** y **Borrar**. Nunca pisa lo oficial: un nombre del juego no se deja
+añadir, y si un día el archivo lo trae, manda el oficial; si solo le ocupan el
+número, se le da otro.
+
+### 5. Fuera Mi alianza
+
+Se borran `alianza.html`, `alliance.js` y `alliance-store.js`, su pestaña, su
+tarjeta de portada, sus `~75` textos por idioma, su CSS y el pliegue «Compartir
+rivales con tu alianza» de la Guía. El sitio deja de depender de Firebase.
+
+**Se queda** el código `OPMR1:` de Mis rivales para pasar la libreta a mano, y
+las etiquetas de alianza de los rivales, que son dato del juego.
+
+### 6. Retoques tras la primera revisión
+
+- **Añadir un personaje**: el formulario pasa a una rejilla de cuatro columnas
+  (nombre y rol; FUE, NAV, INT y n.º de álbum; capítulo y Kozuki), de dos en
+  móvil, con todos los campos a la misma altura. Fuera el campo del nombre en
+  español: el que se escribe vale para los dos idiomas.
+- **Mis rivales sin temporadas.** Fuera el campo «Temporada», el filtro por
+  temporada y el archivo. Un rival vuelve a ser **solo su nombre**: los que
+  estuvieran guardados con el mismo nombre en temporadas distintas se juntan
+  al abrir la página (se complementan puesto a puesto, sin tirar nada), las
+  lápidas de lo borrado pierden la temporada y la temporada guardada
+  (`opmaps-temporada`) se borra. Los códigos `OPMR1:` viejos se siguen
+  leyendo; la temporada que traigan se ignora.
+- De paso: la caja «Olvidar los borrados» salía vacía aunque no hubieras
+  borrado nada, porque su `display:flex` le ganaba al atributo `hidden`.
+
+### 7. Revisión final
+
+- Textos desfasados: «159 islas» pasa a **158** (más las 2 de jefe), el aviso de
+  los borrados de Mis rivales ya no habla de «sincronizar» sino de importar un
+  código, y fuera las menciones a *Consejos* en la portada y el README.
+- Código muerto: el almacén de islas ya no maneja coordenadas (sigue leyendo
+  lo guardado con la forma vieja), y los comentarios que remitían a la alianza
+  o a la guía `v5.1` están al día.
+- Bancos de prueba: fuera los nueve que probaban lo que ya no existe
+  (`_test-alianza`, `_test-compartir`, `_test-unirse`, `_test-red`,
+  `_seed-alianza`, `_test-temporadas`, `_test-donde`, `_test-donde-movil`,
+  `_test-viaje`). En `_test-islas` la parte de coordenadas pasa a comprobar
+  que lo guardado antes se sigue leyendo. Los ocho que quedan pasan enteros.
+
+### Pruebas
+
+Banco nuevo `_test-1130.html` (`55` comprobaciones, todas bien): el puesto en
+la tripulación, añadir/editar/borrar un personaje y que llegue a Mi
+tripulación, Mis rivales sin temporadas, los jefes del PvE, la Guía entera sin textos vacíos y la portada.
+Todas las claves de texto que usan las páginas existen en los dos idiomas.
+
+---
+
 ## 1.12.1 — 27 sep 2026
 
 **Tres cosas de la alianza, que se parecían entre ellas**: lo que se comparte
