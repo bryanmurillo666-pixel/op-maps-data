@@ -92,7 +92,7 @@ window.GUIA = { v: '7.7', fecha: '2026-11-02' };
 
       { g: 'gd.g.boss' },
       { k: 'gd.n.bossHp',     v: num(30000) + ' / ' + num(45000) },
-      { k: 'gd.n.bossDuel',   v: '−' + num(150) },
+      { k: 'gd.n.bossDuel',   v: t('gd.n.bossDuelV') },
       { k: 'gd.n.aura',       v: t('gd.n.auraV') },
       { k: 'gd.n.bossSleep',  v: t('gd.n.bossSleepV') },
       { k: 'gd.n.bossGold',   v: num(300000) + ' / ' + num(450000) },

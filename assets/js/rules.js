@@ -46,6 +46,39 @@ window.RULES = (function () {
   function speedShare(c){ return c.v * 0.04; }
 
 
+  /* ---------- jefes del mundo (guía v7.7) ----------
+     El jefe está en las tres posiciones a la vez y cada copia juega una
+     táctica secreta, sorteada en cada ataque. Sus stats son las de su
+     carta del álbum, así que se buscan ahí.
+
+     EL DAÑO VA POR EL RESULTADO DEL ATAQUE, no por duelo. Cambiado en el
+     juego DESPUÉS de la guía v7.7 (que aún dice 150 por duelo ganado); lo
+     trae el usuario el 25 nov 2026:
+       ganas 3-0 → 150     ganas 2-1 → 100     pierdes → 50
+     Con 2 ataques por turno, como mucho 300 por jugador y turno. El empate
+     de un duelo es del jefe, como siempre (es el defensor). */
+  const JEFES = {
+    'Dracule Mihawk':   { vida: 30000, oro: 300000, isla: 'Kuraigana Island' },
+    'Charlotte Linlin': { vida: 45000, oro: 450000, isla: 'Whole Cake Island' }
+  };
+  const JEFE_DANO = { g30: 150, g21: 100, pierde: 50 };   // por ataque
+
+  /* Vida media que le quitas en UN ataque, con la probabilidad de ganar
+     cada uno de los tres duelos (independientes: cada copia sortea su
+     táctica). Un puesto vacío concede su duelo: probabilidad 0. */
+  function danoJefe(p){
+    const q = [0, 1, 2].map(i => Math.max(0, Math.min(1, Number(p[i]) || 0)));
+    const tres = q[0] * q[1] * q[2];
+    const dos = q[0] * q[1] * (1 - q[2]) + q[0] * (1 - q[1]) * q[2] + (1 - q[0]) * q[1] * q[2];
+    return tres * JEFE_DANO.g30 + dos * JEFE_DANO.g21 + (1 - tres - dos) * JEFE_DANO.pierde;
+  }
+
+  /* Lo que le quita un ataque con tantos duelos ganados (0 a 3). */
+  const danoJefeMarcador = ganados =>
+    ganados >= 3 ? JEFE_DANO.g30 : (ganados === 2 ? JEFE_DANO.g21 : JEFE_DANO.pierde);
+  const JEFE_AURA_CASCO = 225; // casco por turno a 120 unidades, despierto
+  const JEFE_AURA_VIDA = 0.12; // y vida de cada personaje en pie
+
   /* ---------- armas ----------
      Un arma se equipa a UN personaje de una tripulación y le sube el
      score en las tres tácticas. Dos detalles que mandan en cómo está
@@ -261,6 +294,7 @@ window.RULES = (function () {
     total, power, health, price, speedShare,
     score, scores, bestTactic, hasAffinity,
     ARMAS, armaDe, puedeArma, conArma, nombreArma,
+    JEFES, JEFE_DANO, danoJefe, danoJefeMarcador, JEFE_AURA_CASCO, JEFE_AURA_VIDA,
     crewSpeed, crewPower, rpChance, RP_TURNOS, conquestTime, supplies, SUPPORT_ROLES,
     beats, duelWin, isUsefulRole, hasPassiveRole, isReader
   };

@@ -28,14 +28,9 @@
 
   /* Los jefes del mundo (guía v7.7). En el mapa salen como dos islas con
      el jefe en los tres puestos, y se calculan aparte porque no son un
-     desembarco: cada duelo ganado le quita 150 de vida, el casco no sufre
-     y perder no aturde. Lo que interesa no es ganar 2 de 3, sino ganar
-     cuantos más duelos mejor. */
-  const JEFES = {
-    'Dracule Mihawk':   { vida: 30000, oro: 300000 },
-    'Charlotte Linlin': { vida: 45000, oro: 450000 }
-  };
-  const JEFE_DUELO = 150;
+     desembarco: el ataque le quita 150 si ganas 3-0, 100 si ganas 2-1 y 50
+     si pierdes (R.JEFE_DANO), el casco no sufre y perder no aturde. */
+  const JEFES = R.JEFES;
   function jefeDe(isla){
     if (!/^Final boss/i.test(isla.n) || isla.e.length !== 3) return null;
     if (isla.e[0] !== isla.e[1] || isla.e[1] !== isla.e[2]) return null;
@@ -208,7 +203,8 @@
                       + trio[2].punto * duro[2];
           /* Contra un jefe no hay «ganar el combate»: cada duelo vale lo
              mismo, así que manda cuántos se ganan de media. */
-          const k1 = porDuelos ? duelos : p, k0 = salida ? (porDuelos ? salida.duelos : salida.prob) : 0;
+          const dj = porDuelos ? R.danoJefe(trio.map(x => x.gana / 3)) : 0;
+          const k1 = porDuelos ? dj : p, k0 = salida ? (porDuelos ? salida.dj : salida.prob) : 0;
           const mejorQue =
             !salida ||
             k1 > k0 + 1e-12 ||
@@ -218,7 +214,7 @@
                   (fuerza > salida.fuerza ||
                     (fuerza === salida.fuerza && pareo > salida.pareo)))));
           if (mejorQue) {
-            salida = { prob: p, duelos: duelos, fuerza: fuerza, pareo: pareo,
+            salida = { prob: p, dj: dj, duelos: duelos, fuerza: fuerza, pareo: pareo,
                        idx: [a, b, c], puestos: trio };
           }
         }
@@ -304,11 +300,11 @@
     }).join('');
 
     if (jefe) {
-      // duelos ganados de media en un ataque, y lo que eso le quita
+      // duelos ganados de media en un ataque, y lo que le quita el ataque
       const media = ali.duelos / 3;
-      const dano = media * JEFE_DUELO;
+      const dano = ali.dj;
       const ataques = dano > 0 ? Math.ceil(jefe.vida / dano) : 0;
-      const clase = media >= 2 ? 'win-hi' : (media >= 1 ? 'win-mid' : 'win-lo');
+      const clase = dano >= 120 ? 'win-hi' : (dano >= 85 ? 'win-mid' : 'win-lo');
       return `${cabecera}
       <p class="isla-jefe">${t('pve.jefe.d').replace('{v}', num(jefe.vida)).replace('{o}', num(jefe.oro))}</p>
       <h3 class="sub-tit">${esc(t('pve.jefe.dmg'))}</h3>
@@ -365,7 +361,7 @@
     const vidaTot = duelos.reduce((s, d) => s + d.dmg, 0);
     return `<div class="sim-caja">
       <p class="sim-res ${ganados >= 2 ? 'win-hi' : (ganados ? 'win-mid' : 'win-lo')}">
-        ${ganados}/3 · ${esc(t('pve.sim.jefe').replace('{n}', num(ganados * JEFE_DUELO)))}
+        ${ganados}/3 · ${esc(t('pve.sim.jefe').replace('{n}', num(R.danoJefeMarcador(ganados))))}
       </p>
       <div class="duelos">${filas}</div>
       <p class="botin neutro">−${num(vidaTot, 1)} ${esc(t('pve.sim.health'))}</p>

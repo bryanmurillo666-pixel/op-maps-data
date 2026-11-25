@@ -16,6 +16,9 @@
       dice que Mihawk vive en Kuraigana Island y Big Mom en Whole Cake Island; si en
       el mapa nuevo dejan de ser islas aparte, `jefeDe()` de `pve.js` es lo que
       hay que tocar.
+- [ ] **Daño a los jefes por resultado** (150 / 100 / 50): lo dio el usuario
+      el 25 nov 2026 y la guía `v7.7` aún no lo trae. Confirmar con la próxima
+      guía o las notas del juego, y si perder 0-3 vale lo mismo que 1-2.
 - [ ] **Firebase**: la base de la alianza sigue existiendo. Borrarla desde la consola
       si ya no se va a usar.
 

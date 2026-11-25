@@ -108,6 +108,47 @@ las etiquetas de alianza de los rivales, que son dato del juego.
   `_test-viaje`). En `_test-islas` la parte de coordenadas pasa a comprobar
   que lo guardado antes se sigue leyendo. Los ocho que quedan pasan enteros.
 
+### 8. Pestaña nueva: Jefes
+
+Un simulador de los **jefes del mundo**, entre PvE y PvP. Se elige el jefe
+(Mihawk o Big Mom) y se añaden **jugadores**, cada uno con sus tres luchadores,
+la táctica de cada uno (o **Auto**, que elige la que más duelos gana) y el arma
+si la lleva. Sale:
+
+- el **daño por turno** entre todos, con **2 ataques por turno** cada uno (se
+  puede bajar a 1),
+- los **turnos** que hacen falta y el **tiempo estimado** (turnos × 30 min),
+  con un rango sacado de jugar la pelea 400 veces,
+- lo que pone cada jugador, y cuántos turnos aguanta sin curarse (duelos más
+  el 12 % del aura),
+- avisos cuando la pelea dura más de lo que aguantan los luchadores o el casco
+  (el aura lo hunde en el turno 7 sin reparar).
+
+**Añadir mi tripulación** mete tu tripulación guardada con los tres que más
+duelos le ganan a ese jefe. Todo se guarda en el navegador (`opmaps-jefes`).
+Los datos de los jefes pasan a `rules.js` (`R.JEFES`), que comparten el PvE y
+esta pestaña. En el móvil, «Data Crew» se acorta a «Data» para que el menú
+siga cabiendo en dos filas. Banco nuevo `_test-jefes.html` (28 comprobaciones),
+que rehace las cuentas por su lado y las compara con la página.
+
+### 9. El daño a los jefes va por el resultado del ataque
+
+La guía `v7.7` dice que cada duelo ganado le quita `150`. El usuario avisa de
+que **eso cambió en el juego**: ahora va por el resultado del ataque entero.
+
+| Resultado del ataque | Vida que le quitas |
+|---|---|
+| ganas 3-0 | `150` |
+| ganas 2-1 | `100` |
+| pierdes (1-2 o 0-3) | `50` |
+
+Con 2 ataques por turno, como mucho `300` por jugador y turno. Está en
+`R.JEFE_DANO`, con `R.danoJefe()` para el daño medio de un ataque, y lo usan el
+PvE y la pestaña Jefes. Las alineaciones se eligen ahora por el daño medio que
+dan, no por los duelos ganados (un 3-0 vale más que dos 2-1). Los tiempos salen
+bastante más largos que con la regla vieja: perder ya no es cero, pero ganar
+vale mucho menos.
+
 ### Pruebas
 
 Banco nuevo `_test-1130.html` (`55` comprobaciones, todas bien): el puesto en

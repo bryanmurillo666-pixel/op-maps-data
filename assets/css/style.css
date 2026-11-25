@@ -2026,3 +2026,79 @@ input.isla-select::placeholder{color:var(--mist);opacity:.75}
 }
 .isla-jefe b{color:var(--brass)}
 
+
+/* ============================================================
+   Jefes: simulador de los jefes del mundo
+   ============================================================ */
+
+.jef-elige{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;margin-bottom:14px}
+.jef-ataques{display:flex;align-items:center;gap:10px}
+.jef-ataques > span{
+  font-family:var(--mono);font-size:9px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--mist);
+}
+.jef-ataques .seg-ctrl button{min-width:40px}
+.jef-kpi{margin-bottom:10px}
+.jef-tacs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+
+.jef-aviso{
+  margin-top:10px;padding:9px 12px;border-radius:9px;font-size:12.5px;line-height:1.5;
+  background:rgba(193,80,75,.10);border:0.5px solid rgba(193,80,75,.45);color:var(--parch);
+}
+.jef-aviso b{color:var(--blood)}
+
+/* el reparto: una barra por jugador */
+.jef-reparto{display:flex;flex-direction:column;gap:7px}
+.jef-barra{display:grid;grid-template-columns:minmax(80px,150px) 1fr auto;align-items:center;gap:10px}
+.jb-n{font-size:12.5px;color:var(--parch);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jb-track{height:8px;border-radius:999px;background:var(--hull-2);border:0.5px solid var(--line);overflow:hidden}
+.jb-fill{display:block;height:100%;background:var(--brass);border-radius:999px}
+.jb-v{font-family:var(--mono);font-size:11px;color:var(--mist);white-space:nowrap}
+
+.jef-atajos{display:flex;flex-wrap:wrap;gap:8px;margin:-4px 0 6px}
+.jef-atajos .btn-mini{width:auto}
+
+/* cada jugador, con sus tres puestos */
+.jef-jug{
+  margin-top:12px;padding:12px 14px;border-radius:12px;
+  background:var(--hull-2);border:0.5px solid var(--line);
+}
+.jef-jug-cab{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.jef-jug-cab .js-nombre{
+  flex:1;min-width:0;background:none;border:none;border-bottom:0.5px dashed var(--line-str);
+  color:var(--brass);font-family:var(--mono);font-weight:700;font-size:13px;
+  letter-spacing:.08em;text-transform:uppercase;padding:4px 2px;
+}
+.jef-jug-cab .js-nombre:focus{outline:none;border-bottom-color:var(--brass)}
+.jef-slot{
+  display:grid;grid-template-columns:22px minmax(0,2fr) minmax(0,1.2fr) minmax(0,1.2fr) minmax(170px,1.6fr);
+  align-items:center;gap:8px;padding:6px 0;border-top:0.5px solid var(--line);
+}
+.jef-slot .pos{
+  font-family:var(--mono);font-size:11px;color:var(--mist);text-align:center;
+}
+.jef-slot .js-pj{
+  background:var(--sea);border:0.5px solid var(--line-str);border-radius:9px;
+  color:var(--parch);font-size:13px;padding:8px 10px;width:100%;min-width:0;
+}
+.jef-slot .js-pj:focus{outline:2px solid var(--brass);outline-offset:-1px;border-color:transparent}
+.jef-slot .isla-select{font-size:12px;padding:8px 26px 8px 9px}
+.jef-slot .isla-select:disabled{opacity:.45;cursor:default}
+.js-info{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.jef-gana{font-family:var(--mono);font-size:12px;font-weight:700}
+.jef-jug-res{
+  margin:8px 0 0;padding-top:8px;border-top:0.5px solid var(--line);
+  font-size:12px;color:var(--mist);
+}
+.jef-jug-res b{font-family:var(--mono);color:var(--brass);font-size:13px}
+
+@media (max-width:640px){
+  .jef-slot{grid-template-columns:22px 1fr 1fr;grid-template-areas:"pos pj pj" ". tac arma" ". info info"}
+  .jef-slot .pos{grid-area:pos}
+  .jef-slot .js-pj{grid-area:pj}
+  .jef-slot .js-tac{grid-area:tac}
+  .jef-slot .js-arma{grid-area:arma}
+  .jef-slot .js-info{grid-area:info}
+  .jef-barra{grid-template-columns:minmax(70px,110px) 1fr;}
+  .jb-v{grid-column:2}
+}

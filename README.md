@@ -14,10 +14,11 @@ listo. Todo es HTML, CSS y JavaScript sin dependencias.
 
 | Página | Qué hace |
 |---|---|
-| `index.html` | Portada con los seis menús |
+| `index.html` | Portada con los siete menús |
 | `data.html` | Los 226 personajes, en lista o en álbum, y añadir los que falten |
 | `crew.html` | Tu tripulación: poder, velocidad, bonus de rol y a quién sobra |
 | `pve.html` | Las 158 islas con sus enemigos, los dos jefes del mundo, y qué alineación gana en cada una |
+| `jefes.html` | Simulador de los jefes del mundo: varios jugadores contra Mihawk o Big Mom, daño por turno y tiempo para tumbarlo |
 | `pvp.html` | Tu plan de ataque y qué guardias montar contra cada rival |
 | `rivals.html` | Tu libreta de rivales, con código para compartirla |
 | `guide.html` | Toda la información del juego (guía v7.7), en 20 pliegues |

@@ -10,6 +10,7 @@ Estado a **24 de noviembre de 2026**.
 | Álbum del juego (ES/EN) | export | 16 ago 2026 | ✅ 226 personajes verificados. Los 396 enemigos de las islas existen todos. |
 | Islas | `islands.js` | 25 sep 2026 | ✅ mapa de la **temporada 9**: 160 islas (con los dos jefes finales), 133 con enemigos y 27 pendientes. Volcado de `Islas temporada 9 - Island.csv`. Se corrigen en el PvE sin tocar el archivo, y esas correcciones son de cada navegador. |
 | Armas | `rules.js` | 25 sep 2026 | ✅ 4: `Yoru` y `Napoleon` (espadachín), `Zeus` (francotirador), `Prometheus` (capitán). ×1,25 las cuatro. Una por miembro y una de cada por tripulación. El `×1,25` lo **confirma la guía 7.7** para las cuatro. |
+| Daño a jefes | `rules.js` | 25 nov 2026 | ⚠️ por resultado del ataque: 150 (3-0) / 100 (2-1) / 50 (pierdes). Dato del usuario, **más nuevo que la guía 7.7** (que dice 150 por duelo). |
 | Temporadas | — | 24 nov 2026 | ❌ quitadas de Mis rivales a petición del usuario: un rival vuelve a ser solo su nombre. |
 | Tienda | export | 16 ago 2026 | ✅ 14 objetos |
 
